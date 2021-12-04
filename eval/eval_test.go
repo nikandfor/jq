@@ -28,7 +28,7 @@ func testEval(t *testing.T, p Parser, q string, exp, ctx any) {
 		x, err := Parse(p, []byte(q))
 		require.NoError(t, err)
 
-		y, err := Build(x)
+		y, err := Build(ctx, x)
 		assert.NoError(t, err)
 
 		z, err := Eval(ctx, y)

@@ -4,7 +4,7 @@ import "github.com/nikandfor/errors"
 
 type (
 	Builder interface {
-		Build() (any, error)
+		Build(ctx any) (any, error)
 	}
 
 	Conster interface {
@@ -25,9 +25,9 @@ func IsConst(x any) bool {
 	return false
 }
 
-func Build(x any) (y any, err error) {
+func Build(ctx, x any) (y any, err error) {
 	if b, ok := x.(Builder); ok {
-		y, err = b.Build()
+		y, err = b.Build(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "%T", x)
 		}

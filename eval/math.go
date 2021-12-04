@@ -37,12 +37,12 @@ type (
 func (n Math) Parse(p []byte, st int) (any, int, error) {
 	return LeftToRight{
 		New: BinOpNewer,
-		Op:  FirstOf{Const{'+'}, Const{'-'}},
+		Op:  AnyOf{Const{'+'}, Const{'-'}},
 		Of: LeftToRight{
 			New: BinOpNewer,
-			Op:  FirstOf{Const{'*'}, Const{'/'}},
+			Op:  AnyOf{Const{'*'}, Const{'/'}},
 			Of: Spaced(
-				FirstOf{
+				AnyOf{
 					Ident(""),
 					Num{},
 					Parentheses{
@@ -62,8 +62,6 @@ func (n LeftToRight) Parse(p []byte, st int) (l any, i int, err error) {
 	}
 
 	for i < len(p) {
-		i = SkipSpaces(p, i)
-
 		var op any
 		op, i, err = Optional{n.Op}.Parse(p, i)
 		if err != nil {
@@ -150,18 +148,18 @@ loop:
 	return
 }
 
-func (op BinOp) Build() (x any, err error) {
+func (op BinOp) Build(ctx any) (x any, err error) {
 	s, ok := op.Op.(Const)
 	if !ok {
 		return nil, errors.New("unsupported op: %q", op.Op)
 	}
 
-	l, err := Build(op.L)
+	l, err := Build(ctx, op.L)
 	if err != nil {
 		return nil, errors.Wrap(err, "build left")
 	}
 
-	r, err := Build(op.R)
+	r, err := Build(ctx, op.R)
 	if err != nil {
 		return nil, errors.Wrap(err, "build right")
 	}
@@ -257,10 +255,30 @@ func ToTheSameType(ctx, l, r any) (lc, rc any, err error) {
 	*/
 }
 
-func (x Int) Build() (y any, err error) {
+func (x Int) Build(ctx any) (y any, err error) {
 	return strconv.ParseInt(string(x), 10, 64)
 }
 
-func (x Float) Build() (y any, err error) {
+func (x Float) Build(ctx any) (y any, err error) {
 	return strconv.ParseFloat(string(x), 64)
+}
+
+func (x Num) String() string {
+	return "Num"
+}
+
+func (x Int) String() string {
+	if x == nil {
+		return "Int"
+	}
+
+	return string(x)
+}
+
+func (x Float) String() string {
+	if x == nil {
+		return "Float"
+	}
+
+	return string(x)
 }

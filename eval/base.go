@@ -2,6 +2,8 @@ package eval
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 
 	"github.com/nikandfor/errors"
 )
@@ -11,7 +13,7 @@ type (
 
 	Ident []byte
 
-	FirstOf []Parser
+	AnyOf []Parser
 
 	AllOf []Parser
 
@@ -73,9 +75,16 @@ func Spaced(p Parser, skip ...byte) Spacer {
 }
 
 func (n Spacer) Parse(p []byte, st int) (x any, i int, err error) {
-	st = n.Spaces.Skip(p, st)
+	vst := n.Spaces.Skip(p, st)
 
-	return n.Of.Parse(p, st)
+	x, i, err = n.Of.Parse(p, vst)
+	if err != nil {
+		if i == vst {
+			i = st
+		}
+	}
+
+	return
 }
 
 func (n Const) Parse(p []byte, st int) (b any, i int, err error) {
@@ -117,19 +126,15 @@ loop:
 	return Ident(p[st:i]), i, nil
 }
 
-func (n FirstOf) Parse(p []byte, st int) (x any, i int, err error) {
+func (n AnyOf) Parse(p []byte, st int) (x any, i int, err error) {
 	for _, r := range n {
-		x, i, e := r.Parse(p, st)
-		if e == nil {
-			return x, i, nil
-		}
-
-		if err == nil {
-			err = e
+		x, i, err = r.Parse(p, st)
+		if err == nil || i != st {
+			return
 		}
 	}
 
-	return nil, st, err
+	return nil, st, errors.New("expected one of %v", joinHuman(", ", " or ", []Parser(n)...))
 }
 
 func (n AllOf) Parse(p []byte, st int) (x any, i int, err error) {
@@ -156,4 +161,20 @@ func (n Optional) Parse(p []byte, st int) (x any, i int, err error) {
 	}
 
 	return
+}
+
+func joinHuman(sep, last string, l ...Parser) string {
+	var b strings.Builder
+
+	for i, x := range l {
+		if i+1 == len(l) {
+			b.WriteString(last)
+		} else if i != 0 {
+			b.WriteString(sep)
+		}
+
+		fmt.Fprintf(&b, "%v", x)
+	}
+
+	return b.String()
 }

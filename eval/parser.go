@@ -14,6 +14,10 @@ type (
 	}
 )
 
+func ParseString(root Parser, q string) (any, error) {
+	return Parse(root, []byte(q))
+}
+
 func Parse(root Parser, p []byte) (x any, err error) {
 	x, i, err := root.Parse(p, 0)
 	if err != nil {

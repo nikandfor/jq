@@ -1,6 +1,10 @@
 package eval
 
-import "github.com/nikandfor/errors"
+import (
+	"fmt"
+
+	"github.com/nikandfor/errors"
+)
 
 type (
 	FuncCallParser struct {
@@ -54,32 +58,48 @@ func (n ListParser) Parse(p []byte, st int) (x any, i int, err error) {
 
 	i++
 
-	cl := n.Open + 1
+	cl := Closing(n.Open)
 
 	var l List
 
 loop:
 	for {
+		i = SkipSpaces(p, i)
+
+		if p[i] == cl {
+			i++
+			break loop
+		} else if len(l) != 0 {
+			if p[i] == n.Sep {
+				i++
+			} else {
+				return nil, i, errors.New("%q, %q or %v expected", cl, n.Sep, n.Of)
+			}
+		}
+
 		var el any
-		el, i, err = Optional{n.Of}.Parse(p, i)
+		el, i, err = n.Of.Parse(p, i)
 		if err != nil {
 			return nil, i, errors.Wrap(err, "list elem")
 		}
 
-		if el != (None{}) {
-			l = append(l, el)
-		}
-
-		i = SkipSpaces(p, i)
-
-		switch p[i] {
-		case n.Sep:
-			i++
-		case cl:
-			i++
-			break loop
-		}
+		l = append(l, el)
 	}
 
 	return l, i, nil
+}
+
+func (x ListParser) String() string {
+	return fmt.Sprintf("%c %v%c ... %c", x.Open, x.Of, x.Sep, Closing(x.Open))
+}
+
+func Closing(x byte) byte {
+	switch x {
+	case '(':
+		return x + 1
+	case '[', '{', '<':
+		return x + 2
+	default:
+		return x
+	}
 }
