@@ -14,8 +14,17 @@ type (
 	}
 )
 
-func (e *Encoder) Encode(w, r []byte, off int) []byte {
-	tag, sub, i := e.JQ.Decoder.Tag(r, off)
+func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
+	var buf []byte
+	var base int
+
+	if off < len(r0) {
+		buf, base, off = r0, 0, off
+	} else {
+		buf, base, off = r1, len(r0), off-len(r0)
+	}
+
+	tag, sub, i := e.JQ.CBOR.Tag(buf, off)
 
 	switch tag {
 	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String:
@@ -23,27 +32,30 @@ func (e *Encoder) Encode(w, r []byte, off int) []byte {
 			i += int(sub)
 		}
 
-		return append(w, r[off:i]...)
+		return append(w, buf[off:i]...)
 	case cbor.Simple:
 		switch {
 		case sub < cbor.Float8:
-		case sub > cbor.Float64:
-			panic(sub)
-		default:
+		case sub <= cbor.Float64:
 			i += 1 << (sub - cbor.Float8)
+		default:
+			panic(sub)
 		}
 
-		return append(w, r[off:i]...)
+		return append(w, buf[off:i]...)
 	case cbor.Labeled:
-		w = append(w, r[off:i]...)
+		w = append(w, buf[off:i]...)
 
-		return e.Encode(w, r, i)
+		return e.Encode(w, r0, r1, i)
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
 	}
 
-	e.arr = e.JQ.ArrayMap(r, off, e.arr[:0])
+	arrbase := len(e.arr)
+	defer func() { e.arr = e.arr[:arrbase] }()
+
+	e.arr, _ = e.JQ.ArrayMap(buf, base, off, e.arr)
 
 	l := len(e.arr)
 	if tag == cbor.Map {
@@ -52,8 +64,8 @@ func (e *Encoder) Encode(w, r []byte, off int) []byte {
 
 	w = e.CBOR.AppendTag(w, tag, l)
 
-	for _, off := range e.arr {
-		w = e.Encode(w, r, off)
+	for _, off := range e.arr[arrbase:] {
+		w = e.Encode(w, r0, r1, off)
 	}
 
 	return w

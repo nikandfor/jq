@@ -71,50 +71,6 @@ func appendValBuf(w []byte, v any) ([]byte, int) {
 	return w, off
 }
 
-func equal(b *Buffer, loff int, roff int) (res bool) {
-	br := b.Reader()
-
-	//	log.Printf("equal %x %x", loff, roff)
-	//	defer func() { log.Printf("equal %x %x  =>  %v", loff, roff, res) }()
-
-	if loff == roff {
-		return true
-	}
-
-	tag := br.Tag(loff)
-	rtag := br.Tag(roff)
-
-	if tag != rtag {
-		return false
-	}
-
-	switch tag {
-	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple, cbor.Labeled:
-		lraw := br.Raw(loff)
-		rraw := br.Raw(roff)
-
-		return bytes.Equal(lraw, rraw)
-	case cbor.Array, cbor.Map:
-	default:
-		panic(tag)
-	}
-
-	larr := br.ArrayMap(loff, nil)
-	rarr := br.ArrayMap(roff, nil)
-
-	if len(larr) != len(rarr) {
-		return false
-	}
-
-	for i := range larr {
-		if !equal(b, larr[i], rarr[i]) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func assertTrue(tb testing.TB, val bool, args ...any) bool {
 	tb.Helper()
 
@@ -175,7 +131,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) b
 		return false
 	}
 
-	if equal(b, loff, roff) {
+	if b.Equal(loff, roff) {
 		return true
 	}
 

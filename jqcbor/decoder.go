@@ -58,7 +58,8 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 		panic(tag)
 	}
 
-	d.arr = d.arr[:0]
+	arrbase := len(d.arr)
+	defer func() { d.arr = d.arr[:arrbase] }()
 
 	val := 0
 	if tag == cbor.Map {
@@ -76,7 +77,8 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 		}
 	}
 
-	w, off = d.JQ.AppendArrayMap(w, tag, d.arr)
+	off = len(w)
+	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
 
 	return w, off, i, nil
 }

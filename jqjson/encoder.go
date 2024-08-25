@@ -19,16 +19,29 @@ type (
 	}
 )
 
-func (e *Encoder) Append(w, r []byte, off int) []byte {
-	tag, sub, i := e.JQ.Decoder.Tag(r, off)
+func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
+	var buf []byte
+	var base int
+
+	if off < len(r0) {
+		buf, base, off = r0, 0, off
+	} else {
+		buf, base, off = r1, len(r0), off-len(r0)
+	}
+
+	tag := e.JQ.TagOnly(buf, off)
 
 	switch tag {
 	case cbor.Int, cbor.Neg:
-		v, _ := e.JQ.Decoder.Signed(r, off)
+		v, _ := e.JQ.CBOR.Unsigned(buf, off)
 
-		return strconv.AppendInt(w, v, 10)
+		if tag == cbor.Neg {
+			w = append(w, '-')
+		}
+
+		return strconv.AppendUint(w, v, 10)
 	case cbor.String:
-		v, _ := e.JQ.Decoder.Bytes(r, off)
+		v, _ := e.JQ.CBOR.Bytes(buf, off)
 
 		return e.JSON.AppendString(w, v)
 	case cbor.Bytes:
@@ -36,7 +49,7 @@ func (e *Encoder) Append(w, r []byte, off int) []byte {
 			e.Base64 = base64.StdEncoding
 		}
 
-		v, _ := e.JQ.Decoder.Bytes(r, off)
+		v, _ := e.JQ.CBOR.Bytes(buf, off)
 
 		w = append(w, '"')
 		w = e.Base64.AppendEncode(w, v)
@@ -44,26 +57,33 @@ func (e *Encoder) Append(w, r []byte, off int) []byte {
 
 		return w
 	case cbor.Simple:
+		_, sub, _ := e.JQ.CBOR.Tag(buf, off)
+
 		switch sub {
 		case cbor.False, cbor.True, cbor.Null, cbor.Undefined:
 			lit := []string{"false", "true", "null", "null"}[tag&cbor.SubMask-cbor.False]
 
 			return append(w, lit...)
 		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
-			f, _ := e.JQ.Decoder.Float(r, off)
+			f, _ := e.JQ.CBOR.Float(buf, off)
 
 			return strconv.AppendFloat(w, f, 'v', -1, 64)
 		default:
 			panic(sub)
 		}
 	case cbor.Labeled:
-		return e.Append(w, r, i)
+		_, _, i := e.JQ.CBOR.Tag(buf, off)
+
+		return e.Encode(w, r0, r1, i)
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
 	}
 
-	e.arr = e.JQ.ArrayMap(r, off, e.arr[:0])
+	arrbase := len(e.arr)
+	defer func() { e.arr = e.arr[:arrbase] }()
+
+	e.arr, _ = e.JQ.ArrayMap(buf, base, off, e.arr)
 
 	br := byte('[')
 	if tag == cbor.Map {
@@ -72,15 +92,19 @@ func (e *Encoder) Append(w, r []byte, off int) []byte {
 
 	w = append(w, br)
 
-	for j := 0; j < len(e.arr); j++ {
+	for j := arrbase; j < len(e.arr); j++ {
+		if j != arrbase {
+			w = append(w, ',')
+		}
+
 		if tag == cbor.Map {
-			w = e.Append(w, r, e.arr[j])
+			w = e.Encode(w, r0, r1, e.arr[j])
 			j++
 
 			w = append(w, ':')
 		}
 
-		w = e.Append(w, r, e.arr[j])
+		w = e.Encode(w, r0, r1, e.arr[j])
 	}
 
 	w = append(w, br+2)

@@ -24,7 +24,8 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 	next = false
 
 	for {
-		sub, more, err := f.Of.ApplyTo(b, off, len(f.arr) != 0)
+		sub, more, err := f.Of.ApplyTo(b, off, next)
+		next = more
 		if err != nil {
 			return off, false, err
 		}

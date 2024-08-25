@@ -82,7 +82,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 
 		return w, off, i, nil
 	case json.String:
-		w = d.JQ.AppendTag(w, cbor.String, 0)
+		w = d.JQ.CBOR.AppendTag(w, cbor.String, 0)
 
 		st := len(w)
 		w, i, err = d.JSON.DecodeString(r, i, w)
@@ -90,7 +90,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 			return w, off, st, err
 		}
 
-		w = d.JQ.InsertLen(w, cbor.String, st, len(w)-st)
+		w = d.JQ.CBOR.InsertLen(w, cbor.String, st, len(w)-st)
 
 		return w, off, i, nil
 	}
@@ -102,7 +102,8 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 		val = 1
 	}
 
-	d.arr = d.arr[:0]
+	arrbase := len(d.arr)
+	defer func() { d.arr = d.arr[:arrbase] }()
 
 	i, err = d.JSON.Enter(r, i, tp)
 	if err != nil {
@@ -120,7 +121,8 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 		}
 	}
 
-	w, off = d.JQ.AppendArrayMap(w, tag, d.arr)
+	off = len(w)
+	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
 
 	return w, off, i, nil
 }

@@ -36,6 +36,10 @@ func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 
 	//	defer func(off int) { log.Printf("index  %4x -> %4x  from %v", off, res, loc.Caller(1)) }(off)
 
+	if !next {
+		f.stack = f.stack[:0]
+	}
+
 	back := func(fi int) int {
 		//	log.Printf("index %d go back  %v  %+v", fi, next, f.stack)
 		if !next {
@@ -67,13 +71,15 @@ func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 back:
 	for {
 		fi = back(fi)
-		//	log.Printf("index %d back  %4x", fi, off)
+		//	log.Printf("index %d back  %4x %v  %v", fi, off, next, f.stack)
 		if fi < 0 {
 			return None, false, nil
 		}
-
-		if next && len(f.stack) != 0 {
+		if len(f.stack) != 0 {
 			off = f.stack[fi].off
+		}
+		if off < 0 {
+			break
 		}
 
 		for ; fi < len(f.Path); fi++ {
@@ -107,9 +113,8 @@ back:
 
 				//	log.Printf("index %d arr  %x %v -> %x", fi, q, k, off)
 			case Iter:
-				if !next {
-					//	log.Printf("index %d reset", fi)
-					next = f.init()
+				if len(f.stack) == 0 {
+					f.init()
 				}
 
 				if f.stack[fi].i == f.stack[fi].end {
