@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) {
+func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err error) {
 	defer func(l int) {
 		if err == nil {
 			return
@@ -24,7 +24,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 	}(len(w))
 
 	i = st
-	off = len(w)
+	off = base + len(w)
 
 	tag, sub, i := d.CBOR.Tag(r, i)
 
@@ -52,7 +52,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 	case cbor.Labeled:
 		w = append(w, r[st:i]...)
 
-		return d.Decode(w, r, i)
+		return d.Decode(w, r, base, i)
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -68,7 +68,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 
 	for j := 0; sub < 0 && !d.CBOR.Break(r, &i) || j < int(sub); j++ {
 		for v := 0; v <= val; v++ {
-			w, off, i, err = d.Decode(w, r, i)
+			w, off, i, err = d.Decode(w, r, base, i)
 			if err != nil {
 				return
 			}
@@ -77,7 +77,7 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 		}
 	}
 
-	off = len(w)
+	off = base + len(w)
 	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
 
 	return w, off, i, nil

@@ -150,7 +150,22 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			var v []byte
 			v, i = d.Decoder.Bytes(b, i)
 
-			d.b = fmt.Appendf(d.b, "% 02x  %q\n", b[st:i], v)
+			d.b = fmt.Appendf(d.b, "% 02x  ", b[st:i])
+
+			var qq, bq bool
+
+			for _, c := range v {
+				qq = qq || c == '"'
+				bq = bq || c == '`'
+			}
+
+			if qq && !bq {
+				d.b = append(d.b, '`')
+				d.b = append(d.b, v...)
+				d.b = append(d.b, '`', '\n')
+			} else {
+				d.b = fmt.Appendf(d.b, "%q\n", v)
+			}
 		case cbor.Simple:
 			i = d.Decoder.Skip(b, i)
 

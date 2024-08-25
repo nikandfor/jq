@@ -2,8 +2,10 @@ package jqjson
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 
+	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
 )
 
@@ -38,6 +40,38 @@ func TestDecodeEncode(tb *testing.T) {
 }
 
 func TestFilter(tb *testing.T) {
+	data := `{"a":"b","c":"d"}`
+
+	b := func() *jq.Buffer {
+		var r []byte
+		var e jq.Encoder
+
+		r = e.CBOR.AppendTag(r, cbor.String, len(data))
+		r = append(r, data...)
+
+		return jq.NewBuffer(r)
+	}()
+
+	f := jq.NewPipe(
+		NewDecoder(),
+		NewEncoder(),
+	//	NewEncoder(),
+	)
+
+	res, _, err := f.ApplyTo(b, 0, false)
+	assertNoError(tb, err)
+
+	s := b.Reader().Bytes(res)
+
+	if !bytes.Equal([]byte(data), s) {
+		tb.Errorf("not equal (%s) != (%s)", data, s)
+	}
+
+	if tb.Failed() {
+		tb.Logf("hex R\n%s", hex.Dump(b.R))
+		tb.Logf("hex W\n%s", hex.Dump(b.W))
+		tb.Logf("buffer\n%s", jq.DumpBuffer(b))
+	}
 }
 
 func assertNoError(tb testing.TB, err error) {

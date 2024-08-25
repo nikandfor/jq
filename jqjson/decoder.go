@@ -17,6 +17,10 @@ type (
 	}
 )
 
+func NewDecoder() *Decoder {
+	return &Decoder{}
+}
+
 func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
@@ -48,7 +52,7 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 	var raw []byte
 
 	i = st
-	off = len(w)
+	off = base + len(w)
 
 	tp, i, err := d.JSON.Type(r, st)
 	if err != nil {
@@ -136,11 +140,11 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 				return w, off, i, err
 			}
 
-			d.arr = append(d.arr, base+off)
+			d.arr = append(d.arr, off)
 		}
 	}
 
-	off = len(w)
+	off = base + len(w)
 	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
 
 	return w, off, i, nil

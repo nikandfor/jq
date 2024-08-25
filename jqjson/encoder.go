@@ -15,15 +15,35 @@ type (
 		JQ     jq.Decoder
 		Base64 *base64.Encoding
 
+		FilterTag byte
+
 		arr []int
 	}
 )
 
+func NewEncoder() *Encoder {
+	return &Encoder{
+		FilterTag: cbor.String,
+	}
+}
+
 func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	res := b.Writer().Len()
-
 	r0, r1 := b.Unwrap()
+
+	tag := e.FilterTag
+	if tag == 0 {
+		tag = cbor.String
+	}
+
+	var ce cbor.Encoder
+
+	b.W = append(b.W, 0)
+	st := len(b.W)
+
 	b.W = e.Encode(b.W, r0, r1, off)
+
+	b.W = ce.InsertLen(b.W, tag, st, len(b.W)-st)
 
 	return res, false, nil
 }

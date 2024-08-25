@@ -63,7 +63,7 @@ func TestCBOR(tb *testing.T) {
 
 	var d Decoder
 
-	w, off, i, err := d.Decode(nil, data, 0)
+	w, off, i, err := d.Decode(nil, data, 0, 0)
 	assertNoError(tb, err)
 	assertEqual(tb, len(data), i)
 
