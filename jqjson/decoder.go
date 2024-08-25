@@ -17,7 +17,26 @@ type (
 	}
 )
 
-func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) {
+func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+	br := b.Reader()
+	tag := br.Tag(off)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return off, false, jq.ErrType
+	}
+
+	s := br.Bytes(off)
+
+	w, off, _, err := d.Decode(b.W, s, len(b.R), 0)
+	if err != nil {
+		return off, false, err
+	}
+
+	b.W = w
+
+	return off, false, nil
+}
+
+func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err error) {
 	defer func(l int) {
 		if err == nil {
 			return
@@ -112,12 +131,12 @@ func (d *Decoder) Decode(w, r []byte, st int) (_ []byte, off, i int, err error) 
 
 	for d.JSON.ForMore(r, &i, tp, &err) {
 		for v := 0; v <= val; v++ {
-			w, off, i, err = d.Decode(w, r, i)
+			w, off, i, err = d.Decode(w, r, base, i)
 			if err != nil {
 				return w, off, i, err
 			}
 
-			d.arr = append(d.arr, off)
+			d.arr = append(d.arr, base+off)
 		}
 	}
 

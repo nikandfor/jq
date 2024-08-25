@@ -13,5 +13,9 @@ func TestArray(tb *testing.T) {
 	b := NewBuffer(d)
 	f := NewArray(NewIndex(Iter{}, "a"))
 
-	testIter(tb, f, b, root, []any{arr{1, "2", 3, "4"}})
+	testOne(tb, f, b, root, arr{1, "2", 3, "4"})
+
+	if tb.Failed() {
+		tb.Logf("buffer\n%s", DumpBuffer(b))
+	}
 }

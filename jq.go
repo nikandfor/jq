@@ -109,11 +109,11 @@ func (d *Dumper) DumpBuffer(b *Buffer) string {
 
 func (d *Dumper) dumpBuffer(b *Buffer) {
 	d.b = append(d.b, "rbuf\n"...)
-	d.dump(b.r, 0, 0)
+	d.dump(b.R, 0, 0)
 	d.b = append(d.b, "wbuf\n"...)
-	d.dump(b.w, len(b.r), 0)
+	d.dump(b.W, len(b.R), 0)
 
-	d.b = fmt.Appendf(d.b, "%06x\n", len(b.r)+len(b.w))
+	d.b = fmt.Appendf(d.b, "%06x\n", len(b.R)+len(b.W))
 }
 
 func (d *Dumper) dump(b []byte, base, depth int) {

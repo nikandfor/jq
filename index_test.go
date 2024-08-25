@@ -82,7 +82,7 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 	assertTrue(tb, !more, "didn't want more")
 
 	if tb.Failed() {
-		_, file, _, _ := runtime.Caller(1)
-		tb.Logf("from %v", file)
+		_, file, line, _ := runtime.Caller(1)
+		tb.Logf("from %v:%d", file, line)
 	}
 }

@@ -7,12 +7,12 @@ import (
 	"nikand.dev/go/jq"
 )
 
-func TestJSON(tb *testing.T) {
+func TestDecodeEncode(tb *testing.T) {
 	data := []byte(`{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5,6]}]}`)
 
 	var d Decoder
 
-	w, off, i, err := d.Decode(nil, data, 0)
+	w, off, i, err := d.Decode(nil, data, 0, 0)
 	assertNoError(tb, err)
 	assertEqual(tb, len(data), i)
 
@@ -35,6 +35,9 @@ func TestJSON(tb *testing.T) {
 	if tb.Failed() {
 		tb.Logf("res %x -> %x\n%s", off, res, jq.DumpBuffer(b))
 	}
+}
+
+func TestFilter(tb *testing.T) {
 }
 
 func assertNoError(tb testing.TB, err error) {

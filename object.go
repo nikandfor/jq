@@ -57,7 +57,7 @@ func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 
 	//	defer func(off int) { log.Printf("object.Apply %x %v  =>  %x %v", off, next, res, err) }(off)
 
-	reset := bw.Offset()
+	reset := bw.Len()
 	defer bw.ResetIfErr(reset, &err)
 
 	if !next {
@@ -66,7 +66,6 @@ func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 
 	back := func(fi int) int {
 		if !next {
-			next = true
 			return 0
 		}
 
@@ -90,6 +89,8 @@ back:
 		if fi < 0 {
 			return None, false, nil
 		}
+
+		next = true
 
 		for ; fi < 2*len(f.Keys); fi++ {
 			st := f.stack[fi]
@@ -125,7 +126,7 @@ back:
 }
 
 func (f *Object) init() bool {
-	for cap(f.stack) < len(f.Keys)*2 {
+	for cap(f.stack) < 2*len(f.Keys) {
 		f.stack = append(f.stack[:cap(f.stack)], objectState{})
 	}
 

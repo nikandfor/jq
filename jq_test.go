@@ -9,28 +9,35 @@ import (
 )
 
 type (
-	arr []any
-	obj []any
-	lab struct {
+	code int
+	arr  []any
+	obj  []any
+	lab  struct {
 		lab int
 		val any
 	}
 )
 
-func (b *Buffer) appendVal(v any) int {
-	var off int
-	b.w, off = appendValBuf(b.w, v)
-	return len(b.r) + off
+func (b *Buffer) appendVal(v any) (off int) {
+	b.W, off = appendValBuf(b.W, v)
+	if off < 0 {
+		return off
+	}
+
+	return len(b.R) + off
 }
 
 func appendValBuf(w []byte, v any) ([]byte, int) {
 	var e Encoder
 	var a []int
+	var tag byte
 	var lst []any
 
 	off := len(w)
 
 	switch v := v.(type) {
+	case code:
+		return w, int(v)
 	case int:
 		w = e.CBOR.AppendInt(w, v)
 		return w, off
@@ -48,8 +55,10 @@ func appendValBuf(w []byte, v any) ([]byte, int) {
 		w, _ = appendValBuf(w, v.val)
 		return w, off
 	case arr:
+		tag = cbor.Array
 		lst = []any(v)
 	case obj:
+		tag = cbor.Map
 		lst = []any(v)
 	default:
 		panic(v)
@@ -58,11 +67,6 @@ func appendValBuf(w []byte, v any) ([]byte, int) {
 	for _, v := range lst {
 		w, off = appendValBuf(w, v)
 		a = append(a, off)
-	}
-
-	tag := byte(cbor.Array)
-	if _, ok := v.(obj); ok {
-		tag = cbor.Map
 	}
 
 	off = len(w)
@@ -125,8 +129,8 @@ func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
 func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) bool {
 	tb.Helper()
 
-	if loff != roff && loff < 0 || roff < 0 {
-		tb.Errorf("Assertion failed: none/nil != non-none/nil: %d (%#[1]x) %d (%#[2]x)", loff, roff)
+	if loff < 0 && roff < 0 && loff != roff {
+		tb.Errorf("Assertion failed: %d (%#[1]x) != %d (%#[2]x)", loff, roff)
 
 		return false
 	}

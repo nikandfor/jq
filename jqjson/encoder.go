@@ -19,6 +19,15 @@ type (
 	}
 )
 
+func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+	res := b.Writer().Len()
+
+	r0, r1 := b.Unwrap()
+	b.W = e.Encode(b.W, r0, r1, off)
+
+	return res, false, nil
+}
+
 func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 	var buf []byte
 	var base int

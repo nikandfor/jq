@@ -8,7 +8,7 @@ import (
 
 type (
 	Buffer struct {
-		r, w []byte
+		R, W []byte
 
 		Decoder Decoder
 		Encoder Encoder
@@ -23,27 +23,50 @@ type (
 )
 
 func NewBuffer(r []byte) *Buffer {
-	return &Buffer{r: r}
+	return &Buffer{R: r}
 }
 
 func MakeBuffer(r []byte) Buffer {
-	return Buffer{r: r}
+	return Buffer{R: r}
 }
 
 func (b *Buffer) Reset(r []byte) {
-	b.r = r
-	b.w = b.w[:0]
+	b.R = r
+	b.W = b.W[:0]
 }
 
 func (b *Buffer) Reader() BufferReader { return BufferReader{b} }
 func (b *Buffer) Writer() BufferWriter { return BufferWriter{b} }
 
 func (b BufferReader) Tag(off int) byte {
+	switch off {
+	case None:
+		return cbor.Simple
+	case False, True, Nil:
+		return cbor.Simple
+	case Zero, One:
+		return cbor.Int
+	}
+
 	tag, _ := b.Decoder.Tag(b.Buf(off))
 	return tag
 }
 
 func (b BufferReader) Raw(off int) []byte {
+	switch off {
+	case False, True, Nil, None:
+		q := []byte{
+			-None:  cbor.None,
+			-Nil:   cbor.Null,
+			-True:  cbor.True,
+			-False: cbor.False,
+		}
+
+		return []byte{cbor.Simple | q[-off]}
+	case Zero, One:
+		return []byte{cbor.Int | byte(Zero-off)}
+	}
+
 	raw, _ := b.Decoder.Raw(b.Buf(off))
 	return raw
 }
@@ -64,12 +87,12 @@ func (b BufferReader) ArrayMap(off int, arr []int) []int {
 	return arr
 }
 
-func (b BufferWriter) Offset() int {
-	return len(b.r) + len(b.w)
+func (b BufferWriter) Len() int {
+	return len(b.R) + len(b.W)
 }
 
 func (b BufferWriter) Reset(off int) {
-	b.w = b.w[:off-len(b.r)]
+	b.W = b.W[:off-len(b.R)]
 }
 
 func (b BufferWriter) ResetIfErr(off int, errp *error) {
@@ -81,21 +104,21 @@ func (b BufferWriter) ResetIfErr(off int, errp *error) {
 }
 
 func (b BufferWriter) Raw(raw []byte) int {
-	off := b.Offset()
-	b.w = append(b.w, raw...)
+	off := b.Len()
+	b.W = append(b.W, raw...)
 
 	return off
 }
 
 func (b BufferWriter) Array(arr []int) int {
-	off := b.Offset()
-	b.w = b.Encoder.AppendArray(b.w, off, arr)
+	off := b.Len()
+	b.W = b.Encoder.AppendArray(b.W, off, arr)
 	return off
 }
 
 func (b BufferWriter) Map(arr []int) int {
-	off := b.Offset()
-	b.w = b.Encoder.AppendMap(b.w, off, arr)
+	off := b.Len()
+	b.W = b.Encoder.AppendMap(b.W, off, arr)
 	return off
 }
 
@@ -144,21 +167,21 @@ func (b *Buffer) Equal(loff int, roff int) (res bool) {
 }
 
 func (b *Buffer) Buf(off int) ([]byte, int) {
-	if off < len(b.r) {
-		return b.r, off
+	if off < len(b.R) {
+		return b.R, off
 	}
 
-	return b.w, off - len(b.r)
+	return b.W, off - len(b.R)
 }
 
 func (b *Buffer) BufBase(off int) ([]byte, int, int) {
-	if off <= len(b.r) {
-		return b.r, 0, off
+	if off <= len(b.R) {
+		return b.R, 0, off
 	}
 
-	return b.w, len(b.r), off - len(b.r)
+	return b.W, len(b.R), off - len(b.R)
 }
 
 func (b *Buffer) Unwrap() (r0, r1 []byte) {
-	return b.r, b.w
+	return b.R, b.W
 }

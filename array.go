@@ -17,7 +17,7 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 
 	bw := b.Writer()
 
-	reset := bw.Offset()
+	reset := bw.Len()
 	defer bw.ResetIfErr(reset, &err)
 
 	f.arr = f.arr[:0]
