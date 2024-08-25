@@ -12,16 +12,16 @@ func (d Decoder) TagOnly(b []byte, off int) (tag byte) {
 	return b[off] & cbor.TagMask
 }
 
-func (d Decoder) Tag(b []byte, off int) (tag byte, i int) {
+func (d Decoder) Tag(b []byte, off int) (tag byte, sub int64, l, s, i int) {
 	tag = b[off] & cbor.TagMask
 
 	if tag&0b1100_0000 == 0b1000_0000 {
-		tag, _, _, i = d.TagArrayMap(b, off)
+		tag, l, s, i = d.TagArrayMap(b, off)
 	} else {
-		tag, _, i = d.CBOR.Tag(b, off)
+		tag, sub, i = d.CBOR.Tag(b, off)
 	}
 
-	return tag, i
+	return
 }
 
 func (d Decoder) TagArrayMap(b []byte, off int) (tag byte, l, s, i int) {

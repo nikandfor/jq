@@ -14,6 +14,30 @@ type (
 	}
 )
 
+func NewDecoder() *Decoder {
+	return &Decoder{}
+}
+
+func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+	br := b.Reader()
+
+	tag := br.Tag(off)
+	if tag != cbor.String && tag != cbor.Bytes {
+		return off, false, jq.ErrType
+	}
+
+	s := br.Bytes(off)
+
+	w, res, _, err := d.Decode(b.W, s, len(b.R), 0)
+	if err != nil {
+		return off, false, err
+	}
+
+	b.W = w
+
+	return res, false, nil
+}
+
 func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err error) {
 	defer func(l int) {
 		if err == nil {

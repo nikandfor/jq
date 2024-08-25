@@ -48,7 +48,7 @@ func (b BufferReader) Tag(off int) byte {
 		return cbor.Int
 	}
 
-	tag, _ := b.Decoder.Tag(b.Buf(off))
+	tag, _, _, _, _ := b.Decoder.Tag(b.Buf(off))
 	return tag
 }
 

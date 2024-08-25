@@ -28,7 +28,8 @@ func TestDecodeEncode(tb *testing.T) {
 	var e Encoder
 
 	r0, r1 := b.Unwrap()
-	enc := e.Encode(nil, r0, r1, res)
+	enc, err := e.Encode(nil, r0, r1, res)
+	assertNoError(tb, err)
 
 	if !bytes.Equal([]byte(`[1,2,3,4,5,6]`), enc) {
 		tb.Errorf("wanted array of 1 to 6, got %s", enc)

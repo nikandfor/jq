@@ -28,6 +28,8 @@ func NewEncoder() *Encoder {
 }
 
 func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+	var err error
+
 	res := b.Writer().Len()
 	r0, r1 := b.Unwrap()
 
@@ -41,14 +43,18 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	b.W = append(b.W, 0)
 	st := len(b.W)
 
-	b.W = e.Encode(b.W, r0, r1, off)
+	b.W, err = e.Encode(b.W, r0, r1, off)
+	if err != nil {
+		return off, false, err
+	}
 
 	b.W = ce.InsertLen(b.W, tag, st, len(b.W)-st)
 
 	return res, false, nil
 }
 
-func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
+func (e *Encoder) Encode(w, r0, r1 []byte, off int) ([]byte, error) {
+	var err error
 	var buf []byte
 	var base int
 
@@ -68,11 +74,11 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 			w = append(w, '-')
 		}
 
-		return strconv.AppendUint(w, v, 10)
+		return strconv.AppendUint(w, v, 10), nil
 	case cbor.String:
 		v, _ := e.JQ.CBOR.Bytes(buf, off)
 
-		return e.JSON.AppendString(w, v)
+		return e.JSON.AppendString(w, v), nil
 	case cbor.Bytes:
 		if e.Base64 == nil {
 			e.Base64 = base64.StdEncoding
@@ -84,19 +90,21 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 		w = e.Base64.AppendEncode(w, v)
 		w = append(w, '"')
 
-		return w
+		return w, nil
 	case cbor.Simple:
 		_, sub, _ := e.JQ.CBOR.Tag(buf, off)
 
 		switch sub {
-		case cbor.False, cbor.True, cbor.Null, cbor.Undefined:
+		case cbor.False, cbor.True, cbor.Null:
 			lit := []string{"false", "true", "null", "null"}[tag&cbor.SubMask-cbor.False]
 
-			return append(w, lit...)
+			return append(w, lit...), nil
 		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
 			f, _ := e.JQ.CBOR.Float(buf, off)
 
-			return strconv.AppendFloat(w, f, 'v', -1, 64)
+			return strconv.AppendFloat(w, f, 'v', -1, 64), nil
+		case cbor.Undefined, cbor.None:
+			return w, jq.ErrType
 		default:
 			panic(sub)
 		}
@@ -127,16 +135,23 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 		}
 
 		if tag == cbor.Map {
-			w = e.Encode(w, r0, r1, e.arr[j])
+			w, err = e.Encode(w, r0, r1, e.arr[j])
+			if err != nil {
+				return w, err
+			}
+
 			j++
 
 			w = append(w, ':')
 		}
 
-		w = e.Encode(w, r0, r1, e.arr[j])
+		w, err = e.Encode(w, r0, r1, e.arr[j])
+		if err != nil {
+			return w, err
+		}
 	}
 
 	w = append(w, br+2)
 
-	return w
+	return w, nil
 }

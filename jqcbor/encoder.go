@@ -10,11 +10,46 @@ type (
 		CBOR cbor.Encoder
 		JQ   jq.Decoder
 
+		FilterTag byte
+
 		arr []int
 	}
 )
 
-func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
+func NewEncoder() *Encoder {
+	return &Encoder{
+		FilterTag: cbor.String,
+	}
+}
+
+func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+	var err error
+
+	res := b.Writer().Len()
+	r0, r1 := b.Unwrap()
+
+	tag := e.FilterTag
+	if tag == 0 {
+		tag = cbor.String
+	}
+
+	var ce cbor.Encoder
+
+	b.W = append(b.W, 0)
+	st := len(b.W)
+
+	b.W, err = e.Encode(b.W, r0, r1, off)
+	if err != nil {
+		return off, false, err
+	}
+
+	b.W = ce.InsertLen(b.W, tag, st, len(b.W)-st)
+
+	return res, false, nil
+}
+
+func (e *Encoder) Encode(w, r0, r1 []byte, off int) ([]byte, error) {
+	var err error
 	var buf []byte
 	var base int
 
@@ -32,7 +67,7 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 			i += int(sub)
 		}
 
-		return append(w, buf[off:i]...)
+		return append(w, buf[off:i]...), nil
 	case cbor.Simple:
 		switch {
 		case sub < cbor.Float8:
@@ -42,7 +77,7 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 			panic(sub)
 		}
 
-		return append(w, buf[off:i]...)
+		return append(w, buf[off:i]...), nil
 	case cbor.Labeled:
 		w = append(w, buf[off:i]...)
 
@@ -65,8 +100,11 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) []byte {
 	w = e.CBOR.AppendTag(w, tag, l)
 
 	for _, off := range e.arr[arrbase:] {
-		w = e.Encode(w, r0, r1, off)
+		w, err = e.Encode(w, r0, r1, off)
+		if err != nil {
+			return w, err
+		}
 	}
 
-	return w
+	return w, nil
 }

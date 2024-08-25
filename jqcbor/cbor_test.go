@@ -2,13 +2,14 @@ package jqcbor
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
 )
 
-func TestCBOR(tb *testing.T) {
+func TestDecodeEncode(tb *testing.T) {
 	data := func() []byte {
 		// `{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5,6]}]}`
 
@@ -77,7 +78,8 @@ func TestCBOR(tb *testing.T) {
 	var e Encoder
 
 	r0, r1 := b.Unwrap()
-	enc := e.Encode(nil, r0, r1, res)
+	enc, err := e.Encode(nil, r0, r1, res)
+	assertNoError(tb, err)
 
 	if !bytes.Equal([]byte{cbor.Array | 6, 1, 2, 3, 4, 5, 6}, enc) {
 		tb.Errorf("wanted array of 1 to 6, got % x", enc)
@@ -85,6 +87,57 @@ func TestCBOR(tb *testing.T) {
 
 	if tb.Failed() {
 		tb.Logf("res %x -> %x\n%s", off, res, jq.DumpBuffer(b))
+	}
+}
+
+func TestFilter(tb *testing.T) {
+	data := func() []byte {
+		// {"a":"b","c":"d"}
+
+		var e cbor.Encoder
+
+		var b []byte
+
+		b = e.AppendMap(b, 2)
+
+		b = e.AppendString(b, "a")
+		b = e.AppendString(b, "b")
+
+		b = e.AppendString(b, "c")
+		b = e.AppendString(b, "d")
+
+		return b
+	}()
+
+	b := func() *jq.Buffer {
+		var r []byte
+		var e jq.Encoder
+
+		r = e.CBOR.AppendTag(r, cbor.String, len(data))
+		r = append(r, data...)
+
+		return jq.NewBuffer(r)
+	}()
+
+	f := jq.NewPipe(
+		NewDecoder(),
+		NewEncoder(),
+	//	NewEncoder(),
+	)
+
+	res, _, err := f.ApplyTo(b, 0, false)
+	assertNoError(tb, err)
+
+	s := b.Reader().Bytes(res)
+
+	if !bytes.Equal([]byte(data), s) {
+		tb.Errorf("not equal (% x) != (% x)", data, s)
+	}
+
+	if tb.Failed() {
+		tb.Logf("hex R\n%s", hex.Dump(b.R))
+		tb.Logf("hex W\n%s", hex.Dump(b.W))
+		tb.Logf("buffer\n%s", jq.DumpBuffer(b))
 	}
 }
 
