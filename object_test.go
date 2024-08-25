@@ -1,6 +1,8 @@
 package jq
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestObject(tb *testing.T) {
 	d, root := appendValBuf(nil, obj{
@@ -15,7 +17,14 @@ func TestObject(tb *testing.T) {
 	b := NewBuffer(d)
 	f := NewObject("a", NewIndex("a"), NewIndex("a"), NewIndex("f"))
 
-	testIter(tb, f, b, root, []any{obj{"a", "q", "q", arr{2, 3}}})
+	eoff := b.appendVal(obj{"a", "q", "q", arr{2, 3}})
+
+	off, more, err := f.ApplyTo(b, root, false)
+	assertNoError(tb, err)
+	assertEqualVal(tb, b, eoff, off)
+	assertTrue(tb, !more)
+
+	// testIter(tb, f, b, root, []any{obj{"a", "q", "q", arr{2, 3}}})
 }
 
 func TestObjectIter(tb *testing.T) {

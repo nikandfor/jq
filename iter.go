@@ -13,12 +13,12 @@ type (
 
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, err error) {
+func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		return None, ErrType
+		return None, false, ErrType
 	}
 
 	val := 0
@@ -37,10 +37,12 @@ func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, err error) {
 	//	log.Printf("tag %x  off %x  j %d  val %d  of %02x", tag, off, f.j, val, f.arr)
 
 	if f.j == len(f.arr) {
-		return None, nil
+		return None, false, nil
 	}
 
-	return f.arr[f.j+val], nil
+	more = (f.j + 1 + val) < len(f.arr)
+
+	return f.arr[f.j+val], more, nil
 }
 
 func (f Iter) String() string { return "Iter" }

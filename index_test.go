@@ -1,7 +1,6 @@
 package jq
 
 import (
-	"log"
 	"testing"
 
 	"tlog.app/go/loc"
@@ -10,23 +9,25 @@ import (
 func TestIndex(tb *testing.T) {
 	d, root := appendValBuf(nil, obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
-	log.Printf("data %x\n%s", root, Dump(d))
+	//	log.Printf("data %x\n%s", root, Dump(d))
 
 	b := NewBuffer(d)
 
 	f := NewIndex("a")
 	eoff := b.appendVal(1)
 
-	off, err := f.ApplyTo(b, root, false)
+	off, more, err := f.ApplyTo(b, root, false)
 	assertNoError(tb, err)
 	assertEqualVal(tb, b, eoff, off)
+	assertTrue(tb, !more)
 
 	f = NewIndex("b", "c")
 	eoff = b.appendVal(arr{2, "3", obj{"d", 5}, true})
 
-	off, err = f.ApplyTo(b, root, false)
+	off, more, err = f.ApplyTo(b, root, false)
 	assertNoError(tb, err)
 	assertEqualVal(tb, b, eoff, off)
+	assertTrue(tb, !more)
 
 	f = NewIndex("b", "c", Iter{})
 	testIter(tb, f, b, root, []any{2, "3", obj{"d", 5}, true})
@@ -38,7 +39,7 @@ func TestIndexIter(tb *testing.T) {
 		true,
 	})
 
-	log.Printf("data %x\n%s", root, Dump(d))
+	//	log.Printf("data %x\n%s", root, Dump(d))
 
 	b := NewBuffer(d)
 	f := NewIndex(-2, Iter{})
@@ -52,7 +53,7 @@ func TestIndexMultiIter(tb *testing.T) {
 		obj{"q", arr{3, 4}},
 	})
 
-	log.Printf("data %x\n%s", root, Dump(d))
+	//	log.Printf("data %x\n%s", root, Dump(d))
 
 	b := NewBuffer(d)
 	f := NewIndex(Iter{}, "q", Iter{})
@@ -66,15 +67,20 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 
 		eoff := b.appendVal(elem)
 
-		off, err := f.ApplyTo(b, root, j != 0)
+		off, more, err := f.ApplyTo(b, root, j != 0)
 		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v", root, off, eoff, elem)
 		assertNoError(tb, err, "j %d", j)
 		assertEqualVal(tb, b, eoff, off, "j %d  elem %v", j, elem)
+
+		if j < len(vals)-1 {
+			assertTrue(tb, more, "wanted more")
+		}
 	}
 
-	off, err := f.ApplyTo(b, root, true)
+	off, more, err := f.ApplyTo(b, root, true)
 	assertNoError(tb, err, "after")
 	assertEqualOff(tb, None, off, "after")
+	assertTrue(tb, !more, "didn't want more")
 
 	if tb.Failed() {
 		tb.Logf("from %v", loc.Caller(1))

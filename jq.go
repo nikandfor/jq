@@ -10,10 +10,10 @@ import (
 
 type (
 	Filter interface {
-		ApplyTo(b *Buffer, off int, next bool) (int, error)
+		ApplyTo(b *Buffer, off int, next bool) (int, bool, error)
 	}
 
-	FuncFilter func(b *Buffer, off int, next bool) (int, error)
+	FuncFilter func(b *Buffer, off int, next bool) (int, bool, error)
 
 	Dot     struct{}
 	Empty   struct{}
@@ -40,28 +40,28 @@ const (
 
 var ErrType = errors.New("type error")
 
-func (f FuncFilter) ApplyTo(b *Buffer, off int, next bool) (int, error) {
+func (f FuncFilter) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return f(b, off, next)
 }
 
-func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, error) {
+func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
-		return None, nil
+		return None, false, nil
 	}
 
-	return off, nil
+	return off, false, nil
 }
 
-func (f Empty) ApplyTo(b *Buffer, off int, next bool) (int, error) {
-	return None, nil
+func (f Empty) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+	return None, false, nil
 }
 
-func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, error) {
+func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
-		return None, nil
+		return None, false, nil
 	}
 
-	return b.Writer().Raw(f), nil
+	return b.Writer().Raw(f), false, nil
 }
 
 func Dump(b []byte) string {
@@ -74,23 +74,23 @@ func DumpBuffer(b *Buffer) string {
 	return string(d.b)
 }
 
-func (d *Dumper) ApplyTo(b *Buffer, off int, next bool) (int, error) {
+func (d *Dumper) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
-		return None, nil
+		return None, false, nil
 	}
 
 	if d.Writer == nil {
-		return off, nil
+		return off, false, nil
 	}
 
 	d.dumpBuffer(b)
 
 	_, err := d.Writer.Write(d.b)
 	if err != nil {
-		return off, err
+		return off, false, err
 	}
 
-	return off, nil
+	return off, false, nil
 }
 
 func (d *Dumper) Dump(b []byte) string {
@@ -182,6 +182,49 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			depth -= 4
 		}
 	}
+}
+
+func (f Literal) String() string {
+	var d Decoder
+
+	tag := d.TagOnly(f, 0)
+
+	switch tag {
+	case cbor.Int, cbor.Neg:
+		v, i := d.Unsigned(f, 0)
+		if i == len(f) {
+			minus := ""
+			if tag == cbor.Neg {
+				minus = "-"
+			}
+
+			return fmt.Sprintf("%s%d", minus, v)
+		}
+	case cbor.String:
+		v, i := d.Bytes(f, 0)
+		if i == len(f) {
+			return fmt.Sprintf("%q", v)
+		}
+	case cbor.Simple:
+		_, sub, i := d.CBOR.Tag(f, 0)
+		if i != len(f) {
+			break
+		}
+
+		switch sub {
+		case cbor.False:
+			return "false"
+		case cbor.True:
+			return "true"
+		case cbor.Null:
+			return "null"
+		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
+			v, _ := d.Float(f, 0)
+			return fmt.Sprintf("%v", v)
+		}
+	}
+
+	return fmt.Sprintf("Literal(%#x)", []byte(f))
 }
 
 func appendHex(b, a []byte) []byte {

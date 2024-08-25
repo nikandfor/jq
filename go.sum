@@ -6,7 +6,7 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-nikand.dev/go/cbor v0.0.0-20240821135529-d442fea4418f h1:Ij9tgKTzkTO1mV3M9Bf9MnbSwm9t0eiNdb9NNQnAm3I=
-nikand.dev/go/cbor v0.0.0-20240821135529-d442fea4418f/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
-tlog.app/go/loc v0.7.0 h1:G7JnaqgggmTwu87hhMsy+tLd4XxwOS9PPYfJEDTr+Kk=
-tlog.app/go/loc v0.7.0/go.mod h1:j4SIBNrXEK6Hqy/smwt3oRrHfMoSDI6Kg/Jf0GUHWCI=
+nikand.dev/go/cbor v0.0.0-20240825121615-ad433cdfba1d h1:KhXw0/rNn6m0nFoQhKlPioMIfA8BoZswN5i8L4JgVaI=
+nikand.dev/go/cbor v0.0.0-20240825121615-ad433cdfba1d/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
+tlog.app/go/loc v0.7.1-0.20240825121009-73bf5ca82b6e h1:VC00ByLKRBFhNflefPouh/Z6wqcLVGGyzyBM6fbgIig=
+tlog.app/go/loc v0.7.1-0.20240825121009-73bf5ca82b6e/go.mod h1:j4SIBNrXEK6Hqy/smwt3oRrHfMoSDI6Kg/Jf0GUHWCI=

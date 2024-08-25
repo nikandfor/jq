@@ -1,5 +1,10 @@
 package jq
 
+import (
+	"fmt"
+	"strings"
+)
+
 type (
 	Object struct {
 		Keys []ObjectKey
@@ -47,7 +52,7 @@ func NewObject(kvs ...any) *Object {
 	return &Object{Keys: obj}
 }
 
-func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
+func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
 	bw := b.Writer()
 
 	//	defer func(off int) { log.Printf("object.Apply %x %v  =>  %x %v", off, next, res, err) }(off)
@@ -61,11 +66,12 @@ func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
 
 	back := func(fi int) int {
 		if !next {
+			next = true
 			return 0
 		}
 
 		for ; fi >= 0; fi-- {
-			if f.arr[fi] >= 0 {
+			if f.arr[fi] >= 0 && f.stack[fi].next {
 				break
 			}
 
@@ -82,7 +88,7 @@ back:
 		fi = back(fi)
 		//	log.Printf("back %d %v  %x %v", fi, next, f.arr, f.stack)
 		if fi < 0 {
-			return None, nil
+			return None, false, nil
 		}
 
 		for ; fi < 2*len(f.Keys); fi++ {
@@ -97,11 +103,10 @@ back:
 				subf = kv.Value
 			}
 
-			f.arr[fi], err = subf.ApplyTo(b, off, st.next)
+			f.arr[fi], f.stack[fi].next, err = subf.ApplyTo(b, off, st.next)
 			//	log.Printf("obj iter %d: %3x %v => %3x  (bsize %3x)", fi, off, st.next, f.arr[fi], bw.Offset())
-			f.stack[fi].next = true
 			if err != nil {
-				return None, err
+				return None, false, err
 			}
 
 			if f.arr[fi] == None || f.arr[fi] == Nil && fi%2 == 0 {
@@ -114,11 +119,9 @@ back:
 
 	off = bw.Map(f.arr)
 
-	//	log.Printf("object %x  %x", off, f.arr)
-	//	d := Dumper{Writer: os.Stderr}
-	//	d.ApplyTo(b, 0, false)
+	more = back(2*len(f.Keys)-1) >= 0
 
-	return off, nil
+	return off, more, nil
 }
 
 func (f *Object) init() bool {
@@ -135,4 +138,22 @@ func (f *Object) init() bool {
 	f.arr = f.arr[:len(f.stack)]
 
 	return true
+}
+
+func (f Object) String() string {
+	var b strings.Builder
+
+	b.WriteString("Object{")
+
+	for i, kv := range f.Keys {
+		if i != 0 {
+			b.WriteString(", ")
+		}
+
+		fmt.Fprintf(&b, "%v: %v", kv.Key, kv.Value)
+	}
+
+	b.WriteString("}")
+
+	return b.String()
 }

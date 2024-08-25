@@ -11,7 +11,7 @@ func TestIter(tb *testing.T) {
 	for j, exp := range []any{1, 2, "d"} {
 		eoff := b.appendVal(exp)
 
-		off, err := f.ApplyTo(b, root, j != 0)
+		off, more, err := f.ApplyTo(b, root, j != 0)
 		if !assertNoError(tb, err) {
 			break
 		}
@@ -21,9 +21,11 @@ func TestIter(tb *testing.T) {
 		}
 
 		assertEqualVal(tb, b, eoff, off)
+		assertTrue(tb, more == (j < 2))
 	}
 
-	off, err := f.ApplyTo(b, root, true)
+	off, more, err := f.ApplyTo(b, root, true)
 	assertNoError(tb, err)
 	assertEqualOff(tb, None, off)
+	assertTrue(tb, !more)
 }

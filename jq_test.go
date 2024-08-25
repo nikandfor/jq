@@ -122,7 +122,7 @@ func assertTrue(tb testing.TB, val bool, args ...any) bool {
 		return true
 	}
 
-	tb.Errorf("false")
+	tb.Errorf("Assertion failed: false")
 
 	if len(args) != 0 {
 		msg := args[0].(string)
@@ -139,7 +139,7 @@ func assertNoError(tb testing.TB, err error, args ...any) bool {
 		return true
 	}
 
-	tb.Errorf("error: %v", err)
+	tb.Errorf("Assertion failed: error: %v", err)
 
 	if len(args) != 0 {
 		msg := args[0].(string)
@@ -156,7 +156,7 @@ func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
 		return true
 	}
 
-	tb.Errorf("not equal: %x != %x", exp, val)
+	tb.Errorf("Assertion failed: %x is not equal to %x", exp, val)
 
 	if len(args) != 0 {
 		msg := args[0].(string)
@@ -170,7 +170,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) b
 	tb.Helper()
 
 	if loff != roff && loff < 0 || roff < 0 {
-		tb.Errorf("none/nil != non-none/nil: %d (%#[1]x) %d (%#[2]x)", loff, roff)
+		tb.Errorf("Assertion failed: none/nil != non-none/nil: %d (%#[1]x) %d (%#[2]x)", loff, roff)
 
 		return false
 	}
@@ -185,7 +185,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) b
 		Writer: &log,
 	}).ApplyTo(b, 0, false)
 
-	tb.Errorf("not equal %x  %x at\n%s", loff, roff, log.Bytes())
+	tb.Errorf("Assertion failed: %x is not equal to %x, buffer:\n%s", loff, roff, log.Bytes())
 
 	if len(args) != 0 {
 		msg := args[0].(string)

@@ -10,9 +10,9 @@ type (
 
 func NewArray(of Filter) *Array { return &Array{Of: of} }
 
-func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
+func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
 	if next {
-		return None, nil
+		return None, false, nil
 	}
 
 	bw := b.Writer()
@@ -24,19 +24,23 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
 	next = false
 
 	for {
-		sub, err := f.Of.ApplyTo(b, off, next)
+		sub, more, err := f.Of.ApplyTo(b, off, len(f.arr) != 0)
 		if err != nil {
-			return off, err
-		}
-		if sub == None {
-			break
+			return off, false, err
 		}
 
-		f.arr = append(f.arr, sub)
-		next = true
+		if sub != None {
+			f.arr = append(f.arr, sub)
+		}
+
+		if !more {
+			break
+		}
 	}
 
 	off = bw.Array(f.arr)
 
-	return off, nil
+	return off, false, nil
 }
+
+func (f Array) String() string { return "Array" }

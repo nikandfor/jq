@@ -3,6 +3,7 @@ package jq
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"nikand.dev/go/cbor"
 )
@@ -28,7 +29,7 @@ func NewIndex(p ...any) *Index {
 	return &Index{Path: p}
 }
 
-func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
+func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
 	br := b.Reader()
 
 	//	log.Printf("apply index %v to %x %v  state %v\n%s", f.Path, off, next, f.stack, DumpBuffer(b))
@@ -50,16 +51,12 @@ func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, err error) {
 				continue
 			}
 			if st.i != st.end {
-				off = st.off
+				//	off = st.off
 				return fi
 			}
 
 			f.stack[fi] = indexState{off: -1}
 			f.arr = f.arr[:st.st]
-		}
-
-		if fi < 0 {
-			off = None
 		}
 
 		return fi
@@ -72,7 +69,11 @@ back:
 		fi = back(fi)
 		//	log.Printf("index %d back  %4x", fi, off)
 		if fi < 0 {
-			return None, nil
+			return None, false, nil
+		}
+
+		if next && len(f.stack) != 0 {
+			off = f.stack[fi].off
 		}
 
 		for ; fi < len(f.Path); fi++ {
@@ -93,7 +94,7 @@ back:
 			switch k := k.(type) {
 			case string:
 				if tag != cbor.Map {
-					return off, ErrType
+					return off, false, ErrType
 				}
 
 				//	q := off
@@ -135,14 +136,16 @@ back:
 				off = f.arr[f.stack[fi].i+val]
 				f.stack[fi].i += 1 + val
 			default:
-				return off, ErrUnsupportedIndexKey
+				return off, false, ErrUnsupportedIndexKey
 			}
 		}
 
 		break
 	}
 
-	return off, nil
+	more = len(f.stack) > 0 && back(len(f.Path)-1) >= 0
+
+	return off, more, nil
 }
 
 func (f *Index) init() bool {
@@ -185,7 +188,34 @@ func (f *Index) mapKey(b *Buffer, off int, key string) int {
 	return res
 }
 
-func (f Index) String() string { return fmt.Sprintf("Index{%v}", f.Path) }
+func (f Index) String() string {
+	var b strings.Builder
+
+	b.WriteString("Index{")
+
+	if len(f.Path) == 0 {
+		b.WriteByte('.')
+	} else if _, ok := f.Path[0].(string); !ok {
+		b.WriteByte('.')
+	}
+
+	for _, p := range f.Path {
+		switch p := p.(type) {
+		case string:
+			fmt.Fprintf(&b, ".%s", p)
+		case int:
+			fmt.Fprintf(&b, "[%d]", p)
+		case Iter:
+			fmt.Fprintf(&b, "[]")
+		default:
+			fmt.Fprintf(&b, "%v", p)
+		}
+	}
+
+	b.WriteString("}")
+
+	return b.String()
+}
 
 func (s indexState) String() string {
 	return fmt.Sprintf("{off %x, st %x, i %x, end %x, val %x}", s.off, s.st, s.i, s.end, s.val)
