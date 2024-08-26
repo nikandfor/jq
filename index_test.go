@@ -48,7 +48,7 @@ func TestIndexIter(tb *testing.T) {
 func TestIndexMultiIter(tb *testing.T) {
 	d, root := appendValBuf(nil, arr{
 		obj{"q", obj{"a", 1, "b", 2}},
-		obj{"w", -5},
+		obj{"q", arr{}, "w", -5},
 		obj{"q", arr{3, 4}},
 	})
 
@@ -67,19 +67,23 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 		eoff := b.appendVal(elem)
 
 		off, more, err := f.ApplyTo(b, root, j != 0)
-		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v", root, off, eoff, elem)
-		assertNoError(tb, err, "j %d", j)
-		assertEqualVal(tb, b, eoff, off, "j %d  elem %v", j, elem)
+		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v  err %v", root, off, eoff, elem, err)
+		if assertNoError(tb, err, "j %d", j) {
+			assertEqualVal(tb, b, eoff, off, "j %d  elem %v", j, elem)
 
-		if j < len(vals)-1 {
-			assertTrue(tb, more, "wanted more")
+			if j < len(vals)-1 {
+				assertTrue(tb, more, "wanted more")
+			}
+		} else {
+			return
 		}
 	}
 
 	off, more, err := f.ApplyTo(b, root, true)
-	assertNoError(tb, err, "after")
-	assertEqualOff(tb, None, off, "after")
-	assertTrue(tb, !more, "didn't want more")
+	if assertNoError(tb, err, "after") {
+		assertEqualOff(tb, None, off, "after")
+		assertTrue(tb, !more, "didn't want more")
+	}
 
 	if tb.Failed() {
 		_, file, line, _ := runtime.Caller(1)

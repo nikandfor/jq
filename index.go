@@ -51,7 +51,7 @@ func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 
 		for ; fi >= 0; fi-- {
 			st := f.stack[fi]
-			if st.off < 0 {
+			if st.off == None {
 				continue
 			}
 			if st.i != st.end {
@@ -78,19 +78,12 @@ back:
 		if len(f.stack) != 0 {
 			off = f.stack[fi].off
 		}
-		if off < 0 {
+		if off == None {
 			break
 		}
 
 		for ; fi < len(f.Path); fi++ {
 			//	log.Printf("index %d step  off %2x  key %v", fi, off, f.Path[fi])
-			if off == Nil {
-				continue back
-				//	return Nil, nil
-			}
-			if off < 0 {
-				panic(off)
-			}
 
 			tag := br.Tag(off)
 			k := f.Path[fi]
@@ -99,6 +92,9 @@ back:
 
 			switch k := k.(type) {
 			case string:
+				if off == Nil {
+					continue
+				}
 				if tag != cbor.Map {
 					return off, false, ErrType
 				}
@@ -108,11 +104,21 @@ back:
 
 				//	log.Printf("index %d map  %x %v -> %x", fi, q, k, off)
 			case int:
+				if off == Nil {
+					continue
+				}
+				if tag != cbor.Map && tag != cbor.Array {
+					return off, false, ErrType
+				}
 				//	q := off
 				_, off = br.ArrayMapIndex(off, k)
 
 				//	log.Printf("index %d arr  %x %v -> %x", fi, q, k, off)
 			case Iter:
+				if off == Nil || tag != cbor.Map && tag != cbor.Array {
+					return off, false, ErrType
+				}
+
 				if len(f.stack) == 0 {
 					f.init()
 				}
