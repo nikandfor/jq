@@ -6,7 +6,7 @@ import (
 )
 
 func TestIndex(tb *testing.T) {
-	d, root := appendValBuf(nil, obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
+	d, root := appendValBuf(nil, 0, obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
@@ -33,7 +33,7 @@ func TestIndex(tb *testing.T) {
 }
 
 func TestIndexIter(tb *testing.T) {
-	d, root := appendValBuf(nil, arr{
+	d, root := appendValBuf(nil, 0, arr{
 		obj{"a", 1, "b", lab{lab: 4, val: 2}, "c", "d"},
 		true,
 	})
@@ -46,7 +46,7 @@ func TestIndexIter(tb *testing.T) {
 }
 
 func TestIndexMultiIter(tb *testing.T) {
-	d, root := appendValBuf(nil, arr{
+	d, root := appendValBuf(nil, 0, arr{
 		obj{"q", obj{"a", 1, "b", 2}},
 		obj{"q", arr{}, "w", -5},
 		obj{"q", arr{3, 4}},

@@ -31,7 +31,7 @@ type (
 const (
 	_ = -iota
 	None
-	Nil
+	Null
 	True
 	False
 	Zero
@@ -119,7 +119,7 @@ func (d *Dumper) dumpBuffer(b *Buffer) {
 func (d *Dumper) dump(b []byte, base, depth int) {
 	const spaces = "                    "
 
-	for i := 0; i < len(b); {
+	for i := 0; i >= 0 && i < len(b); {
 		st := i
 		tag := d.Decoder.TagOnly(b, i)
 
@@ -168,6 +168,10 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			}
 		case cbor.Simple:
 			i = d.Decoder.Skip(b, i)
+			if i < 0 || i > len(b) {
+				d.b = fmt.Appendf(d.b, "broken string %x:%x / %x", st, i, len(b))
+				break
+			}
 
 			d.b = fmt.Appendf(d.b, "% 02x\n", b[st:i])
 		case cbor.Labeled:
@@ -177,8 +181,13 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			depth += 4
 			continue
 		case cbor.Array, cbor.Map:
+			bb := 0
+			if base >= 0 {
+				bb = base
+			}
+
 			_, l, s, end := d.Decoder.TagArrayMap(b, i)
-			d.arr, i = d.Decoder.ArrayMap(b, base, i, d.arr[:0])
+			d.arr, i = d.Decoder.ArrayMap(b, bb, i, d.arr[:0])
 
 			d.b = fmt.Appendf(d.b, "% 02x  l %2d  s %d\n", b[st:end], l, s)
 

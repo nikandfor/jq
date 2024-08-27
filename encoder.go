@@ -1,6 +1,8 @@
 package jq
 
-import "nikand.dev/go/cbor"
+import (
+	"nikand.dev/go/cbor"
+)
 
 type (
 	Encoder struct {
@@ -27,51 +29,71 @@ func (e Encoder) AppendMap(b []byte, off int, items []int) []byte {
 }
 
 func (e Encoder) AppendArrayMap(b []byte, tag byte, off int, items []int) []byte {
+	//	reset := len(b)
+
 	tagLen := len(items)
 	if tag == cbor.Map {
 		tagLen /= 2
 	}
 
-	min := 0
+	min := off
 
 	for _, item := range items {
+		if item < 0 {
+			continue
+		}
 		if item < min {
 			min = item
 		}
 	}
 
 	d := off - min
+	size := 0x100
 
-	if d < 0x100 && tagLen < 16 {
+	if d < 0x100-offReserve && tagLen < 16 {
 		b = append(b, tag|byte(tagLen))
 
-		for _, it := range items {
-			b = append(b, byte(off-it))
+		for _, item := range items {
+			if item < 0 {
+				b = append(b, byte(size+item))
+				continue
+			}
+
+			b = append(b, byte(off-item))
 		}
+
+		//	log.Printf("append array/map  %x %x  % x -> 0 0   % x", tag, off, items, b[reset:])
 
 		return b
 	}
 
 	var ll, ss byte = 0, 0
 
-	for q := 0x100; tagLen >= q; {
+	for size = 0x100; tagLen >= size; {
 		ll++
-		q = q * q
+		size *= size
 	}
 
-	for q := 0x100; d >= q; {
+	for size = 0x100; d >= size-offReserve; {
 		ss++
-		q = q * q
+		size *= size
 	}
 
-	f := tag | ll<<2 | ss
+	t := tag | 0b0001_0000 | ll<<2 | ss
 
-	b = append(b, f)
+	b = append(b, t)
 	b = e.AppendIntX(b, 1<<ll, tagLen)
 
 	for _, item := range items {
+		if item < 0 {
+			b = e.AppendIntX(b, 1<<ss, size+item)
+			continue
+		}
+
 		b = e.AppendIntX(b, 1<<ss, off-item)
 	}
+
+	//	log.Printf("append array/map  %x %x  % x -> %d %d   % x", tag, off, items, ll, ss, b[reset:])
 
 	return b
 }

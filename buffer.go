@@ -42,7 +42,7 @@ func (b BufferReader) Tag(off int) byte {
 	switch off {
 	case None:
 		return cbor.Simple
-	case False, True, Nil:
+	case False, True, Null:
 		return cbor.Simple
 	case Zero, One:
 		return cbor.Int
@@ -54,10 +54,10 @@ func (b BufferReader) Tag(off int) byte {
 
 func (b BufferReader) Raw(off int) []byte {
 	switch off {
-	case False, True, Nil, None:
+	case False, True, Null, None:
 		q := []byte{
 			-None:  cbor.None,
-			-Nil:   cbor.Null,
+			-Null:  cbor.Null,
 			-True:  cbor.True,
 			-False: cbor.False,
 		}
@@ -125,7 +125,7 @@ func (b BufferWriter) Map(arr []int) int {
 func (b *Buffer) Equal(loff int, roff int) (res bool) {
 	br := b.Reader()
 
-	//	log.Printf("equal %x %x", loff, roff)
+	//	log.Printf("equal %x %x\n%s", loff, roff, DumpBuffer(b))
 	//	defer func() { log.Printf("equal %x %x  =>  %v", loff, roff, res) }()
 
 	if loff == roff {

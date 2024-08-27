@@ -19,40 +19,39 @@ type (
 )
 
 func (b *Buffer) appendVal(v any) (off int) {
-	b.W, off = appendValBuf(b.W, v)
+	b.W, off = appendValBuf(b.W, len(b.R), v)
 	if off < 0 {
 		return off
 	}
 
-	return len(b.R) + off
+	return off
 }
 
-func appendValBuf(w []byte, v any) ([]byte, int) {
+func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 	var e Encoder
 	var a []int
 	var tag byte
 	var lst []any
 
-	off := len(w)
+	off := base + len(w)
 
 	switch v := v.(type) {
 	case code:
 		return w, int(v)
+	case nil:
+		return w, Null
 	case int:
 		w = e.CBOR.AppendInt(w, v)
 		return w, off
 	case string:
 		w = e.CBOR.AppendString(w, v)
 		return w, off
-	case nil:
-		w = e.CBOR.AppendNull(w)
-		return w, off
 	case bool:
 		w = e.CBOR.AppendBool(w, v)
 		return w, off
 	case lab:
 		w = e.CBOR.AppendLabeled(w, v.lab)
-		w, _ = appendValBuf(w, v.val)
+		w, _ = appendValBuf(w, base, v.val)
 		return w, off
 	case arr:
 		tag = cbor.Array
@@ -65,11 +64,11 @@ func appendValBuf(w []byte, v any) ([]byte, int) {
 	}
 
 	for _, v := range lst {
-		w, off = appendValBuf(w, v)
+		w, off = appendValBuf(w, base, v)
 		a = append(a, off)
 	}
 
-	off = len(w)
+	off = base + len(w)
 	w = e.AppendArrayMap(w, tag, off, a)
 
 	return w, off

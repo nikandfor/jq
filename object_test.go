@@ -5,7 +5,7 @@ import (
 )
 
 func TestObject(tb *testing.T) {
-	d, root := appendValBuf(nil, obj{
+	d, root := appendValBuf(nil, 0, obj{
 		"a", "q",
 		"b", 1,
 		"c",
@@ -28,7 +28,7 @@ func TestObject(tb *testing.T) {
 }
 
 func TestObjectIter(tb *testing.T) {
-	d, root := appendValBuf(nil, obj{
+	d, root := appendValBuf(nil, 0, obj{
 		"a", "b",
 		"c",
 		obj{
@@ -49,7 +49,7 @@ func TestObjectIter(tb *testing.T) {
 }
 
 func TestObjectIterMulti(tb *testing.T) {
-	d, root := appendValBuf(nil, obj{
+	d, root := appendValBuf(nil, 0, obj{
 		"a",
 		arr{"q", "w", "e"},
 		"c",

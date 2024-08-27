@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestPipe(tb *testing.T) {
-	d, root := appendValBuf(nil, obj{"a", obj{"b", obj{"c", "d"}}})
+	d, root := appendValBuf(nil, 0, obj{"a", obj{"b", obj{"c", "d"}}})
 	b := NewBuffer(d)
 
 	testOne(tb, NewPipe(NewIndex("a"), NewIndex("b"), NewIndex("c")), b, root, "d")
@@ -12,7 +12,7 @@ func TestPipe(tb *testing.T) {
 		tb.Logf("buffer\n%s", DumpBuffer(b))
 	}
 
-	d, root = appendValBuf(d, "a")
+	d, root = appendValBuf(d, 0, "a")
 	b.Reset(d)
 
 	testIter(tb, NewPipe(
@@ -20,7 +20,7 @@ func TestPipe(tb *testing.T) {
 		NewComma(Dot{}, Dot{}),
 	), b, root, []any{"a", "a", "a", "a"})
 
-	d, root = appendValBuf(d, arr{arr{arr{"a", "b"}, arr{"c", "d"}}})
+	d, root = appendValBuf(d, 0, arr{arr{arr{"a", "b"}, arr{"c", "d"}}})
 	b.Reset(d)
 
 	testIter(tb, NewPipe(

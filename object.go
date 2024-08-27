@@ -110,7 +110,7 @@ back:
 				return None, false, err
 			}
 
-			if f.arr[fi] == None || f.arr[fi] == Nil && fi%2 == 0 {
+			if f.arr[fi] == None /*|| f.arr[fi] == Null && fi%2 == 0*/ {
 				continue back
 			}
 		}

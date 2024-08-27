@@ -1,6 +1,8 @@
 package jq
 
-import "nikand.dev/go/cbor"
+import (
+	"nikand.dev/go/cbor"
+)
 
 type (
 	Decoder struct {
@@ -62,17 +64,25 @@ func (d Decoder) ArrayMapIndex(b []byte, base, off, index int) (k, v int) {
 
 		i := int(off) + 1
 
-		if tag == cbor.Map {
-			return base + off - int(b[i+2*index]), base + off - int(b[i+2*index+1])
+		val := func(j int) int {
+			if b[i+j] >= 0x100-offReserve {
+				return int(b[i+j]) - 0x100
+			}
+
+			return base + off - int(b[i+j])
 		}
 
-		return None, base + off - int(b[i+index])
+		if tag == cbor.Map {
+			return val(2 * index), val(2*index + 1)
+		}
+
+		return None, val(index)
 	}
 
 	llss := b[off] & 0xf
 
 	ls := 1 << (llss >> 2)
-	s := 1 << (llss & 0b11)
+	ss := 1 << (llss & 0b11)
 
 	i := off + 1
 
@@ -86,11 +96,22 @@ func (d Decoder) ArrayMapIndex(b []byte, base, off, index int) (k, v int) {
 		return None, None
 	}
 
-	if tag == cbor.Map {
-		return base + off - d.IntX(b, i+2*s*index, s), base + off - d.IntX(b, 2*s*index+s, s)
+	size := 1 << (8 * ss)
+
+	val := func(j int) int {
+		v := d.IntX(b, i+j*ss, ss)
+		if v >= size-offReserve {
+			return v - size
+		}
+
+		return base + off - v
 	}
 
-	return None, base + off - d.IntX(b, i+index, s)
+	if tag == cbor.Map {
+		return val(2 * index), val(2*index + 1)
+	}
+
+	return None, val(index)
 }
 
 func (d Decoder) ArrayMap(b []byte, base, off int, arr []int) ([]int, int) {
@@ -104,9 +125,19 @@ func (d Decoder) ArrayMap(b []byte, base, off int, arr []int) ([]int, int) {
 
 		i := off + 1
 
-		for j := range l {
-			arr = append(arr, base+off-int(b[i+j]))
+		val := func(j int) int {
+			if b[i+j] >= 0x100-offReserve {
+				return int(b[i+j]) - 0x100
+			}
+
+			return base + off - int(b[i+j])
 		}
+
+		for j := range l {
+			arr = append(arr, val(j))
+		}
+
+		//	log.Printf("decode array/map  %x %x+%x -> % x", tag, base, off, arr)
 
 		return arr, i + l
 	}
@@ -114,7 +145,7 @@ func (d Decoder) ArrayMap(b []byte, base, off int, arr []int) ([]int, int) {
 	llss := b[off] & 0xf
 
 	ls := 1 << (llss >> 2)
-	s := 1 << (llss & 0b11)
+	ss := 1 << (llss & 0b11)
 
 	i := off + 1
 
@@ -125,11 +156,22 @@ func (d Decoder) ArrayMap(b []byte, base, off int, arr []int) ([]int, int) {
 		l *= 2
 	}
 
-	for j := range l {
-		arr = append(arr, base+off-d.IntX(b, i+s*j, s))
+	size := 1 << (8 * ss)
+
+	val := func(j int) int {
+		v := d.IntX(b, i+j*ss, ss)
+		if v >= size-offReserve {
+			return v - size
+		}
+
+		return base + off - v
 	}
 
-	return arr, i + l*s
+	for j := range l {
+		arr = append(arr, val(j))
+	}
+
+	return arr, i + l*ss
 }
 
 func (d Decoder) IntX(b []byte, i, x int) int {

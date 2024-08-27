@@ -92,7 +92,7 @@ back:
 
 			switch k := k.(type) {
 			case string:
-				if off == Nil {
+				if off == Null {
 					continue
 				}
 				if tag != cbor.Map {
@@ -104,7 +104,7 @@ back:
 
 				//	log.Printf("index %d map  %x %v -> %x", fi, q, k, off)
 			case int:
-				if off == Nil {
+				if off == Null {
 					continue
 				}
 				if tag != cbor.Map && tag != cbor.Array {
@@ -115,7 +115,7 @@ back:
 
 				//	log.Printf("index %d arr  %x %v -> %x", fi, q, k, off)
 			case Iter:
-				if off == Nil || tag != cbor.Map && tag != cbor.Array {
+				if off == Null || tag != cbor.Map && tag != cbor.Array {
 					return off, false, ErrType
 				}
 
@@ -178,7 +178,7 @@ func (f *Index) init() bool {
 func (f *Index) mapKey(b *Buffer, off int, key string) int {
 	br := b.Reader()
 	reset := len(f.arr)
-	res := Nil
+	res := Null
 
 	f.arr = br.ArrayMap(off, f.arr)
 	//	log.Printf("mapkey %x %q from %x", off, key, f.arr)

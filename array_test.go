@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestArray(tb *testing.T) {
-	d, root := appendValBuf(nil, arr{
+	d, root := appendValBuf(nil, 0, arr{
 		obj{"a", 1},
 		obj{"a", "2"},
 		obj{"a", 3},
