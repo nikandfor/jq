@@ -17,33 +17,45 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 		return None, false, nil
 	}
 
+	f.arr, err = ApplyGetAll(f.Of, b, off, f.arr[:0])
+	if err != nil {
+		return off, false, err
+	}
+
+	off = b.Writer().Array(f.arr)
+
+	return off, false, nil
+}
+
+func ApplyGetAll(f Filter, b *Buffer, off int, arr []int) (arr0 []int, err error) {
 	bw := b.Writer()
 
-	reset := bw.Len()
-	defer bw.ResetIfErr(reset, &err)
+	defer bw.ResetIfErr(bw.Len(), &err)
+	defer func(reset int) {
+		if err != nil {
+			arr0 = arr0[:reset]
+		}
+	}(len(arr))
 
-	f.arr = f.arr[:0]
-	next = false
+	var sub int
+	next := false
 
 	for {
-		sub, more, err := f.Of.ApplyTo(b, off, next)
-		next = more
+		sub, next, err = f.ApplyTo(b, off, next)
 		if err != nil {
-			return off, false, err
+			return arr, err
 		}
 
 		if sub != None {
-			f.arr = append(f.arr, sub)
+			arr = append(arr, sub)
 		}
 
-		if !more {
+		if !next {
 			break
 		}
 	}
 
-	off = bw.Array(f.arr)
-
-	return off, false, nil
+	return arr, nil
 }
 
 func (f Array) String() string { return fmt.Sprintf("[%v]", f.Of) }

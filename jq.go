@@ -17,6 +17,7 @@ type (
 
 	Dot     struct{}
 	Empty   struct{}
+	First   struct{}
 	Literal []byte
 
 	Dumper struct {
@@ -54,6 +55,19 @@ func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 
 func (f Empty) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return None, false, nil
+}
+
+func (f First) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+	if next {
+		return None, false, nil
+	}
+
+	res, _, err := (&Iter{}).ApplyTo(b, off, false)
+	if err != nil {
+		return res, false, err
+	}
+
+	return res, false, nil
 }
 
 func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
@@ -210,6 +224,7 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 
 func (f Dot) String() string   { return "." }
 func (f Empty) String() string { return "empty" }
+func (f First) String() string { return "first" }
 
 func (f Literal) String() string {
 	var d Decoder
