@@ -14,12 +14,13 @@ func TestLength(tb *testing.T) {
 		"qwerty",
 		[]byte{},
 		[]byte("qwerty"),
+		5, -5,
+		nil,
+		1.0,
+		-1.0,
 	})
 
 	testIter(tb, NewPipe(&Iter{}, Length{}), b, root, []any{
-		0, 3, 0, 3, 0, 6, 0, 6,
+		0, 3, 0, 3, 0, 6, 0, 6, 5, 5, 0, 1.0, 1.0,
 	})
-
-	testError(tb, Length{}, b, b.appendVal(1), ErrType)
-	testError(tb, Length{}, b, b.appendVal(-100), ErrType)
 }

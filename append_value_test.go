@@ -17,6 +17,8 @@ func TestBufferAppendValue(tb *testing.T) {
 		Code(Zero),
 		Raw{cbor.String | 3, 'a', 'b', 'c'},
 		false,
+		1.0,
+		-1.0,
 	})
 
 	tb.Logf("buffer  %x\n%s", off, DumpBuffer(b))

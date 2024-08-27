@@ -10,14 +10,17 @@ import (
 
 type (
 	Filter interface {
-		ApplyTo(b *Buffer, off int, next bool) (int, bool, error)
+		ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error)
 	}
 
 	FuncFilter func(b *Buffer, off int, next bool) (int, bool, error)
 
-	Dot     struct{}
-	Empty   struct{}
-	First   struct{}
+	Dot   struct{}
+	Empty struct{}
+	First struct{}
+	Halt  struct {
+		Err error
+	}
 	Literal []byte
 
 	Dumper struct {
@@ -39,7 +42,10 @@ const (
 	One
 )
 
-var ErrType = errors.New("type error")
+var (
+	ErrType = errors.New("type error")
+	ErrHalt = errors.New("halted")
+)
 
 func (f FuncFilter) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return f(b, off, next)
@@ -68,6 +74,15 @@ func (f First) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	}
 
 	return res, false, nil
+}
+
+func (f Halt) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+	err := f.Err
+	if err == nil {
+		err = ErrHalt
+	}
+
+	return off, false, err
 }
 
 func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
@@ -133,6 +148,17 @@ func (d *Dumper) dumpBuffer(b *Buffer) {
 func (d *Dumper) dump(b []byte, base, depth int) {
 	const spaces = "                    "
 
+	defer func() {
+		p := recover()
+		if p == nil {
+			return
+		}
+
+		defer panic(p)
+
+		d.b = fmt.Appendf(d.b, "panic: %v\n", p)
+	}()
+
 	for i := 0; i >= 0 && i < len(b); {
 		st := i
 		tag := d.Decoder.TagOnly(b, i)
@@ -182,10 +208,6 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			}
 		case cbor.Simple:
 			i = d.Decoder.Skip(b, i)
-			if i < 0 || i > len(b) {
-				d.b = fmt.Appendf(d.b, "broken string %x:%x / %x", st, i, len(b))
-				break
-			}
 
 			d.b = fmt.Appendf(d.b, "% 02x\n", b[st:i])
 		case cbor.Labeled:

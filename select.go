@@ -32,7 +32,7 @@ func (f *Select) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 			return off, false, err
 		}
 
-		if f.IsTrue(b, res) {
+		if IsTrue(b, res) {
 			return off, false, nil
 		}
 		if !next {
@@ -43,7 +43,7 @@ func (f *Select) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 	return None, false, nil
 }
 
-func (f *Select) IsTrue(b *Buffer, off int) bool {
+func IsTrue(b *Buffer, off int) bool {
 	if off < 0 {
 		return off != None && off != Null && off != False
 	}

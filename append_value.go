@@ -46,6 +46,12 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 		return w, Null
 	case raw:
 		return append(w, v...), off
+	case bool:
+		if v {
+			return w, True
+		} else {
+			return w, False
+		}
 	case int:
 		switch v {
 		case 0:
@@ -62,14 +68,9 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 	case []byte:
 		w = e.CBOR.AppendBytes(w, v)
 		return w, off
-	case bool:
-		if v {
-			return w, True
-		} else {
-			return w, False
-		}
-	//	w = e.CBOR.AppendBool(w, v)
-	//	return w, off
+	case float64:
+		w = e.CBOR.AppendFloat(w, v)
+		return w, off
 	case lab:
 		w = e.CBOR.AppendLabeled(w, v.lab)
 		w, _ = appendValBuf(w, base, v.val)

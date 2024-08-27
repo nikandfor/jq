@@ -6,6 +6,8 @@ import (
 
 type (
 	Iter struct {
+		IgnoreTypeError bool
+
 		arr []int
 		j   int
 	}
@@ -18,6 +20,10 @@ func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err err
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
+		if f.IgnoreTypeError {
+			return None, false, nil
+		}
+
 		return None, false, ErrType
 	}
 

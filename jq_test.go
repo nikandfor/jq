@@ -3,7 +3,6 @@ package jq
 import (
 	"bytes"
 	"errors"
-	"reflect"
 	"runtime"
 	"testing"
 )
@@ -124,7 +123,7 @@ func assertNoError(tb testing.TB, err error, args ...any) bool {
 func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
 	tb.Helper()
 
-	if reflect.DeepEqual(exp, val) {
+	if exp == val {
 		return true
 	}
 
@@ -141,23 +140,22 @@ func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
 func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) bool {
 	tb.Helper()
 
-	if loff < 0 && roff < 0 && loff != roff {
-		tb.Errorf("Assertion failed: %d (%#[1]x) != %d (%#[2]x)", loff, roff)
-
-		return false
-	}
-
 	if b.Equal(loff, roff) {
 		return true
 	}
 
-	var log bytes.Buffer
+	if loff < 0 && roff < 0 && loff != roff {
+		tb.Errorf("Assertion failed: %d (%#[1]x) != %d (%#[2]x)", loff, roff)
+	} else {
 
-	(&Dumper{
-		Writer: &log,
-	}).ApplyTo(b, 0, false)
+		var log bytes.Buffer
 
-	tb.Errorf("Assertion failed: %x is not equal to %x, buffer:\n%s", loff, roff, log.Bytes())
+		(&Dumper{
+			Writer: &log,
+		}).ApplyTo(b, 0, false)
+
+		tb.Errorf("Assertion failed: %x is not equal to %x, buffer:\n%s", loff, roff, log.Bytes())
+	}
 
 	if len(args) != 0 {
 		msg := args[0].(string)
