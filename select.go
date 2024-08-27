@@ -54,5 +54,9 @@ func (f *Select) IsTrue(b *Buffer, off int) bool {
 }
 
 func (f Select) String() string {
-	return fmt.Sprintf("Select(%v)", f.Cond)
+	if f.Cond == nil {
+		return "select(.)"
+	}
+
+	return fmt.Sprintf("select(%v)", f.Cond)
 }

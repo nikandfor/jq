@@ -18,6 +18,8 @@ type (
 		Value Filter
 	}
 
+	ObjectCopyKey string
+
 	objectState struct {
 		next bool
 	}
@@ -27,9 +29,9 @@ func NewObject(kvs ...any) *Object {
 	var e Encoder
 	var b []byte
 
-	obj := make([]ObjectKey, len(kvs)/2)
+	obj := make([]ObjectKey, 0, len(kvs)/2)
 
-	for i := 0; i < len(kvs); i += 2 {
+	for i := 0; i < len(kvs); {
 		var key Filter
 
 		if k, ok := kvs[i].(string); ok {
@@ -37,16 +39,31 @@ func NewObject(kvs ...any) *Object {
 			b = e.AppendString(b, k)
 
 			key = Literal(b[st:])
+		} else if s, ok := kvs[i].(ObjectCopyKey); ok {
+			st := len(b)
+			b = e.AppendString(b, string(s))
+
+			key = Literal(b[st:])
+
+			obj = append(obj, ObjectKey{
+				Key:   key,
+				Value: NewIndex(string(s)),
+			})
+
+			i++
+			continue
 		} else if k, ok := kvs[i].(Filter); ok {
 			key = k
 		} else {
 			panic(kvs[i])
 		}
 
-		obj[i/2] = ObjectKey{
+		obj = append(obj, ObjectKey{
 			Key:   key,
 			Value: kvs[i+1].(Filter),
-		}
+		})
+
+		i += 2
 	}
 
 	return &Object{Keys: obj}
@@ -144,7 +161,8 @@ func (f *Object) init() bool {
 func (f Object) String() string {
 	var b strings.Builder
 
-	b.WriteString("Object{")
+	//	b.WriteString("Object{")
+	b.WriteString("{")
 
 	for i, kv := range f.Keys {
 		if i != 0 {

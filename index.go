@@ -202,7 +202,7 @@ func (f *Index) mapKey(b *Buffer, off int, key string) int {
 func (f Index) String() string {
 	var b strings.Builder
 
-	b.WriteString("Index{")
+	//	b.WriteString("Index{")
 
 	if len(f.Path) == 0 {
 		b.WriteByte('.')
@@ -223,7 +223,7 @@ func (f Index) String() string {
 		}
 	}
 
-	b.WriteString("}")
+	//	b.WriteString("}")
 
 	return b.String()
 }

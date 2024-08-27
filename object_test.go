@@ -5,7 +5,8 @@ import (
 )
 
 func TestObject(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, obj{
+	b := NewBuffer(nil)
+	root := b.appendVal(obj{
 		"a", "q",
 		"b", 1,
 		"c",
@@ -14,17 +15,9 @@ func TestObject(tb *testing.T) {
 		arr{2, 3},
 	})
 
-	b := NewBuffer(d)
 	f := NewObject("a", NewIndex("a"), NewIndex("a"), NewIndex("f"))
 
-	eoff := b.appendVal(obj{"a", "q", "q", arr{2, 3}})
-
-	off, more, err := f.ApplyTo(b, root, false)
-	assertNoError(tb, err)
-	assertEqualVal(tb, b, eoff, off)
-	assertTrue(tb, !more)
-
-	// testIter(tb, f, b, root, []any{obj{"a", "q", "q", arr{2, 3}}})
+	testOne(tb, f, b, root, obj{"a", "q", "q", arr{2, 3}})
 }
 
 func TestObjectIter(tb *testing.T) {
@@ -72,4 +65,17 @@ func TestObjectIterMulti(tb *testing.T) {
 		obj{"a", "e", "e", "val1"},
 		obj{"a", "e", "e", "val2"},
 	})
+}
+
+func TestObjectCopyKeys(tb *testing.T) {
+	b := NewBuffer(nil)
+	root := b.appendVal(obj{"a", 1, "b", 2})
+
+	f := NewObject(
+		ObjectCopyKey("a"),
+		ObjectCopyKey("b"),
+		ObjectCopyKey("c"),
+	)
+
+	testOne(tb, f, b, root, obj{"a", 1, "b", 2, "c", nil})
 }

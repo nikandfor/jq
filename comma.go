@@ -46,7 +46,7 @@ func (f *Comma) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 
 func (f Comma) String() string {
 	if len(f.Filters) == 0 {
-		return "Comma()"
+		return ""
 	}
 
 	var b strings.Builder

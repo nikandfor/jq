@@ -208,6 +208,9 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 	}
 }
 
+func (f Dot) String() string   { return "." }
+func (f Empty) String() string { return "empty" }
+
 func (f Literal) String() string {
 	var d Decoder
 

@@ -61,6 +61,8 @@ func TestIndexMultiIter(tb *testing.T) {
 }
 
 func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
+	tb.Logf("filter: %v", f)
+
 	for j, elem := range vals {
 		//	log.Printf("testIter  j %x  root %x", j, root)
 

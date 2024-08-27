@@ -25,6 +25,8 @@ func TestComma(tb *testing.T) {
 }
 
 func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
+	tb.Logf("filter: %v", f)
+
 	eoff := b.appendVal(val)
 
 	off, more, err := f.ApplyTo(b, root, false)

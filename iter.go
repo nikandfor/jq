@@ -45,4 +45,4 @@ func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err err
 	return f.arr[f.j+val], more, nil
 }
 
-func (f Iter) String() string { return "Iter" }
+func (f Iter) String() string { return ".[]" }
