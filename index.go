@@ -12,6 +12,8 @@ type (
 	Index struct {
 		Path []any
 
+		IgnoreTypeError bool
+
 		stack []indexState
 		arr   []int
 	}
@@ -83,6 +85,9 @@ back:
 		}
 
 		for ; fi < len(f.Path); fi++ {
+			if off == Null {
+				break
+			}
 			//	log.Printf("index %d step  off %2x  key %v", fi, off, f.Path[fi])
 
 			tag := br.Tag(off)
@@ -94,6 +99,10 @@ back:
 			case string:
 				if off == Null {
 					continue
+				}
+				if tag != cbor.Map && f.IgnoreTypeError {
+					off = Null
+					break
 				}
 				if tag != cbor.Map {
 					return off, false, ErrType

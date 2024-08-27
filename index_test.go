@@ -1,16 +1,14 @@
 package jq
 
 import (
-	"runtime"
 	"testing"
 )
 
 func TestIndex(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
+	b := NewBuffer(nil)
+	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
-
-	b := NewBuffer(d)
 
 	f := NewIndex("a")
 	eoff := b.appendVal(1)
@@ -33,20 +31,21 @@ func TestIndex(tb *testing.T) {
 }
 
 func TestIndexIter(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, arr{
+	b := NewBuffer(nil)
+	root := b.appendVal(arr{
 		obj{"a", 1, "b", lab{lab: 4, val: 2}, "c", "d"},
 		true,
 	})
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
-	b := NewBuffer(d)
 	f := NewIndex(-2, Iter{})
 	testIter(tb, f, b, root, []any{1, lab{lab: 4, val: 2}, "d"})
 }
 
 func TestIndexMultiIter(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, arr{
+	b := NewBuffer(nil)
+	root := b.appendVal(arr{
 		obj{"q", obj{"a", 1, "b", 2}},
 		obj{"q", arr{}, "w", -5},
 		obj{"q", arr{3, 4}},
@@ -54,41 +53,27 @@ func TestIndexMultiIter(tb *testing.T) {
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
-	b := NewBuffer(d)
 	f := NewIndex(Iter{}, "q", Iter{})
 
 	testIter(tb, f, b, root, []any{1, 2, 3, 4})
 }
 
-func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
-	tb.Logf("filter: %v", f)
+func TestIndexIgnoreTypeError(tb *testing.T) {
+	b := NewBuffer(nil)
+	root := b.appendVal(obj{"a", "b"})
 
-	for j, elem := range vals {
-		//	log.Printf("testIter  j %x  root %x", j, root)
+	testOne(tb, NewIndex("a"), b, root, "b")
+	testOne(tb, NewIndex("q"), b, root, nil)
 
-		eoff := b.appendVal(elem)
+	root = b.appendVal(arr{"a", "b"})
 
-		off, more, err := f.ApplyTo(b, root, j != 0)
-		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v  err %v", root, off, eoff, elem, err)
-		if assertNoError(tb, err, "j %d", j) {
-			assertEqualVal(tb, b, eoff, off, "j %d  elem %v", j, elem)
+	f := NewIndex("a")
+	f.IgnoreTypeError = true
 
-			if j < len(vals)-1 {
-				assertTrue(tb, more, "wanted more")
-			}
-		} else {
-			return
-		}
-	}
+	testOne(tb, f, b, root, nil)
 
-	off, more, err := f.ApplyTo(b, root, true)
-	if assertNoError(tb, err, "after") {
-		assertEqualOff(tb, None, off, "after")
-		assertTrue(tb, !more, "didn't want more")
-	}
+	f = NewIndex("a")
+	f.IgnoreTypeError = false
 
-	if tb.Failed() {
-		_, file, line, _ := runtime.Caller(1)
-		tb.Logf("from %v:%d", file, line)
-	}
+	testError(tb, f, b, root, ErrType)
 }

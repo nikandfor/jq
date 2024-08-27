@@ -1,7 +1,6 @@
 package jq
 
 import (
-	"runtime"
 	"testing"
 )
 
@@ -22,20 +21,4 @@ func TestComma(tb *testing.T) {
 	testIter(tb, NewComma(NewIndex(1, Iter{}), NewIndex(0, Iter{})), b, root, []any{1, 2, 3, 4})
 
 	// tb.Logf("buffer\n%s", DumpBuffer(b))
-}
-
-func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
-	tb.Logf("filter: %v", f)
-
-	eoff := b.appendVal(val)
-
-	off, more, err := f.ApplyTo(b, root, false)
-	assertNoError(tb, err)
-	assertEqualVal(tb, b, eoff, off, "wanted %v", val)
-	assertTrue(tb, !more, "didn't want more")
-
-	if tb.Failed() {
-		_, file, line, _ := runtime.Caller(1)
-		tb.Logf("from %v:%d", file, line)
-	}
 }
