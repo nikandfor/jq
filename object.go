@@ -169,7 +169,14 @@ func (f Object) String() string {
 			b.WriteString(", ")
 		}
 
-		fmt.Fprintf(&b, "%v: %v", kv.Key, kv.Value)
+		switch k := kv.Key.(type) {
+		case Literal:
+			fmt.Fprintf(&b, "%v", k)
+		default:
+			fmt.Fprintf(&b, "(%v)", kv.Key)
+		}
+
+		fmt.Fprintf(&b, ": %v", kv.Value)
 	}
 
 	b.WriteString("}")

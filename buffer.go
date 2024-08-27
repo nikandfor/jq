@@ -232,24 +232,40 @@ func (b BufferWriter) TagBytes(tag byte, v []byte) int {
 }
 
 func (b BufferWriter) Int(v int) int {
+	if v == 0 || v == 1 {
+		return Zero - v
+	}
+
 	off := b.Len()
 	b.W = b.Encoder.AppendInt(b.W, v)
 	return off
 }
 
 func (b BufferWriter) Int64(v int64) int {
+	if v == 0 || v == 1 {
+		return Zero - int(v)
+	}
+
 	off := b.Len()
 	b.W = b.Encoder.AppendInt64(b.W, v)
 	return off
 }
 
 func (b BufferWriter) Uint(v uint) int {
+	if v == 0 || v == 1 {
+		return Zero - int(v)
+	}
+
 	off := b.Len()
 	b.W = b.Encoder.AppendUint(b.W, v)
 	return off
 }
 
 func (b BufferWriter) Uint64(v uint64) int {
+	if v == 0 || v == 1 {
+		return Zero - int(v)
+	}
+
 	off := b.Len()
 	b.W = b.Encoder.AppendUint64(b.W, v)
 	return off

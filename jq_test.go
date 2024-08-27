@@ -58,6 +58,9 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 	case string:
 		w = e.CBOR.AppendString(w, v)
 		return w, off
+	case []byte:
+		w = e.CBOR.AppendBytes(w, v)
+		return w, off
 	case bool:
 		if v {
 			return w, True
