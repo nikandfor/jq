@@ -1,5 +1,7 @@
 package jq
 
+import "fmt"
+
 type (
 	Array struct {
 		Of Filter
@@ -44,4 +46,4 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 	return off, false, nil
 }
 
-func (f Array) String() string { return "Array" }
+func (f Array) String() string { return fmt.Sprintf("[%v]", f.Of) }

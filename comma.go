@@ -1,5 +1,10 @@
 package jq
 
+import (
+	"fmt"
+	"strings"
+)
+
 type (
 	Comma struct {
 		Filters []Filter
@@ -37,4 +42,26 @@ func (f *Comma) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 	}
 
 	return res, f.j < len(f.Filters), nil
+}
+
+func (f Comma) String() string {
+	if len(f.Filters) == 0 {
+		return "Comma()"
+	}
+
+	var b strings.Builder
+
+	_ = b.WriteByte('(')
+
+	for i, sub := range f.Filters {
+		if i != 0 {
+			_, _ = b.WriteString(", ")
+		}
+
+		_, _ = fmt.Fprintf(&b, "%v", sub)
+	}
+
+	_ = b.WriteByte(')')
+
+	return b.String()
 }

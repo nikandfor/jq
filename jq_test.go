@@ -12,6 +12,7 @@ type (
 	code int
 	arr  []any
 	obj  []any
+	raw  []byte
 	lab  struct {
 		lab int
 		val any
@@ -40,15 +41,29 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 		return w, int(v)
 	case nil:
 		return w, Null
+	case raw:
+		return append(w, v...), off
 	case int:
+		switch v {
+		case 0:
+			return w, Zero
+		case 1:
+			return w, One
+		}
+
 		w = e.CBOR.AppendInt(w, v)
 		return w, off
 	case string:
 		w = e.CBOR.AppendString(w, v)
 		return w, off
 	case bool:
-		w = e.CBOR.AppendBool(w, v)
-		return w, off
+		if v {
+			return w, True
+		} else {
+			return w, False
+		}
+	//	w = e.CBOR.AppendBool(w, v)
+	//	return w, off
 	case lab:
 		w = e.CBOR.AppendLabeled(w, v.lab)
 		w, _ = appendValBuf(w, base, v.val)

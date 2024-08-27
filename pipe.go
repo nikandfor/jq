@@ -2,6 +2,7 @@ package jq
 
 import (
 	"fmt"
+	"strings"
 )
 
 type (
@@ -98,3 +99,25 @@ func (f *Pipe) init(off int) {
 }
 
 func (s pipeState) String() string { return fmt.Sprintf("{%x %v}", s.off, s.next) }
+
+func (f Pipe) String() string {
+	if len(f.Filters) == 0 {
+		return "Pipe()"
+	}
+
+	var b strings.Builder
+
+	_ = b.WriteByte('(')
+
+	for i, sub := range f.Filters {
+		if i != 0 {
+			_, _ = b.WriteString(" | ")
+		}
+
+		_, _ = fmt.Fprintf(&b, "%v", sub)
+	}
+
+	_ = b.WriteByte(')')
+
+	return b.String()
+}

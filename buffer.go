@@ -71,6 +71,46 @@ func (b BufferReader) Raw(off int) []byte {
 	return raw
 }
 
+func (b BufferReader) IsSimple(off int, specials ...int) (ok bool) {
+	if off < 0 {
+		for _, v := range specials {
+			ok = ok || v == off
+		}
+
+		return ok
+	}
+
+	bits := 0
+
+	for _, v := range specials {
+		bits |= 1 << -v
+	}
+
+	tag, sub, _, _, _ := b.Decoder.Tag(b.Buf(off))
+
+	if tag == cbor.Int {
+		x := []int{
+			0: -Zero,
+			1: -One,
+		}
+
+		return int(sub) < len(x) && bits&(1<<x[sub]) != 0
+	}
+
+	if tag == cbor.Simple {
+		x := []int{
+			cbor.None:  -None,
+			cbor.Null:  -Null,
+			cbor.True:  -True,
+			cbor.False: -False,
+		}
+
+		return int(sub) < len(x) && bits&(1<<x[sub]) != 0
+	}
+
+	return false
+}
+
 func (b BufferReader) Bytes(off int) []byte {
 	s, _ := b.Decoder.Bytes(b.Buf(off))
 	return s
@@ -175,7 +215,7 @@ func (b *Buffer) Buf(off int) ([]byte, int) {
 }
 
 func (b *Buffer) BufBase(off int) ([]byte, int, int) {
-	if off <= len(b.R) {
+	if off < len(b.R) {
 		return b.R, 0, off
 	}
 
