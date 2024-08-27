@@ -3,10 +3,10 @@ package jq
 import "nikand.dev/go/cbor"
 
 type (
-	Arr  = arr
-	Code = code
-	Obj  = obj
-	Raw  = raw
+	Arr = arr
+	Off = code
+	Obj = obj
+	Raw = raw
 
 	code int
 	arr  []any

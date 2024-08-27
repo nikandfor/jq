@@ -20,6 +20,20 @@ func testError(tb testing.TB, f Filter, b *Buffer, root int, experr error) {
 	}
 }
 
+func testSame(tb testing.TB, f Filter, b *Buffer, root int, eoff int) {
+	tb.Logf("filter: %v", f)
+
+	off, more, err := f.ApplyTo(b, root, false)
+	assertNoError(tb, err)
+	assertEqualOff(tb, eoff, off)
+	assertTrue(tb, !more, "didn't want more")
+
+	if tb.Failed() {
+		_, file, line, _ := runtime.Caller(1)
+		tb.Logf("from %v:%d", file, line)
+	}
+}
+
 func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
 	tb.Logf("filter: %v", f)
 
