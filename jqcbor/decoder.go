@@ -8,7 +8,6 @@ import (
 type (
 	Decoder struct {
 		CBOR cbor.Decoder
-		JQ   jq.Encoder
 
 		arr []int
 	}
@@ -22,61 +21,50 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
-	if tag != cbor.String && tag != cbor.Bytes {
+	if tag != cbor.Bytes && tag != cbor.String {
 		return off, false, jq.ErrType
 	}
 
 	s := br.Bytes(off)
 
-	w, res, _, err := d.Decode(b.W, s, len(b.R), 0)
+	res, _, err := d.Decode(b, s, 0)
 	if err != nil {
 		return off, false, err
 	}
 
-	b.W = w
-
 	return res, false, nil
 }
 
-func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err error) {
-	defer func(l int) {
-		if err == nil {
-			return
-		}
+func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error) {
+	bw := b.Writer()
 
-		w = w[:l]
-	}(len(w))
+	reset := bw.Len()
+	defer bw.ResetIfErr(reset, &err)
 
-	i = st
-	off = base + len(w)
-
-	tag, sub, i := d.CBOR.Tag(r, i)
+	tag, sub, i := d.CBOR.Tag(r, st)
 
 	switch tag {
-	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String:
+	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple:
+		switch r[st] {
+		case cbor.Int | 0:
+			return jq.Zero, i, nil
+		case cbor.Int | 1:
+			return jq.One, i, nil
+		case cbor.Simple | cbor.Null:
+			return jq.Null, i, nil
+		case cbor.Simple | cbor.True:
+			return jq.True, i, nil
+		case cbor.Simple | cbor.False:
+			return jq.False, i, nil
+		}
+
 		if tag == cbor.Bytes || tag == cbor.String {
 			i += int(sub)
 		}
 
-		w = append(w, r[st:i]...)
+		off = bw.Raw(r[st:i])
 
-		return w, off, i, nil
-	case cbor.Simple:
-		switch {
-		case sub < cbor.Float8:
-		case sub > cbor.Float64:
-			panic(sub)
-		default:
-			i += 1 << (sub - cbor.Float8)
-		}
-
-		w = append(w, r[st:i]...)
-
-		return w, off, i, nil
-	case cbor.Labeled:
-		w = append(w, r[st:i]...)
-
-		return d.Decode(w, r, base, i)
+		return off, i, nil
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -90,9 +78,9 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 		val = 1
 	}
 
-	for j := 0; sub < 0 && !d.CBOR.Break(r, &i) || j < int(sub); j++ {
+	for j := 0; j < int(sub) || sub < 0 && !d.CBOR.Break(r, &i); j++ {
 		for v := 0; v <= val; v++ {
-			w, off, i, err = d.Decode(w, r, base, i)
+			off, i, err = d.Decode(b, r, i)
 			if err != nil {
 				return
 			}
@@ -101,8 +89,7 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 		}
 	}
 
-	off = base + len(w)
-	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
+	off = bw.ArrayMap(tag, d.arr[arrbase:])
 
-	return w, off, i, nil
+	return off, i, nil
 }

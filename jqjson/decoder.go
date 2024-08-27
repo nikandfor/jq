@@ -11,7 +11,6 @@ import (
 type (
 	Decoder struct {
 		JSON json.Decoder
-		JQ   jq.Encoder
 
 		arr []int
 	}
@@ -23,6 +22,7 @@ func NewDecoder() *Decoder {
 
 func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	br := b.Reader()
+
 	tag := br.Tag(off)
 	if tag != cbor.Bytes && tag != cbor.String {
 		return off, false, jq.ErrType
@@ -30,33 +30,25 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 
 	s := br.Bytes(off)
 
-	w, off, _, err := d.Decode(b.W, s, len(b.R), 0)
+	res, _, err := d.Decode(b, s, 0)
 	if err != nil {
 		return off, false, err
 	}
 
-	b.W = w
-
-	return off, false, nil
+	return res, false, nil
 }
 
-func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err error) {
-	defer func(l int) {
-		if err == nil {
-			return
-		}
+func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error) {
+	bw := b.Writer()
 
-		w = w[:l]
-	}(len(w))
-
-	var raw []byte
+	reset := bw.Len()
+	defer bw.ResetIfErr(reset, &err)
 
 	i = st
-	off = base + len(w)
 
 	tp, i, err := d.JSON.Type(r, st)
 	if err != nil {
-		return w, -1, i, err
+		return -1, i, err
 	}
 
 	switch tp {
@@ -65,21 +57,23 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 
 		i, err = d.JSON.Skip(r, i)
 		if err != nil {
-			return w, off, st, err
+			return off, st, err
 		}
 
 		switch c {
 		case 'n':
-			w = d.JQ.AppendNull(w)
-		case 't', 'f':
-			w = d.JQ.AppendBool(w, c == 't')
+			return jq.Null, i, nil
+		case 't':
+			return jq.True, i, nil
+		case 'f':
+			return jq.False, i, nil
 		}
 
-		return w, off, i, nil
+		panic(c)
 	case json.Number:
-		raw, i, err = d.JSON.Raw(r, i)
+		raw, i, err := d.JSON.Raw(r, i)
 		if err != nil {
-			return
+			return off, st, err
 		}
 
 		v := 0
@@ -91,32 +85,39 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 		}
 
 		if j == len(raw) {
-			w = d.JQ.AppendInt(w, v)
+			if v == 0 || v == 1 {
+				return jq.Zero - v, i, nil
+			}
 
-			return w, off, i, nil
+			off = bw.Int(v)
+
+			return off, i, nil
 		}
 
 		f, err := strconv.ParseFloat(string(raw), 64)
 		if err != nil {
-			return w, off, st, err
+			return off, st, err
 		}
 
-		w = d.JQ.AppendFloat(w, f)
+		off = bw.Float(f)
 
-		return w, off, i, nil
+		return off, i, nil
 	case json.String:
-		w = d.JQ.CBOR.AppendTag(w, cbor.String, 0)
+		off = bw.Len()
 
-		st := len(w)
-		w, i, err = d.JSON.DecodeString(r, i, w)
+		n, _, err := d.JSON.DecodedStringLength(r, i)
+
+		b.W = b.Encoder.CBOR.AppendTag(b.W, cbor.String, n)
+		b.W, i, err = d.JSON.DecodeString(r, i, b.W)
 		if err != nil {
-			return w, off, st, err
+			return off, st, err
 		}
 
-		w = d.JQ.CBOR.InsertLen(w, cbor.String, st, len(w)-st)
-
-		return w, off, i, nil
+		return off, i, nil
 	}
+
+	arrbase := len(d.arr)
+	defer func() { d.arr = d.arr[:arrbase] }()
 
 	tag := byte(cbor.Array)
 	val := 0
@@ -125,27 +126,23 @@ func (d *Decoder) Decode(w, r []byte, base, st int) (_ []byte, off, i int, err e
 		val = 1
 	}
 
-	arrbase := len(d.arr)
-	defer func() { d.arr = d.arr[:arrbase] }()
-
 	i, err = d.JSON.Enter(r, i, tp)
 	if err != nil {
-		return w, off, st, err
+		return off, st, err
 	}
 
 	for d.JSON.ForMore(r, &i, tp, &err) {
 		for v := 0; v <= val; v++ {
-			w, off, i, err = d.Decode(w, r, base, i)
+			off, i, err = d.Decode(b, r, i)
 			if err != nil {
-				return w, off, i, err
+				return off, i, err
 			}
 
 			d.arr = append(d.arr, off)
 		}
 	}
 
-	off = base + len(w)
-	w = d.JQ.AppendArrayMap(w, tag, off, d.arr[arrbase:])
+	off = bw.ArrayMap(tag, d.arr[arrbase:])
 
-	return w, off, i, nil
+	return off, i, nil
 }

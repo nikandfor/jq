@@ -71,6 +71,21 @@ func (b BufferReader) Raw(off int) []byte {
 	return raw
 }
 
+func (b BufferReader) Simple(off int) int {
+	_, sub, _ := b.Decoder.CBOR.Tag(b.Buf(off))
+	return int(sub)
+}
+
+func (b BufferReader) Float(off int) float64 {
+	v, _ := b.Decoder.Float(b.Buf(off))
+	return v
+}
+
+func (b BufferReader) Float32(off int) float32 {
+	v, _ := b.Decoder.Float32(b.Buf(off))
+	return v
+}
+
 func (b BufferReader) IsSimple(off int, specials ...int) (ok bool) {
 	if off < 0 {
 		for _, v := range specials {
@@ -127,6 +142,30 @@ func (b BufferReader) ArrayMap(off int, arr []int) []int {
 	return arr
 }
 
+func (b BufferReader) Signed(off int) int64 {
+	switch off {
+	case Zero:
+		return 0
+	case One:
+		return 1
+	}
+
+	v, _ := b.Decoder.Signed(b.Buf(off))
+	return v
+}
+
+func (b BufferReader) Unsigned(off int) uint64 {
+	switch off {
+	case Zero:
+		return 0
+	case One:
+		return 1
+	}
+
+	v, _ := b.Decoder.Unsigned(b.Buf(off))
+	return v
+}
+
 func (b BufferWriter) Len() int {
 	return len(b.R) + len(b.W)
 }
@@ -159,6 +198,72 @@ func (b BufferWriter) Array(arr []int) int {
 func (b BufferWriter) Map(arr []int) int {
 	off := b.Len()
 	b.W = b.Encoder.AppendMap(b.W, off, arr)
+	return off
+}
+
+func (b BufferWriter) ArrayMap(tag byte, arr []int) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendArrayMap(b.W, tag, off, arr)
+	return off
+}
+
+func (b BufferWriter) String(v string) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendString(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Bytes(v []byte) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendBytes(b.W, v)
+	return off
+}
+
+func (b BufferWriter) TagString(tag byte, v string) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendTagString(b.W, tag, v)
+	return off
+}
+
+func (b BufferWriter) TagBytes(tag byte, v []byte) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendTagBytes(b.W, tag, v)
+	return off
+}
+
+func (b BufferWriter) Int(v int) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendInt(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Int64(v int64) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendInt64(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Uint(v uint) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendUint(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Uint64(v uint64) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendUint64(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Float(v float64) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendFloat(b.W, v)
+	return off
+}
+
+func (b BufferWriter) Float32(v float32) int {
+	off := b.Len()
+	b.W = b.Encoder.AppendFloat32(b.W, v)
 	return off
 }
 
@@ -224,4 +329,12 @@ func (b *Buffer) BufBase(off int) ([]byte, int, int) {
 
 func (b *Buffer) Unwrap() (r0, r1 []byte) {
 	return b.R, b.W
+}
+
+func (b *Buffer) Shift() {
+	b.R, b.W = b.W, nil
+}
+
+func (b *Buffer) Unshift() {
+	b.R, b.W = nil, b.R
 }

@@ -8,7 +8,6 @@ import (
 type (
 	Encoder struct {
 		CBOR cbor.Encoder
-		JQ   jq.Decoder
 
 		FilterTag byte
 
@@ -26,7 +25,6 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	var err error
 
 	res := b.Writer().Len()
-	r0, r1 := b.Unwrap()
 
 	tag := e.FilterTag
 	if tag == 0 {
@@ -35,53 +33,34 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 
 	var ce cbor.Encoder
 
-	b.W = append(b.W, 0)
+	expl := 100
+	b.W = ce.AppendTag(b.W, tag, 100)
 	st := len(b.W)
 
-	b.W, err = e.Encode(b.W, r0, r1, off)
+	b.W, err = e.Encode(b.W, b, off)
 	if err != nil {
 		return off, false, err
 	}
 
-	b.W = ce.InsertLen(b.W, tag, st, len(b.W)-st)
+	b.W = ce.InsertLen(b.W, tag, st, expl, len(b.W)-st)
 
 	return res, false, nil
 }
 
-func (e *Encoder) Encode(w, r0, r1 []byte, off int) ([]byte, error) {
-	var err error
-	var buf []byte
-	var base int
+func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) {
+	br := b.Reader()
 
-	if off < len(r0) {
-		buf, base, off = r0, 0, off
-	} else {
-		buf, base, off = r1, len(r0), off-len(r0)
-	}
-
-	tag, sub, i := e.JQ.CBOR.Tag(buf, off)
+	tag := br.Tag(off)
 
 	switch tag {
-	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String:
-		if tag == cbor.Bytes || tag == cbor.String {
-			i += int(sub)
-		}
+	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple:
+		raw := br.Raw(off)
 
-		return append(w, buf[off:i]...), nil
-	case cbor.Simple:
-		switch {
-		case sub < cbor.Float8:
-		case sub <= cbor.Float64:
-			i += 1 << (sub - cbor.Float8)
-		default:
-			panic(sub)
-		}
-
-		return append(w, buf[off:i]...), nil
+		return append(w, raw...), nil
 	case cbor.Labeled:
-		w = append(w, buf[off:i]...)
+		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
-		return e.Encode(w, r0, r1, i)
+		return e.Encode(w, b, i)
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -90,7 +69,7 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) ([]byte, error) {
 	arrbase := len(e.arr)
 	defer func() { e.arr = e.arr[:arrbase] }()
 
-	e.arr, _ = e.JQ.ArrayMap(buf, base, off, e.arr)
+	e.arr = br.ArrayMap(off, e.arr)
 
 	l := len(e.arr)
 	if tag == cbor.Map {
@@ -100,7 +79,7 @@ func (e *Encoder) Encode(w, r0, r1 []byte, off int) ([]byte, error) {
 	w = e.CBOR.AppendTag(w, tag, l)
 
 	for _, off := range e.arr[arrbase:] {
-		w, err = e.Encode(w, r0, r1, off)
+		w, err = e.Encode(w, b, off)
 		if err != nil {
 			return w, err
 		}

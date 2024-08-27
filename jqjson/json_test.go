@@ -11,14 +11,13 @@ import (
 
 func TestDecodeEncode(tb *testing.T) {
 	data := []byte(`{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5,6]}]}`)
+	b := jq.NewBuffer(nil)
 
 	var d Decoder
 
-	w, off, i, err := d.Decode(nil, data, 0, 0)
+	off, i, err := d.Decode(b, data, 0)
 	assertNoError(tb, err)
 	assertEqual(tb, len(data), i)
-
-	b := jq.NewBuffer(w)
 
 	f := jq.NewArray(jq.NewIndex(jq.Iter{}, jq.Iter{}, "c", jq.Iter{}))
 
@@ -27,8 +26,7 @@ func TestDecodeEncode(tb *testing.T) {
 
 	var e Encoder
 
-	r0, r1 := b.Unwrap()
-	enc, err := e.Encode(nil, r0, r1, res)
+	enc, err := e.Encode(nil, b, res)
 	assertNoError(tb, err)
 
 	if !bytes.Equal([]byte(`[1,2,3,4,5,6]`), enc) {
