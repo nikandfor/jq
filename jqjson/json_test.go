@@ -73,6 +73,40 @@ func TestFilter(tb *testing.T) {
 	}
 }
 
+func TestMergeString(tb *testing.T) {
+	b, root := func() (*jq.Buffer, int) {
+		var r []byte
+		var e jq.Encoder
+
+		r = e.CBOR.AppendTag(r, cbor.String, -1)
+
+		r = e.CBOR.AppendString(r, "one_")
+
+		r = e.CBOR.AppendTag(r, cbor.String, -1)
+		r = e.CBOR.AppendString(r, "two_")
+		r = e.CBOR.AppendString(r, "three")
+		r = e.CBOR.AppendBreak(r)
+
+		r = e.CBOR.AppendBreak(r)
+
+		return jq.NewBuffer(r), 0
+	}()
+
+	var e Encoder
+
+	enc, err := e.Encode(nil, b, root)
+	assertNoError(tb, err)
+
+	exp := `"one_two_three"`
+	if !bytes.Equal([]byte(exp), enc) {
+		tb.Errorf(`wanted (%s), got %s`, exp, enc)
+	}
+
+	//	if tb.Failed() {
+	tb.Logf("res %x\n%s", root, hex.Dump(b.R))
+	// }
+}
+
 func assertNoError(tb testing.TB, err error) {
 	tb.Helper()
 

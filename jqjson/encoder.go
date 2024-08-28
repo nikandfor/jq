@@ -67,21 +67,9 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) 
 
 		return strconv.AppendUint(w, v, 10), nil
 	case cbor.String:
-		v := br.Bytes(off)
-
-		return e.JSON.AppendString(w, v), nil
+		return e.encodeString(w, b, off)
 	case cbor.Bytes:
-		if e.Base64 == nil {
-			e.Base64 = base64.StdEncoding
-		}
-
-		v := br.Bytes(off)
-
-		w = append(w, '"')
-		w = e.Base64.AppendEncode(w, v)
-		w = append(w, '"')
-
-		return w, nil
+		return e.encodeBytes(w, b, off)
 	case cbor.Simple:
 		sub := br.Simple(off)
 
@@ -150,4 +138,76 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) 
 	w = append(w, open+2)
 
 	return w, nil
+}
+
+func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off int) ([]byte, error) {
+	d := &b.Decoder.CBOR
+	r, st := b.Buf(off)
+
+	w = append(w, '"')
+	w, i := e.encStr(w, r, st, d)
+	w = append(w, '"')
+	if i < 0 {
+		return w, jq.ErrType
+	}
+
+	return w, nil
+}
+
+func (e *Encoder) encStr(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
+	tag, sub, i := d.Tag(r, i)
+	l := int(sub)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return w, -1
+	}
+	if l >= 0 {
+		return e.JSON.AppendStringContent(w, r[i:i+l]), i + l
+	}
+
+	for !d.Break(r, &i) {
+		w, i = e.encStr(w, r, i, d)
+		if i < 0 {
+			return w, i
+		}
+	}
+
+	return w, i
+}
+
+func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off int) ([]byte, error) {
+	if e.Base64 == nil {
+		e.Base64 = base64.StdEncoding
+	}
+
+	d := &b.Decoder.CBOR
+	r, st := b.Buf(off)
+
+	w = append(w, '"')
+	w, i := e.encBytes(w, r, st, d)
+	w = append(w, '"')
+	if i < 0 {
+		return w, jq.ErrType
+	}
+
+	return w, nil
+}
+
+func (e *Encoder) encBytes(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
+	tag, sub, i := d.Tag(r, i)
+	l := int(sub)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return w, -1
+	}
+	if l >= 0 {
+		return e.Base64.AppendEncode(w, r[i:i+l]), i + l
+	}
+
+	for !d.Break(r, &i) {
+		w, i = e.encBytes(w, r, i, d)
+		if i < 0 {
+			return w, i
+		}
+	}
+
+	return w, i
 }

@@ -28,6 +28,16 @@ type (
 var ErrUnsupportedIndexKey = errors.New("unsupported index key")
 
 func NewIndex(p ...any) *Index {
+	for i := range p {
+		switch p[i].(type) {
+		case string, int, Iter:
+		case *Iter:
+			p[i] = Iter{}
+		default:
+			panic(p[i])
+		}
+	}
+
 	return &Index{Path: p}
 }
 

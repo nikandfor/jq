@@ -17,6 +17,7 @@ type (
 
 func NewEncoder() *Encoder {
 	return &Encoder{
+		CBOR:      cbor.Encoder{Flags: cbor.FtDefault},
 		FilterTag: cbor.String,
 	}
 }

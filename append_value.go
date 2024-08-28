@@ -3,10 +3,10 @@ package jq
 import "nikand.dev/go/cbor"
 
 type (
-	Arr = arr
-	Off = code
-	Obj = obj
-	Raw = raw
+	Arr  = arr
+	Code = code
+	Obj  = obj
+	Raw  = raw
 
 	code int
 	arr  []any
@@ -41,6 +41,8 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 
 	switch v := v.(type) {
 	case code:
+		return w, int(v)
+	case Off:
 		return w, int(v)
 	case nil:
 		return w, Null

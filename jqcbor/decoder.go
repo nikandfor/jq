@@ -14,7 +14,9 @@ type (
 )
 
 func NewDecoder() *Decoder {
-	return &Decoder{}
+	return &Decoder{
+		CBOR: cbor.Decoder{Flags: cbor.FtDefault},
+	}
 }
 
 func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {

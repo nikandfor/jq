@@ -15,9 +15,9 @@ type (
 
 	FuncFilter func(b *Buffer, off int, next bool) (int, bool, error)
 
+	Off   int
 	Dot   struct{}
 	Empty struct{}
-	First struct{}
 	Halt  struct {
 		Err error
 	}
@@ -51,6 +51,14 @@ func (f FuncFilter) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return f(b, off, next)
 }
 
+func (f Off) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+	if next {
+		return off, false, nil
+	}
+
+	return int(f), false, nil
+}
+
 func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
 		return None, false, nil
@@ -61,19 +69,6 @@ func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 
 func (f Empty) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return None, false, nil
-}
-
-func (f First) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
-	if next {
-		return None, false, nil
-	}
-
-	res, _, err := (&Iter{}).ApplyTo(b, off, false)
-	if err != nil {
-		return res, false, err
-	}
-
-	return res, false, nil
 }
 
 func (f Halt) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
@@ -191,21 +186,7 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			v, i = d.Decoder.Bytes(b, i)
 
 			d.b = fmt.Appendf(d.b, "% 02x  ", b[st:i])
-
-			var qq, bq bool
-
-			for _, c := range v {
-				qq = qq || c == '"'
-				bq = bq || c == '`'
-			}
-
-			if qq && !bq {
-				d.b = append(d.b, '`')
-				d.b = append(d.b, v...)
-				d.b = append(d.b, '`', '\n')
-			} else {
-				d.b = fmt.Appendf(d.b, "%q\n", v)
-			}
+			d.b = d.appendQStr(d.b, v)
 		case cbor.Simple:
 			i = d.Decoder.Skip(b, i)
 
@@ -244,9 +225,60 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 	}
 }
 
+func (d *Dumper) encodeString(w []byte, b *Buffer, off int) ([]byte, error) {
+	r, st := b.Buf(off)
+
+	w = append(w, '"')
+	w, i := d.encStr(w, r, st)
+	w = append(w, '"')
+	if i < 0 {
+		return w, ErrType
+	}
+
+	return w, nil
+}
+
+func (d *Dumper) encStr(w, r []byte, i int) ([]byte, int) {
+	tag, sub, i := d.Decoder.CBOR.Tag(r, i)
+	l := int(sub)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return w, -1
+	}
+	if l >= 0 {
+		return d.appendQStr(w, r[i:i+l]), i + l
+	}
+
+	for !d.Decoder.CBOR.Break(r, &i) {
+		w, i = d.encStr(w, r, i)
+		if i < 0 {
+			return w, i
+		}
+	}
+
+	return w, i
+}
+
+func (d *Dumper) appendQStr(w, v []byte) []byte {
+	var qq, bq bool
+
+	for _, c := range v {
+		qq = qq || c == '"'
+		bq = bq || c == '`'
+	}
+
+	if qq && !bq {
+		w = append(w, '`')
+		w = append(w, v...)
+		w = append(w, '`', '\n')
+	} else {
+		w = fmt.Appendf(w, "%q\n", v)
+	}
+
+	return w
+}
+
 func (f Dot) String() string   { return "." }
 func (f Empty) String() string { return "empty" }
-func (f First) String() string { return "first" }
 
 func (f Literal) String() string {
 	var d Decoder
