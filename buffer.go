@@ -72,6 +72,18 @@ func (b BufferReader) Raw(off int) []byte {
 }
 
 func (b BufferReader) Simple(off int) int {
+	switch off {
+	case False, True, Null, None:
+		q := []int{
+			-None:  cbor.None,
+			-Null:  cbor.Null,
+			-True:  cbor.True,
+			-False: cbor.False,
+		}
+
+		return q[-off]
+	}
+
 	_, sub, _ := b.Decoder.CBOR.Tag(b.Buf(off))
 	return int(sub)
 }

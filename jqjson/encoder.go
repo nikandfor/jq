@@ -75,13 +75,13 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) 
 
 		switch sub {
 		case cbor.False, cbor.True, cbor.Null:
-			lit := []string{"false", "true", "null", "null"}[tag&cbor.SubMask-cbor.False]
+			lit := []string{"false", "true", "null", "null"}[sub-cbor.False]
 
 			return append(w, lit...), nil
 		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
 			f := br.Float(off)
 
-			return strconv.AppendFloat(w, f, 'v', -1, 64), nil
+			return strconv.AppendFloat(w, f, 'f', -1, 64), nil
 		case cbor.Undefined, cbor.None:
 			return w, jq.ErrType
 		default:

@@ -10,7 +10,7 @@ import (
 )
 
 func TestDecodeEncode(tb *testing.T) {
-	data := []byte(`{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5,6]}]}`)
+	data := []byte(`{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5.,6.]}]}`)
 	b := jq.NewBuffer(nil)
 
 	var d Decoder

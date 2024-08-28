@@ -98,6 +98,8 @@ func DumpBuffer(b *Buffer) string {
 	return string(d.b)
 }
 
+func NewDumper(w io.Writer) *Dumper { return &Dumper{Writer: w} }
+
 func (d *Dumper) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
 		return None, false, nil

@@ -12,7 +12,10 @@ type (
 	Decoder struct {
 		JSON json.Decoder
 
-		arr []int
+		DeduplicateKeys bool
+
+		arr  []int
+		keys map[string]int
 	}
 )
 
@@ -39,6 +42,18 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 }
 
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error) {
+	if d.DeduplicateKeys {
+		if d.keys == nil {
+			d.keys = map[string]int{}
+		}
+	}
+
+	defer clear(d.keys)
+
+	return d.decode(b, r, st, false)
+}
+
+func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off, i int, err error) {
 	bw := b.Writer()
 
 	reset := bw.Len()
@@ -103,6 +118,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error)
 
 		return off, i, nil
 	case json.String:
+		reset := len(b.W)
 		off = bw.Len()
 
 		n, _, err := d.JSON.DecodedStringLength(r, i)
@@ -113,6 +129,16 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error)
 			return off, st, err
 		}
 
+		if off, ok := d.keys[string(b.W[reset:])]; ok {
+			b.W = b.W[:reset]
+
+			return off, i, nil
+		}
+
+		if d.DeduplicateKeys {
+			d.keys[string(b.W[reset:])] = off
+		}
+
 		return off, i, nil
 	}
 
@@ -120,10 +146,8 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error)
 	defer func() { d.arr = d.arr[:arrbase] }()
 
 	tag := byte(cbor.Array)
-	val := 0
 	if tp == json.Object {
 		tag = cbor.Map
-		val = 1
 	}
 
 	i, err = d.JSON.Enter(r, i, tp)
@@ -132,14 +156,21 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error)
 	}
 
 	for d.JSON.ForMore(r, &i, tp, &err) {
-		for v := 0; v <= val; v++ {
-			off, i, err = d.Decode(b, r, i)
+		if tp == json.Object {
+			off, i, err = d.decode(b, r, i, true)
 			if err != nil {
 				return off, i, err
 			}
 
 			d.arr = append(d.arr, off)
 		}
+
+		off, i, err = d.decode(b, r, i, false)
+		if err != nil {
+			return off, i, err
+		}
+
+		d.arr = append(d.arr, off)
 	}
 
 	off = bw.ArrayMap(tag, d.arr[arrbase:])
