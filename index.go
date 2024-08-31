@@ -28,6 +28,10 @@ type (
 var ErrUnsupportedIndexKey = errors.New("unsupported index key")
 
 func NewIndex(p ...any) *Index {
+	return &Index{Path: index(p)}
+}
+
+func index(p []any) []any {
 	for i := range p {
 		switch p[i].(type) {
 		case string, int, Iter:
@@ -38,78 +42,60 @@ func NewIndex(p ...any) *Index {
 		}
 	}
 
-	return &Index{Path: p}
+	return p
 }
 
 func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
 	br := b.Reader()
 
-	//	log.Printf("apply index %v to %x %v  state %v\n%s", f.Path, off, next, f.stack, DumpBuffer(b))
+	if len(f.Path) == 0 {
+		return None, false, nil
+	}
 
-	//	defer func(off int) { log.Printf("index  %4x -> %4x  from %v", off, res, loc.Caller(1)) }(off)
+	//	defer func(off int, next bool) {
+	//		log.Printf("index %x %v -> %x %v %v   %v", off, next, res, more, err, f.stack)
+	//	}(off, next)
 
 	if !next {
-		f.stack = f.stack[:0]
+		f.init(off)
 	}
 
-	back := func(fi int) int {
-		//	log.Printf("index %d go back  %v  %+v", fi, next, f.stack)
-		if !next {
-			return 0
-		}
-		if len(f.stack) == 0 {
-			return -1
-		}
-
-		for ; fi >= 0; fi-- {
-			st := f.stack[fi]
-			if st.off == None {
-				continue
-			}
-			if st.i != st.end {
-				//	off = st.off
-				return fi
-			}
-
-			f.stack[fi] = indexState{off: -1}
-			f.arr = f.arr[:st.st]
-		}
-
-		return fi
-	}
-
-	fi := len(f.Path) - 1
+	fi := len(f.Path)
 
 back:
 	for {
-		fi = back(fi)
-		//	log.Printf("index %d back  %4x %v  %v", fi, off, next, f.stack)
+		fi = f.back(fi, &next)
+		//	log.Printf("index %x back  %v", fi, f.stack)
 		if fi < 0 {
-			return None, false, nil
-		}
-		if len(f.stack) != 0 {
-			off = f.stack[fi].off
-		}
-		if off == None {
-			break
+			return None, false, nil // TODO
 		}
 
+		off = f.stack[fi].off
+
 		for ; fi < len(f.Path); fi++ {
-			if off == Null {
-				break
-			}
-			//	log.Printf("index %d step  off %2x  key %v", fi, off, f.Path[fi])
+			f.stack[fi].off = off
+			//	log.Printf("index %x step  %v", fi, f.stack)
 
 			tag := br.Tag(off)
 			k := f.Path[fi]
 
-			//	log.Printf("index tag %x  key %v", tag, k)
-
 			switch k := k.(type) {
+			case int:
+				if off == Null {
+					continue
+				}
+
+				if tag != cbor.Map && tag != cbor.Array {
+					return off, false, ErrType
+				}
+
+				_, off = br.ArrayMapIndex(off, k)
+				f.stack[fi].i = k
 			case string:
 				if off == Null {
 					continue
 				}
+
 				if tag != cbor.Map && f.IgnoreTypeError {
 					off = Null
 					break
@@ -118,53 +104,32 @@ back:
 					return off, false, ErrType
 				}
 
-				//	q := off
-				off = f.mapKey(b, off, k)
-
-				//	log.Printf("index %d map  %x %v -> %x", fi, q, k, off)
-			case int:
-				if off == Null {
-					continue
-				}
-				if tag != cbor.Map && tag != cbor.Array {
-					return off, false, ErrType
-				}
-				//	q := off
-				_, off = br.ArrayMapIndex(off, k)
-
-				//	log.Printf("index %d arr  %x %v -> %x", fi, q, k, off)
+				off, f.stack[fi].i = f.mapKey(b, off, k)
+				f.stack[fi].val = 1
 			case Iter:
 				if off == Null || tag != cbor.Map && tag != cbor.Array {
 					return off, false, ErrType
 				}
 
-				if len(f.stack) == 0 {
-					f.init()
-				}
-
-				if f.stack[fi].i == f.stack[fi].end {
-					val := 0
-					if tag == cbor.Map {
-						val = 1
-					}
-
-					//	log.Printf("index %d iter init %x  val %v", fi, tag, val)
+				if f.stack[fi].end < 0 {
+					val := csel(tag == cbor.Map, 1, 0)
 
 					st := len(f.arr)
 					f.arr = br.ArrayMap(off, f.arr)
 
 					f.stack[fi] = indexState{off: off, st: st, i: st, end: len(f.arr), val: val}
+				} else {
+					f.stack[fi].i += 1 + f.stack[fi].val
 				}
 
-				//	log.Printf("index %d iter  %+v  arr %v  path %+v", fi, f.stack, len(f.arr), f.Path)
+				st := f.stack[fi]
 
-				if f.stack[fi].i == f.stack[fi].end {
+				if st.i == st.end {
+					fi++
 					continue back
 				}
 
-				val := f.stack[fi].val
-				off = f.arr[f.stack[fi].i+val]
-				f.stack[fi].i += 1 + val
+				off = f.arr[st.i+st.val]
 			default:
 				return off, false, ErrUnsupportedIndexKey
 			}
@@ -173,12 +138,33 @@ back:
 		break
 	}
 
-	more = len(f.stack) > 0 && back(len(f.Path)-1) >= 0
+	more = f.back(len(f.Path), nil) >= 0
 
 	return off, more, nil
 }
 
-func (f *Index) init() bool {
+func (f *Index) back(fi int, next *bool) int {
+	if next != nil && !*next {
+		*next = true
+		return 0
+	}
+
+	for fi--; fi >= 0; fi-- {
+		st := f.stack[fi]
+		if st.end < 0 {
+			continue
+		}
+		if st.i < st.end {
+			break
+		}
+
+		f.stack[fi].end = -1
+	}
+
+	return fi
+}
+
+func (f *Index) init(root int) bool {
 	f.arr = f.arr[:0]
 
 	for cap(f.stack) < len(f.Path) {
@@ -188,16 +174,18 @@ func (f *Index) init() bool {
 	f.stack = f.stack[:len(f.Path)]
 
 	for j := range f.stack {
-		f.stack[j] = indexState{off: -1}
+		f.stack[j] = indexState{off: None, end: -1}
 	}
+
+	f.stack[0].off = root
 
 	return true
 }
 
-func (f *Index) mapKey(b *Buffer, off int, key string) int {
+func (f *Index) mapKey(b *Buffer, off int, key string) (res, i int) {
 	br := b.Reader()
 	reset := len(f.arr)
-	res := Null
+	res = Null
 
 	f.arr = br.ArrayMap(off, f.arr)
 	//	log.Printf("mapkey %x %q from %x", off, key, f.arr)
@@ -210,15 +198,16 @@ func (f *Index) mapKey(b *Buffer, off int, key string) int {
 		}
 
 		res = f.arr[j+1]
+		i = j - reset
 		break
 	}
 
 	f.arr = f.arr[:reset]
 
-	return res
+	return res, i
 }
 
-func (f Index) String() string {
+func (f *Index) String() string {
 	var b strings.Builder
 
 	//	b.WriteString("Index{")
@@ -249,4 +238,12 @@ func (f Index) String() string {
 
 func (s indexState) String() string {
 	return fmt.Sprintf("{off %x, st %x, i %x, end %x, val %x}", s.off, s.st, s.i, s.end, s.val)
+}
+
+func csel[T any](c bool, t, f T) T {
+	if c {
+		return t
+	}
+
+	return f
 }

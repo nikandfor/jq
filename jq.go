@@ -13,7 +13,7 @@ type (
 		ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error)
 	}
 
-	FuncFilter func(b *Buffer, off int, next bool) (int, bool, error)
+	FilterFunc func(b *Buffer, off int, next bool) (int, bool, error)
 
 	Off   int
 	Dot   struct{}
@@ -47,7 +47,7 @@ var (
 	ErrHalt = errors.New("halted")
 )
 
-func (f FuncFilter) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f FilterFunc) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return f(b, off, next)
 }
 

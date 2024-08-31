@@ -21,7 +21,7 @@ func testError(tb testing.TB, f Filter, b *Buffer, root int, experr error) {
 }
 
 func testSame(tb testing.TB, f Filter, b *Buffer, root int, eoff int) {
-	tb.Logf("filter: %v", f)
+	tb.Logf("root %3x   filter: %v", root, f)
 
 	off, more, err := f.ApplyTo(b, root, false)
 	assertNoError(tb, err)
@@ -35,7 +35,7 @@ func testSame(tb testing.TB, f Filter, b *Buffer, root int, eoff int) {
 }
 
 func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
-	tb.Logf("filter: %v", f)
+	tb.Logf("root %3x   filter: %v", root, f)
 
 	eoff := b.appendVal(val)
 
@@ -51,7 +51,18 @@ func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
 }
 
 func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
-	tb.Logf("filter: %v", f)
+	tb.Logf("root %3x   filter: %v", root, f)
+
+	defer func() {
+		p := recover()
+		if p == nil {
+			return
+		}
+
+		defer panic(p)
+
+		tb.Logf("buffer  root %x\n%s", root, DumpBuffer(b))
+	}()
 
 	for j, elem := range vals {
 		//	log.Printf("testIter  j %x  root %x", j, root)

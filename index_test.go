@@ -8,29 +8,24 @@ func TestIndex(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
-	//	log.Printf("data %x\n%s", root, Dump(d))
+	testOne(tb, NewIndex("a"), b, root, 1)
 
-	f := NewIndex("a")
-	eoff := b.appendVal(1)
+	if tb.Failed() {
+		tb.Logf("buffer  root %x\n%s", root, DumpBuffer(b))
+		return
+	}
 
-	off, more, err := f.ApplyTo(b, root, false)
-	assertNoError(tb, err)
-	assertEqualVal(tb, b, eoff, off)
-	assertTrue(tb, !more)
-
-	f = NewIndex("b", "c")
-	eoff = b.appendVal(arr{2, "3", obj{"d", 5}, true})
-
-	off, more, err = f.ApplyTo(b, root, false)
-	assertNoError(tb, err)
-	assertEqualVal(tb, b, eoff, off)
-	assertTrue(tb, !more)
-
-	f = NewIndex("b", "c", Iter{})
-	testIter(tb, f, b, root, []any{2, "3", obj{"d", 5}, true})
+	testOne(tb, NewIndex("b", "c"), b, root, arr{2, "3", obj{"d", 5}, true})
 }
 
-func TestIndexIter(tb *testing.T) {
+func TestIndexIter1(tb *testing.T) {
+	b := NewBuffer(nil)
+	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
+
+	testIter(tb, NewIndex("b", "c", Iter{}), b, root, []any{2, "3", obj{"d", 5}, true})
+}
+
+func TestIndexIter2(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(arr{
 		obj{"a", 1, "b", lab{lab: 4, val: 2}, "c", "d"},
