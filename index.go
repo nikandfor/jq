@@ -154,7 +154,7 @@ func (f *Index) back(fi int, next *bool) int {
 		if st.end < 0 {
 			continue
 		}
-		if st.i < st.end {
+		if st.i+1+st.val < st.end {
 			break
 		}
 

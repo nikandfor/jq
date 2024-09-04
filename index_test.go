@@ -34,8 +34,7 @@ func TestIndexIter2(tb *testing.T) {
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
-	f := NewIndex(-2, Iter{})
-	testIter(tb, f, b, root, []any{1, lab{lab: 4, val: 2}, "d"})
+	testIter(tb, NewIndex(-2, Iter{}), b, root, []any{1, lab{lab: 4, val: 2}, "d"})
 }
 
 func TestIndexMultiIter(tb *testing.T) {

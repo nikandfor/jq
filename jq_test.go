@@ -72,11 +72,11 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 		off, more, err := f.ApplyTo(b, root, j != 0)
 		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v  err %v", root, off, eoff, elem, err)
 		if assertNoError(tb, err, "j %d", j) {
-			assertEqualVal(tb, b, eoff, off, "j %d  elem %v", j, elem)
+			assertEqualVal(tb, b, eoff, off, "j %d  value %v", j, elem)
 
-			if j < len(vals)-1 {
-				assertTrue(tb, more, "wanted more")
-			}
+			//	if j < len(vals)-1 {
+			assertTrue(tb, more == (j+1 < len(vals)), "wanted more: %v", j+1 < len(vals))
+			//	}
 		} else {
 			return
 		}

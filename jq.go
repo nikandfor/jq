@@ -80,6 +80,23 @@ func (f Halt) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return off, false, err
 }
 
+func NewLiteral(x any) Literal {
+	var e Encoder
+
+	switch x := x.(type) {
+	case string:
+		return Literal(e.AppendString(nil, x))
+	case int:
+		return Literal(e.AppendInt(nil, x))
+	case int64:
+		return Literal(e.AppendInt64(nil, x))
+	case bool:
+		return Literal(e.AppendBool(nil, x))
+	}
+
+	panic(x)
+}
+
 func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	if next {
 		return None, false, nil
