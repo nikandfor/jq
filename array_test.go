@@ -11,7 +11,7 @@ func TestArray(tb *testing.T) {
 	})
 
 	b := NewBuffer(d)
-	f := NewArray(NewIndex(Iter{}, "a"))
+	f := NewArray(NewQuery(Iter{}, "a"))
 
 	testOne(tb, f, b, root, arr{1, "2", 3, "4"})
 

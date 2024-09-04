@@ -15,7 +15,7 @@ func TestObject(tb *testing.T) {
 		arr{2, 3},
 	})
 
-	f := NewObject("a", NewIndex("a"), NewIndex("a"), NewIndex("f"))
+	f := NewObject("a", NewQuery("a"), NewQuery("a"), NewQuery("f"))
 
 	testOne(tb, f, b, root, obj{"a", "q", "q", arr{2, 3}})
 }
@@ -33,7 +33,7 @@ func TestObjectIter(tb *testing.T) {
 	})
 
 	b := NewBuffer(d)
-	f := NewObject("a", NewIndex("a"), "e", NewIndex("c", "d", Iter{}, "e"))
+	f := NewObject("a", NewQuery("a"), "e", NewQuery("c", "d", Iter{}, "e"))
 
 	testIter(tb, f, b, root, []any{
 		obj{"a", "b", "e", "val1"},
@@ -55,7 +55,7 @@ func TestObjectIterMulti(tb *testing.T) {
 	})
 
 	b := NewBuffer(d)
-	f := NewObject("a", NewIndex("a", Iter{}), "e", NewIndex("c", "d", Iter{}, "e"))
+	f := NewObject("a", NewQuery("a", Iter{}), "e", NewQuery("c", "d", Iter{}, "e"))
 
 	testIter(tb, f, b, root, []any{
 		obj{"a", "q", "e", "val1"},

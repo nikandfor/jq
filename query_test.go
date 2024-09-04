@@ -4,28 +4,28 @@ import (
 	"testing"
 )
 
-func TestIndex(tb *testing.T) {
+func TestQuery(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
-	testOne(tb, NewIndex("a"), b, root, 1)
+	testOne(tb, NewQuery("a"), b, root, 1)
 
 	if tb.Failed() {
 		tb.Logf("buffer  root %x\n%s", root, DumpBuffer(b))
 		return
 	}
 
-	testOne(tb, NewIndex("b", "c"), b, root, arr{2, "3", obj{"d", 5}, true})
+	testOne(tb, NewQuery("b", "c"), b, root, arr{2, "3", obj{"d", 5}, true})
 }
 
-func TestIndexIter1(tb *testing.T) {
+func TestQueryIter1(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
-	testIter(tb, NewIndex("b", "c", Iter{}), b, root, []any{2, "3", obj{"d", 5}, true})
+	testIter(tb, NewQuery("b", "c", Iter{}), b, root, []any{2, "3", obj{"d", 5}, true})
 }
 
-func TestIndexIter2(tb *testing.T) {
+func TestQueryIter2(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(arr{
 		obj{"a", 1, "b", lab{lab: 4, val: 2}, "c", "d"},
@@ -34,10 +34,10 @@ func TestIndexIter2(tb *testing.T) {
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
-	testIter(tb, NewIndex(-2, Iter{}), b, root, []any{1, lab{lab: 4, val: 2}, "d"})
+	testIter(tb, NewQuery(-2, Iter{}), b, root, []any{1, lab{lab: 4, val: 2}, "d"})
 }
 
-func TestIndexMultiIter(tb *testing.T) {
+func TestQueryMultiIter(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(arr{
 		obj{"q", obj{"a", 1, "b", 2}},
@@ -47,26 +47,26 @@ func TestIndexMultiIter(tb *testing.T) {
 
 	//	log.Printf("data %x\n%s", root, Dump(d))
 
-	f := NewIndex(Iter{}, "q", Iter{})
+	f := NewQuery(Iter{}, "q", Iter{})
 
 	testIter(tb, f, b, root, []any{1, 2, 3, 4})
 }
 
-func TestIndexIgnoreTypeError(tb *testing.T) {
+func TestQueryIgnoreTypeError(tb *testing.T) {
 	b := NewBuffer(nil)
 	root := b.appendVal(obj{"a", "b"})
 
-	testOne(tb, NewIndex("a"), b, root, "b")
-	testOne(tb, NewIndex("q"), b, root, nil)
+	testOne(tb, NewQuery("a"), b, root, "b")
+	testOne(tb, NewQuery("q"), b, root, nil)
 
 	root = b.appendVal(arr{"a", "b"})
 
-	f := NewIndex("a")
+	f := NewQuery("a")
 	f.IgnoreTypeError = true
 
 	testOne(tb, f, b, root, nil)
 
-	f = NewIndex("a")
+	f = NewQuery("a")
 	f.IgnoreTypeError = false
 
 	testError(tb, f, b, root, ErrType)

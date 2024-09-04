@@ -9,73 +9,60 @@ import (
 
 type (
 	Assign struct {
-		LHS, RHS Index
+		L FilterPath
+		R Filter
 
 		Relative bool
+
+		field int
+		path  Path
+
+		state []indexState
+		arr   []int
 	}
 )
 
-func NewAssign(lhs, rhs []any, rel bool) *Assign {
+func NewAssign(l FilterPath, r Filter, rel bool) *Assign {
 	f := &Assign{
+		L: l, R: r,
 		Relative: rel,
 	}
-
-	f.LHS.Path = index(lhs)
-	f.RHS.Path = index(rhs)
 
 	return f
 }
 
 func (f *Assign) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
-	for {
-		field, more, err := f.LHS.ApplyTo(b, off, next)
-		if err != nil {
-			return off, more, err
-		}
-		if field == None {
-			break
-		}
+	br := b.Reader()
+	_ = br
 
-		base := off
-
-		if f.Relative {
-			base = field
-		}
-
-		res, _, err = f.RHS.ApplyTo(b, base, false)
-		if err != nil {
-			return off, false, err
-		}
-
-		log.Printf("assign %x = %x\nlstack %v", field, res, f.LHS.stack)
-		log.Printf("buf\n%s", DumpBuffer(b))
-
-		br := b.Reader()
-		bw := b.Writer()
-
-		for fi := len(f.LHS.Path) - 1; fi >= 0; fi-- {
-			st := f.LHS.stack[fi]
-			tag := br.Tag(st.off)
-
-			base := len(f.LHS.arr)
-			f.LHS.arr = br.ArrayMap(st.off, f.LHS.arr)
-
-			idx := st.i + int(st.val) - st.st
-
-			f.LHS.arr[base+idx] = res
-
-			res = bw.ArrayMap(tag, f.LHS.arr[base:])
-			f.LHS.stack[fi].off = res
-		}
-
-		if !more {
-			break
-		}
-
-		next = true
+	if !next {
+		f.state = f.state[:0]
+		f.path = f.path[:0]
 	}
 
-	return f.LHS.stack[0].off, more, nil
+	f.field, f.path, more, err = f.L.ApplyToGetPath(b, off, next, f.path)
+	if err != nil {
+		return off, false, err
+	}
+
+	f.state = resize(f.state, len(f.path))
+
+	pref := len(f.path)
+	for pref--; pref >= 0; pref-- {
+		st := f.state[pref]
+		_ = st
+	}
+
+	rbase := csel(f.Relative, res, off)
+
+	val, _, err := f.R.ApplyTo(b, rbase, false)
+	if err != nil {
+		return off, false, err
+	}
+
+	log.Printf("assign %x/%x = %x", f.path, f.field, val)
+
+	return f.path[0].Off, false, nil
 }
 
 func (f *Assign) String() string {
@@ -84,5 +71,13 @@ func (f *Assign) String() string {
 		op = "|="
 	}
 
-	return fmt.Sprintf("%v %s %v", f.LHS.String(), op, f.RHS.String())
+	return fmt.Sprintf("%v %s %v", f.L, op, f.R)
+}
+
+func resize[T any](s []T, n int) []T {
+	if cap(s) < n {
+		return make([]T, n)
+	}
+
+	return s[:n]
 }

@@ -33,7 +33,7 @@ func TestSelect(tb *testing.T) {
 	})
 	b.Reset(d)
 
-	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(NewIndex("a")))), b, root, arr{
+	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(NewQuery("a")))), b, root, arr{
 		obj{"a", true},
 		obj{"a", 0},
 		obj{"a", 1},

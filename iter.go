@@ -15,6 +15,25 @@ type (
 
 func NewIter() *Iter { return &Iter{} }
 
+func (f *Iter) ApplyGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
+	res, more, err = f.ApplyTo(b, off, next)
+	if err != nil {
+		return off, base, false, err
+	}
+
+	index := f.j
+	if b.Reader().Tag(off) == cbor.Map {
+		index /= 2
+	}
+
+	base = append(base, PathSeg{
+		Off:   off,
+		Index: index,
+	})
+
+	return res, base, more, nil
+}
+
 func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err error) {
 	br := b.Reader()
 

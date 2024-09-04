@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	Index struct {
+	Query struct {
 		Path []any
 
 		IgnoreTypeError bool
@@ -27,11 +27,11 @@ type (
 
 var ErrUnsupportedIndexKey = errors.New("unsupported index key")
 
-func NewIndex(p ...any) *Index {
-	return &Index{Path: index(p)}
+func NewQuery(p ...any) *Query {
+	return &Query{Path: query(p)}
 }
 
-func index(p []any) []any {
+func query(p []any) []any {
 	for i := range p {
 		switch p[i].(type) {
 		case string, int, Iter:
@@ -45,7 +45,28 @@ func index(p []any) []any {
 	return p
 }
 
-func (f *Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Query) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
+	res, more, err = f.ApplyTo(b, off, next)
+	if err != nil {
+		return off, base, false, err
+	}
+
+	for _, st := range f.stack {
+		index := st.i - st.st
+		if st.val == 1 {
+			index /= 2
+		}
+
+		base = append(base, PathSeg{
+			Off:   st.off,
+			Index: index,
+		})
+	}
+
+	return res, base, more, nil
+}
+
+func (f *Query) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
 	br := b.Reader()
 
 	if len(f.Path) == 0 {
@@ -106,7 +127,7 @@ back:
 
 				off, f.stack[fi].i = f.mapKey(b, off, k)
 				f.stack[fi].val = 1
-			case Iter:
+			case Iter, *Iter:
 				if off == Null || tag != cbor.Map && tag != cbor.Array {
 					return off, false, ErrType
 				}
@@ -143,7 +164,7 @@ back:
 	return off, more, nil
 }
 
-func (f *Index) back(fi int, next *bool) int {
+func (f *Query) back(fi int, next *bool) int {
 	if next != nil && !*next {
 		*next = true
 		return 0
@@ -164,7 +185,7 @@ func (f *Index) back(fi int, next *bool) int {
 	return fi
 }
 
-func (f *Index) init(root int) bool {
+func (f *Query) init(root int) bool {
 	f.arr = f.arr[:0]
 
 	for cap(f.stack) < len(f.Path) {
@@ -182,7 +203,7 @@ func (f *Index) init(root int) bool {
 	return true
 }
 
-func (f *Index) mapKey(b *Buffer, off int, key string) (res, i int) {
+func (f *Query) mapKey(b *Buffer, off int, key string) (res, i int) {
 	br := b.Reader()
 	reset := len(f.arr)
 	res = Null
@@ -207,7 +228,7 @@ func (f *Index) mapKey(b *Buffer, off int, key string) (res, i int) {
 	return res, i
 }
 
-func (f *Index) String() string {
+func (f *Query) String() string {
 	var b strings.Builder
 
 	//	b.WriteString("Index{")

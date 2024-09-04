@@ -25,14 +25,14 @@ func TestMapObjObj(tb *testing.T) {
 	root := b.appendVal(obj{"a", obj{"x", "y", "y", "z"}, "b", obj{"x", "a", "z", arr{"b", "c"}}})
 
 	testOne(tb, NewMap(NewComma(
-		NewIndex("x"),
-		NewIndex("y"),
-		NewIndex("z"),
+		NewQuery("x"),
+		NewQuery("y"),
+		NewQuery("z"),
 	)), b, root, arr{"y", "z", nil, "a", nil, arr{"b", "c"}})
 
 	testOne(tb, NewMapValues(NewComma(
-		NewIndex("x"),
-		NewIndex("y"),
-		NewIndex("z"),
+		NewQuery("x"),
+		NewQuery("y"),
+		NewQuery("z"),
 	)), b, root, obj{"a", "y", "b", "a"})
 }
