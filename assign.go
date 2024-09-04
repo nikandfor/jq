@@ -73,11 +73,3 @@ func (f *Assign) String() string {
 
 	return fmt.Sprintf("%v %s %v", f.L, op, f.R)
 }
-
-func resize[T any](s []T, n int) []T {
-	if cap(s) < n {
-		return make([]T, n)
-	}
-
-	return s[:n]
-}

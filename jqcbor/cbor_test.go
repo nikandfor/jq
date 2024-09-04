@@ -69,7 +69,7 @@ func TestDecodeEncode(tb *testing.T) {
 	assertNoError(tb, err)
 	assertEqual(tb, len(data), i)
 
-	f := jq.NewArray(jq.NewIndex(jq.Iter{}, jq.Iter{}, "c", jq.Iter{}))
+	f := jq.NewArray(jq.NewQuery(jq.Iter{}, jq.Iter{}, "c", jq.Iter{}))
 
 	res, _, err := f.ApplyTo(b, off, false)
 	assertNoError(tb, err)

@@ -15,7 +15,7 @@ type (
 
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
+func (f *Iter) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
 	res, more, err = f.ApplyTo(b, off, next)
 	if err != nil {
 		return off, base, false, err
@@ -26,10 +26,7 @@ func (f *Iter) ApplyGetPath(b *Buffer, off int, next bool, base Path) (res int, 
 		index /= 2
 	}
 
-	base = append(base, PathSeg{
-		Off:   off,
-		Index: index,
-	})
+	base = append(base, off)
 
 	return res, base, more, nil
 }

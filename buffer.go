@@ -143,6 +143,11 @@ func (b BufferReader) Bytes(off int) []byte {
 	return s
 }
 
+func (b BufferReader) ArrayMapLen(off int) int {
+	_, l, _, _ := b.Decoder.TagArrayMap(b.Buf(off))
+	return l
+}
+
 func (b BufferReader) ArrayMapIndex(off, index int) (k, v int) {
 	buf, base, eoff := b.BufBase(off)
 	return b.Decoder.ArrayMapIndex(buf, base, eoff, index)

@@ -59,15 +59,12 @@ func TestQueryIgnoreTypeError(tb *testing.T) {
 	testOne(tb, NewQuery("a"), b, root, "b")
 	testOne(tb, NewQuery("q"), b, root, nil)
 
-	root = b.appendVal(arr{"a", "b"})
+	root2 := b.appendVal(arr{"a", "b"})
 
-	f := NewQuery("a")
-	f.IgnoreTypeError = true
+	testOne(tb, NewQuery(KeyOrNull("a")), b, root2, nil)
+	testError(tb, NewQuery("a"), b, root2, ErrType)
 
-	testOne(tb, f, b, root, nil)
-
-	f = NewQuery("a")
-	f.IgnoreTypeError = false
-
-	testError(tb, f, b, root, ErrType)
+	if tb.Failed() {
+		tb.Logf("buffer\n%s", DumpBuffer(b))
+	}
 }

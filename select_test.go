@@ -2,8 +2,6 @@ package jq
 
 import (
 	"testing"
-
-	"nikand.dev/go/cbor"
 )
 
 func TestSelect(tb *testing.T) {
@@ -44,8 +42,10 @@ func TestSelect(tb *testing.T) {
 }
 
 func TestSelectSpecial(tb *testing.T) {
-	d, root := appendValBuf(append([]byte{cbor.String | cbor.Len1, 250}, make([]byte, 250)...), 0, arr{
-		code(None),
+	b := NewBuffer(nil)
+	_ = b.appendVal(make([]byte, 250))
+
+	root := b.appendVal(arr{
 		code(Null),
 		code(True),
 		code(False),
@@ -53,7 +53,6 @@ func TestSelectSpecial(tb *testing.T) {
 		code(One),
 		obj{},
 	})
-	b := NewBuffer(d)
 
 	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(nil))), b, root, arr{true, 0, 1, obj{}})
 }

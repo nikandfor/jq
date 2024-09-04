@@ -20,12 +20,7 @@ type (
 		ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error)
 	}
 
-	Path []PathSeg
-
-	PathSeg struct {
-		Off   int
-		Index int
-	}
+	Path []int
 
 	Off   int
 	Dot   struct{}
@@ -368,37 +363,16 @@ func appendHex(b, a []byte) []byte {
 	return b
 }
 
-func (p Path) Format(s fmt.State, verb rune) {
-	for i, p := range p {
-		if i != 0 {
-			_, _ = s.Write([]byte{'/'})
-		}
-
-		p.Format(s, verb)
-	}
-}
-
-func (p PathSeg) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'd':
-		_, _ = fmt.Fprintf(s, "%d:%d", p.Off, p.Index)
-	default:
-		_, _ = fmt.Fprintf(s, "%x:%x", p.Off, p.Index)
-	}
-}
-
 func (p Path) String() string {
 	var b strings.Builder
 
-	for i, p := range p {
+	for i, off := range p {
 		if i != 0 {
 			_ = b.WriteByte('/')
 		}
 
-		_, _ = b.WriteString(p.String())
+		_, _ = fmt.Fprintf(&b, "%x", off)
 	}
 
 	return b.String()
 }
-
-func (p PathSeg) String() string { return fmt.Sprintf("%x:%x", p.Off, p.Index) }

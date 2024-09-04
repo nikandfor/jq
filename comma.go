@@ -18,18 +18,43 @@ func NewComma(fs ...Filter) *Comma {
 	return &Comma{Filters: fs}
 }
 
+func (f *Comma) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
+	return f.applyTo(b, off, next, base, true)
+}
+
 func (f *Comma) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+	res, _, more, err = f.applyTo(b, off, next, nil, false)
+	return
+}
+
+func (f *Comma) applyTo(b *Buffer, off int, next bool, base Path, usepath bool) (res int, path Path, more bool, err error) {
 	if !next {
 		f.j = 0
 		f.next = false
 	}
 
+	path = base
+	pathReset := len(path)
+	defer func() {
+		if err != nil {
+			path = path[:pathReset]
+		}
+	}()
+
 	res = None
 
 	for f.j < len(f.Filters) {
-		res, f.next, err = f.Filters[f.j].ApplyTo(b, off, f.next)
+		ff := f.Filters[f.j]
+
+		fp := filterPath(ff, usepath)
+
+		if fp != nil {
+			res, path, f.next, err = fp.ApplyToGetPath(b, off, f.next, path)
+		} else {
+			res, f.next, err = ff.ApplyTo(b, off, f.next)
+		}
 		if err != nil {
-			return off, false, err
+			return off, path, false, err
 		}
 
 		if !f.next {
@@ -41,7 +66,7 @@ func (f *Comma) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 		}
 	}
 
-	return res, f.j < len(f.Filters), nil
+	return res, path, f.j < len(f.Filters), nil
 }
 
 func (f Comma) String() string {
