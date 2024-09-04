@@ -13,12 +13,16 @@ type (
 	}
 )
 
+var _ FilterPath = (*Iter)(nil)
+
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
+func (f *Iter) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+	off := base[at]
+
 	res, more, err = f.ApplyTo(b, off, next)
 	if err != nil {
-		return off, base, false, err
+		return off, base, at, false, err
 	}
 
 	index := f.j
@@ -26,9 +30,10 @@ func (f *Iter) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int
 		index /= 2
 	}
 
-	base = append(base, off)
+	path = base
+	at++
 
-	return res, base, more, nil
+	return res, path, at, more, nil
 }
 
 func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err error) {

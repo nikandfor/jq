@@ -1,6 +1,11 @@
 package jq
 
-import "nikand.dev/go/cbor"
+import (
+	"fmt"
+	"strings"
+
+	"nikand.dev/go/cbor"
+)
 
 type (
 	Arr  = arr
@@ -96,4 +101,45 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 	w = e.AppendArrayMap(w, tag, off, a)
 
 	return w, off
+}
+
+func (x arr) String() string {
+	var b strings.Builder
+
+	_ = b.WriteByte('[')
+
+	for j, x := range x {
+		if j != 0 {
+			_, _ = b.Write([]byte{',', ' '})
+		}
+
+		_, _ = fmt.Fprintf(&b, "%v", x)
+	}
+
+	_ = b.WriteByte(']')
+
+	return b.String()
+}
+
+func (x obj) String() string {
+	var b strings.Builder
+
+	_ = b.WriteByte('{')
+
+	for j := 0; j < len(x); j++ {
+		if j != 0 {
+			_, _ = b.Write([]byte{',', ' '})
+		}
+
+		_, _ = fmt.Fprintf(&b, "%v", x[j])
+		j++
+
+		_, _ = b.Write([]byte{':', ' '})
+
+		_, _ = fmt.Fprintf(&b, "%v", x[j])
+	}
+
+	_ = b.WriteByte('}')
+
+	return b.String()
 }

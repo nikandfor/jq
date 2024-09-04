@@ -14,23 +14,34 @@ type (
 	KeyOrNull string
 )
 
-func (f Index) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
-	return indexApplyToGetPath(int(f), b, off, next, false, base)
+var (
+	_ FilterPath = Index(0)
+	_ FilterPath = IndexOrNull(0)
+
+	_ FilterPath = Key("")
+	_ FilterPath = KeyOrNull("")
+)
+
+func (f Index) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+	return indexApplyToGetPath(int(f), b, base, at, next, false)
 }
 
-func (f IndexOrNull) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
-	return indexApplyToGetPath(int(f), b, off, next, true, base)
+func (f IndexOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+	return indexApplyToGetPath(int(f), b, base, at, next, true)
 }
 
-func indexApplyToGetPath(f int, b *Buffer, off int, next, null bool, base Path) (res int, path Path, more bool, err error) {
+func indexApplyToGetPath(f int, b *Buffer, base Path, at int, next, null bool) (res int, path Path, at1 int, more bool, err error) {
+	off := base[at]
+
 	res, more, err = indexApplyTo(int(f), b, off, next, null)
 	if err != nil {
-		return off, base, false, err
+		return off, base, at, false, err
 	}
 
-	path = append(base, off)
+	path = base
+	at++
 
-	return res, path, more, nil
+	return res, path, at, more, nil
 }
 
 func (f Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
@@ -75,23 +86,26 @@ func indexApplyTo(f int, b *Buffer, off int, next, null bool) (res int, more boo
 	return res, false, nil
 }
 
-func (f Key) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
-	return keyApplyToGetPath(string(f), b, off, next, false, base)
+func (f Key) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+	return keyApplyToGetPath(string(f), b, base, at, next, false)
 }
 
-func (f KeyOrNull) ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error) {
-	return keyApplyToGetPath(string(f), b, off, next, true, base)
+func (f KeyOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+	return keyApplyToGetPath(string(f), b, base, at, next, true)
 }
 
-func keyApplyToGetPath(f string, b *Buffer, off int, next, null bool, base Path) (res int, path Path, more bool, err error) {
+func keyApplyToGetPath(f string, b *Buffer, base Path, at int, next, null bool) (res int, path Path, at1 int, more bool, err error) {
+	off := base[at]
+
 	res, more, err = keyApplyTo(f, b, off, next, null)
 	if err != nil {
-		return off, base, false, err
+		return off, base, at, false, err
 	}
 
-	path = append(base, off)
+	path = base
+	at++
 
-	return res, path, more, nil
+	return res, path, at, more, nil
 }
 
 func (f Key) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {

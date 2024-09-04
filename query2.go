@@ -1,7 +1,7 @@
 package jq
 
 func NewQuery(fs ...any) *Pipe {
-	return &Pipe{Filters: query(fs)}
+	return NewPipe(query(fs)...)
 }
 
 func query(p []any) []Filter {

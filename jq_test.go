@@ -82,7 +82,7 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 		}
 	}
 
-	off, more, err := f.ApplyTo(b, root, true)
+	off, more, err := f.ApplyTo(b, root, len(vals) != 0)
 	if assertNoError(tb, err, "after") {
 		assertEqualOff(tb, None, off, "after")
 		assertTrue(tb, !more, "didn't want more")

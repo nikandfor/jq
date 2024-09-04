@@ -6,7 +6,7 @@ func TestPipe(tb *testing.T) {
 	d, root := appendValBuf(nil, 0, obj{"a", obj{"b", obj{"c", "d"}}})
 	b := NewBuffer(d)
 
-	testOne(tb, NewPipe(NewQuery("a"), NewQuery("b"), NewQuery("c")), b, root, "d")
+	testOne(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, root, "d")
 
 	if tb.Failed() {
 		tb.Logf("buffer\n%s", DumpBuffer(b))

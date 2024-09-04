@@ -17,7 +17,7 @@ type (
 	FilterFunc func(b *Buffer, off int, next bool) (int, bool, error)
 
 	FilterPath interface {
-		ApplyToGetPath(b *Buffer, off int, next bool, base Path) (res int, path Path, more bool, err error)
+		ApplyToGetPath(b *Buffer, path Path, at int, next bool) (res int, path1 Path, at1 int, more bool, err error)
 	}
 
 	Path []int
@@ -361,6 +361,16 @@ func appendHex(b, a []byte) []byte {
 	}
 
 	return b
+}
+
+func (p Path) Format(s fmt.State, v rune) {
+	for i, off := range p {
+		if i != 0 {
+			_, _ = s.Write([]byte{'/'})
+		}
+
+		_, _ = fmt.Fprintf(s, "%"+string(v), off)
+	}
 }
 
 func (p Path) String() string {
