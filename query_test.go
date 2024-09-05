@@ -11,7 +11,7 @@ func TestQuery(tb *testing.T) {
 	testOne(tb, NewQuery("a"), b, root, 1)
 
 	if tb.Failed() {
-		tb.Logf("buffer  root %x\n%s", root, DumpBuffer(b))
+		tb.Logf("buffer  root %x\n%s", root, Dump(b))
 		return
 	}
 
@@ -65,6 +65,6 @@ func TestQueryIgnoreTypeError(tb *testing.T) {
 	testError(tb, NewQuery("a"), b, root2, ErrType)
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", DumpBuffer(b))
+		tb.Logf("buffer\n%s", Dump(b))
 	}
 }

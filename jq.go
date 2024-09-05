@@ -112,11 +112,11 @@ func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return b.Writer().Raw(f), false, nil
 }
 
-func Dump(b []byte) string {
+func DumpBytes(b []byte) string {
 	return (&Dumper{}).Dump(b)
 }
 
-func DumpBuffer(b *Buffer) string {
+func Dump(b *Buffer) string {
 	d := Dumper{}
 	d.dumpBuffer(b)
 	return string(d.b)

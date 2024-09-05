@@ -21,5 +21,5 @@ func TestBufferAppendValue(tb *testing.T) {
 		-1.0,
 	})
 
-	tb.Logf("buffer  %x\n%s", off, DumpBuffer(b))
+	tb.Logf("buffer  %x\n%s", off, Dump(b))
 }

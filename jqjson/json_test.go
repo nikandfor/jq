@@ -34,7 +34,7 @@ func TestDecodeEncode(tb *testing.T) {
 	}
 
 	if tb.Failed() {
-		tb.Logf("res %x -> %x\n%s", off, res, jq.DumpBuffer(b))
+		tb.Logf("res %x -> %x\n%s", off, res, jq.Dump(b))
 	}
 }
 
@@ -69,7 +69,7 @@ func TestFilter(tb *testing.T) {
 	if tb.Failed() {
 		tb.Logf("hex R\n%s", hex.Dump(b.R))
 		tb.Logf("hex W\n%s", hex.Dump(b.W))
-		tb.Logf("buffer\n%s", jq.DumpBuffer(b))
+		tb.Logf("buffer\n%s", jq.Dump(b))
 	}
 }
 

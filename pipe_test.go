@@ -9,7 +9,7 @@ func TestPipe(tb *testing.T) {
 	testOne(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, root, "d")
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", DumpBuffer(b))
+		tb.Logf("buffer\n%s", Dump(b))
 	}
 
 	d, root = appendValBuf(d, 0, "a")

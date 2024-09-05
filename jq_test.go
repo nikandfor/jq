@@ -61,7 +61,7 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
 
 		defer panic(p)
 
-		tb.Logf("buffer  root %x\n%s", root, DumpBuffer(b))
+		tb.Logf("buffer  root %x\n%s", root, Dump(b))
 	}()
 
 	for j, elem := range vals {
