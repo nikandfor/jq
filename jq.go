@@ -11,16 +11,16 @@ import (
 
 type (
 	Filter interface {
-		ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error)
+		ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error)
 	}
 
-	FilterFunc func(b *Buffer, off int, next bool) (int, bool, error)
+	FilterFunc func(b *Buffer, off Off, next bool) (Off, bool, error)
 
 	FilterPath interface {
-		ApplyToGetPath(b *Buffer, path Path, at int, next bool) (res int, path1 Path, at1 int, more bool, err error)
+		ApplyToGetPath(b *Buffer, path Path, at int, next bool) (res Off, path1 Path, at1 int, more bool, err error)
 	}
 
-	Path []int
+	Path []Off
 
 	Off   int
 	Dot   struct{}
@@ -35,12 +35,12 @@ type (
 		Decoder Decoder
 
 		b   []byte
-		arr []int
+		arr []Off
 	}
 )
 
 const (
-	_ = -iota
+	_ Off = -iota
 	None
 	Null
 	True
@@ -54,19 +54,19 @@ var (
 	ErrHalt = errors.New("halted")
 )
 
-func (f FilterFunc) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f FilterFunc) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return f(b, off, next)
 }
 
-func (f Off) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f Off) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
 		return off, false, nil
 	}
 
-	return int(f), false, nil
+	return f, false, nil
 }
 
-func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f Dot) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
 		return None, false, nil
 	}
@@ -74,11 +74,11 @@ func (f Dot) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
 	return off, false, nil
 }
 
-func (f Empty) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f Empty) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return None, false, nil
 }
 
-func (f Halt) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f Halt) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	err := f.Err
 	if err == nil {
 		err = ErrHalt
@@ -104,7 +104,7 @@ func NewLiteral(x any) Literal {
 	panic(x)
 }
 
-func (f Literal) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (f Literal) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
 		return None, false, nil
 	}
@@ -124,7 +124,7 @@ func Dump(b *Buffer) string {
 
 func NewDumper(w io.Writer) *Dumper { return &Dumper{Writer: w} }
 
-func (d *Dumper) ApplyTo(b *Buffer, off int, next bool) (int, bool, error) {
+func (d *Dumper) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
 		return None, false, nil
 	}
@@ -251,7 +251,7 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 	}
 }
 
-func (d *Dumper) encodeString(w []byte, b *Buffer, off int) ([]byte, error) {
+func (d *Dumper) encodeString(w []byte, b *Buffer, off Off) ([]byte, error) {
 	r, st := b.Buf(off)
 
 	w = append(w, '"')

@@ -23,11 +23,11 @@ type (
 	}
 )
 
-func (b *Buffer) AppendValue(v any) (off int) {
+func (b *Buffer) AppendValue(v any) (off Off) {
 	return b.appendVal(v)
 }
 
-func (b *Buffer) appendVal(v any) (off int) {
+func (b *Buffer) appendVal(v any) (off Off) {
 	b.W, off = appendValBuf(b.W, len(b.R), v)
 	if off < 0 {
 		return off
@@ -36,19 +36,19 @@ func (b *Buffer) appendVal(v any) (off int) {
 	return off
 }
 
-func appendValBuf(w []byte, base int, v any) ([]byte, int) {
+func appendValBuf(w []byte, base int, v any) ([]byte, Off) {
 	var e Encoder
-	var a []int
+	var a []Off
 	var tag byte
 	var lst []any
 
-	off := base + len(w)
+	off := Off(base + len(w))
 
 	switch v := v.(type) {
 	case code:
-		return w, int(v)
+		return w, Off(v)
 	case Off:
-		return w, int(v)
+		return w, v
 	case nil:
 		return w, Null
 	case raw:
@@ -97,7 +97,7 @@ func appendValBuf(w []byte, base int, v any) ([]byte, int) {
 		a = append(a, off)
 	}
 
-	off = base + len(w)
+	off = Off(base + len(w))
 	w = e.AppendArrayMap(w, tag, off, a)
 
 	return w, off

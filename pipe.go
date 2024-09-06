@@ -13,7 +13,7 @@ type (
 	}
 
 	pipeState struct {
-		off  int
+		off  Off
 		at   int
 		next bool
 	}
@@ -25,17 +25,17 @@ func NewPipe(fs ...Filter) *Pipe {
 	return &Pipe{Filters: fs}
 }
 
-func (f *Pipe) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f *Pipe) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	return f.applyToGetPath(b, -1, base, at, next)
 }
 
-func (f *Pipe) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Pipe) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, _, more, err = f.applyToGetPath(b, off, nil, -1, next)
 
 	return res, more, err
 }
 
-func (f *Pipe) applyToGetPath(b *Buffer, off int, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f *Pipe) applyToGetPath(b *Buffer, off Off, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	if len(f.Filters) == 0 {
 		return off, base, at, false, nil
 	}
@@ -106,7 +106,7 @@ back:
 	return res, path, at, more, nil
 }
 
-func (f *Pipe) init(off int, path Path, at int) {
+func (f *Pipe) init(off Off, path Path, at int) {
 	f.stack = resize(f.stack, len(f.Filters)+1)
 
 	if at < 0 {

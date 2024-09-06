@@ -9,7 +9,7 @@ type (
 		L, R Filter
 		Not  bool
 
-		lastl        int
+		lastl        Off
 		lnext, rnext bool
 	}
 
@@ -27,7 +27,7 @@ func NewNotEqual(l, r Filter) *Equal {
 	return &Equal{L: l, R: r, Not: true}
 }
 
-func (f *Equal) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Equal) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if !next {
 		f.lastl = None
 		f.lnext = false
@@ -36,9 +36,9 @@ func (f *Equal) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 		return None, false, nil
 	}
 
-	var r int
+	var r Off
 
-	//	defer func(off int, next bool, ff Equal) {
+	//	defer func(off Off, next bool, ff Equal) {
 	//		log.Printf("cmp equal %x %v (%x %v %v) -> %x %v  %x %v -> %v %v", off, next, ff.lastl, ff.lnext, ff.rnext, f.lastl, f.lnext, r, f.rnext, b.Equal(f.lastl, r) == !f.Not, more)
 	//	}(off, next, *f)
 
@@ -83,7 +83,7 @@ func (f *Equal) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 
 func NewNot() Not { return Not{} }
 
-func (f Not) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Not) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next || off == None {
 		return None, false, nil
 	}
@@ -97,7 +97,7 @@ func (f Not) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err err
 
 func NewNotOf(f Filter) NotOf { return NotOf{Of: f} }
 
-func (f NotOf) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f NotOf) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if f.Of == nil {
 		return Not{}.ApplyTo(b, off, next)
 	}

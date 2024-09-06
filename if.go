@@ -15,7 +15,7 @@ type (
 
 func NewIf(c, t, e Filter) *If { return &If{Cond: c, Then: t, Else: e} }
 
-func (f *If) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *If) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if !next {
 		f.done = false
 		f.cnext = false

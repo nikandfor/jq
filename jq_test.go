@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func testError(tb testing.TB, f Filter, b *Buffer, root int, experr error) {
+func testError(tb testing.TB, f Filter, b *Buffer, root Off, experr error) {
 	tb.Logf("filter: %v", f)
 
 	_, more, err := f.ApplyTo(b, root, false)
@@ -20,10 +20,10 @@ func testError(tb testing.TB, f Filter, b *Buffer, root int, experr error) {
 	}
 }
 
-func testSame(tb testing.TB, f Filter, b *Buffer, root int, eoff int) {
-	tb.Logf("root %3x   filter: %v", root, f)
+func testSame(tb testing.TB, f Filter, b *Buffer, eoff, off Off) {
+	tb.Logf("root %3x   filter: %v", off, f)
 
-	off, more, err := f.ApplyTo(b, root, false)
+	off, more, err := f.ApplyTo(b, off, false)
 	assertNoError(tb, err)
 	assertEqualOff(tb, eoff, off)
 	assertTrue(tb, !more, "didn't want more")
@@ -34,7 +34,7 @@ func testSame(tb testing.TB, f Filter, b *Buffer, root int, eoff int) {
 	}
 }
 
-func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
+func testOne(tb testing.TB, f Filter, b *Buffer, root Off, val any) {
 	tb.Logf("root %3x   filter: %v", root, f)
 
 	eoff := b.appendVal(val)
@@ -50,7 +50,7 @@ func testOne(tb testing.TB, f Filter, b *Buffer, root int, val any) {
 	}
 }
 
-func testIter(tb testing.TB, f Filter, b *Buffer, root int, vals []any) {
+func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 	tb.Logf("root %3x   filter: %v", root, f)
 
 	defer func() {
@@ -145,7 +145,7 @@ func assertNoError(tb testing.TB, err error, args ...any) bool {
 	return false
 }
 
-func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
+func assertEqualOff(tb testing.TB, exp, val Off, args ...any) bool {
 	tb.Helper()
 
 	if exp == val {
@@ -162,7 +162,7 @@ func assertEqualOff(tb testing.TB, exp, val int, args ...any) bool {
 	return false
 }
 
-func assertEqualVal(tb testing.TB, b *Buffer, loff int, roff int, args ...any) bool {
+func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool {
 	tb.Helper()
 
 	if b.Equal(loff, roff) {

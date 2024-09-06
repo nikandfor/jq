@@ -16,18 +16,18 @@ type (
 		rnext bool
 
 		path Path
-		arr  []int
+		arr  []Off
 	}
 
 	assignState struct {
-		off        int
+		off        Off
 		st, i, end int
 	}
 )
 
 func NewAssign(l FilterPath, r Filter, rel bool) *Assign { return &Assign{L: l, R: r, Relative: rel} }
 
-func (f *Assign) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Assign) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if !next {
 		f.path = append(f.path[:0], off)
 
@@ -36,7 +36,7 @@ func (f *Assign) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 		f.arr = f.arr[:0]
 	}
 
-	var val int
+	var val Off
 
 	for !f.Relative {
 		val, more, err = f.R.ApplyTo(b, off, next)
@@ -57,7 +57,8 @@ func (f *Assign) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 	var lnext bool
 
 	for {
-		var field, at int
+		var field Off
+		var at int
 		//	log.Printf("staring assign loop %v   %x [%x] %v", next, f.path, at, lnext)
 
 		field, f.path, at, lnext, err = f.L.ApplyToGetPath(b, f.path, at, lnext)

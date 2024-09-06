@@ -14,7 +14,7 @@ type (
 
 func NewAlternate(l, r Filter) *Alternate { return &Alternate{Left: l, Right: r} }
 
-func (f *Alternate) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Alternate) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	subf := f.Left
 	if f.right {
 		subf = f.Right

@@ -9,13 +9,15 @@ import (
 )
 
 type (
+	Off = jq.Off
+
 	Decoder struct {
 		JSON json.Decoder
 
 		DeduplicateKeys bool
 
-		arr  []int
-		keys map[string]int
+		arr  []Off
+		keys map[string]Off
 	}
 )
 
@@ -23,7 +25,7 @@ func NewDecoder() *Decoder {
 	return &Decoder{}
 }
 
-func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
@@ -41,10 +43,10 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	return res, false, nil
 }
 
-func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error) {
+func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err error) {
 	if d.DeduplicateKeys {
 		if d.keys == nil {
-			d.keys = map[string]int{}
+			d.keys = map[string]Off{}
 		}
 	}
 
@@ -53,7 +55,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error)
 	return d.decode(b, r, st, false)
 }
 
-func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off, i int, err error) {
+func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i int, err error) {
 	bw := b.Writer()
 
 	reset := bw.Len()
@@ -101,7 +103,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off, i int, 
 
 		if j == len(raw) {
 			if v == 0 || v == 1 {
-				return jq.Zero - v, i, nil
+				return jq.Zero - Off(v), i, nil
 			}
 
 			off = bw.Int(v)

@@ -9,7 +9,7 @@ import (
 func TestIsSimpleAppendVal(tb *testing.T) {
 	b := &Buffer{}
 
-	for j, x := range []int{None, Null, True, False, Zero, One} {
+	for j, x := range []Off{None, Null, True, False, Zero, One} {
 		off := b.appendVal(code(x))
 
 		assertEqualVal(tb, b, x, off, "%x", x)
@@ -33,7 +33,7 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 
 	for j, tc := range []struct {
 		CBOR byte
-		Code int
+		Code Off
 	}{
 		{CBOR: cbor.Int | 0, Code: Zero},
 		{CBOR: cbor.Int | 1, Code: One},
@@ -42,7 +42,7 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 		{CBOR: cbor.Simple | cbor.True, Code: True},
 		{CBOR: cbor.Simple | cbor.Null, Code: Null},
 	} {
-		off := len(r)
+		off := Off(len(r))
 		r = append(r, tc.CBOR)
 		b.Reset(r)
 

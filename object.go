@@ -9,7 +9,7 @@ type (
 	Object struct {
 		Keys []ObjectKey
 
-		arr   []int
+		arr   []Off
 		stack []objectState
 	}
 
@@ -69,10 +69,10 @@ func NewObject(kvs ...any) *Object {
 	return &Object{Keys: obj}
 }
 
-func (f *Object) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Object) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	bw := b.Writer()
 
-	//	defer func(off int) { log.Printf("object.Apply %x %v  =>  %x %v", off, next, res, err) }(off)
+	//	defer func(off Off) { log.Printf("object.Apply %x %v  =>  %x %v", off, next, res, err) }(off)
 
 	reset := bw.Len()
 	defer bw.ResetIfErr(reset, &err)
@@ -150,7 +150,7 @@ func (f *Object) init() bool {
 	f.stack = f.stack[:2*len(f.Keys)]
 
 	if cap(f.arr) < len(f.stack) {
-		f.arr = make([]int, cap(f.stack))
+		f.arr = make([]Off, cap(f.stack))
 	}
 
 	f.arr = f.arr[:len(f.stack)]

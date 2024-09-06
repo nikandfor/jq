@@ -6,13 +6,13 @@ type (
 	Array struct {
 		Of Filter
 
-		arr []int
+		arr []Off
 	}
 )
 
 func NewArray(of Filter) *Array { return &Array{Of: of} }
 
-func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Array) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -27,7 +27,7 @@ func (f *Array) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err 
 	return off, false, nil
 }
 
-func ApplyGetAll(f Filter, b *Buffer, off int, arr []int) (arr0 []int, err error) {
+func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error) {
 	bw := b.Writer()
 
 	defer bw.ResetIfErr(bw.Len(), &err)
@@ -37,7 +37,7 @@ func ApplyGetAll(f Filter, b *Buffer, off int, arr []int) (arr0 []int, err error
 		}
 	}(len(arr))
 
-	var sub int
+	var sub Off
 	next := false
 
 	for {

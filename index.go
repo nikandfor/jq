@@ -22,15 +22,15 @@ var (
 	_ FilterPath = KeyOrNull("")
 )
 
-func (f Index) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f Index) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	return indexApplyToGetPath(int(f), b, base, at, next, false)
 }
 
-func (f IndexOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f IndexOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	return indexApplyToGetPath(int(f), b, base, at, next, true)
 }
 
-func indexApplyToGetPath(f int, b *Buffer, base Path, at int, next, null bool) (res int, path Path, at1 int, more bool, err error) {
+func indexApplyToGetPath(f int, b *Buffer, base Path, at int, next, null bool) (res Off, path Path, at1 int, more bool, err error) {
 	off := base[at]
 
 	res, more, err = indexApplyTo(int(f), b, off, next, null)
@@ -44,15 +44,15 @@ func indexApplyToGetPath(f int, b *Buffer, base Path, at int, next, null bool) (
 	return res, path, at, more, nil
 }
 
-func (f Index) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Index) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	return indexApplyTo(int(f), b, off, next, false)
 }
 
-func (f IndexOrNull) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f IndexOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	return indexApplyTo(int(f), b, off, next, true)
 }
 
-func indexApplyTo(f int, b *Buffer, off int, next, null bool) (res int, more bool, err error) {
+func indexApplyTo(f int, b *Buffer, off Off, next, null bool) (res Off, more bool, err error) {
 	if next || off == None {
 		return None, false, nil
 	}
@@ -86,15 +86,15 @@ func indexApplyTo(f int, b *Buffer, off int, next, null bool) (res int, more boo
 	return res, false, nil
 }
 
-func (f Key) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f Key) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	return keyApplyToGetPath(string(f), b, base, at, next, false)
 }
 
-func (f KeyOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f KeyOrNull) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	return keyApplyToGetPath(string(f), b, base, at, next, true)
 }
 
-func keyApplyToGetPath(f string, b *Buffer, base Path, at int, next, null bool) (res int, path Path, at1 int, more bool, err error) {
+func keyApplyToGetPath(f string, b *Buffer, base Path, at int, next, null bool) (res Off, path Path, at1 int, more bool, err error) {
 	off := base[at]
 
 	res, more, err = keyApplyTo(f, b, off, next, null)
@@ -108,15 +108,15 @@ func keyApplyToGetPath(f string, b *Buffer, base Path, at int, next, null bool) 
 	return res, path, at, more, nil
 }
 
-func (f Key) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Key) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	return keyApplyTo(string(f), b, off, next, false)
 }
 
-func (f KeyOrNull) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f KeyOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	return keyApplyTo(string(f), b, off, next, true)
 }
 
-func keyApplyTo(f string, b *Buffer, off int, next, null bool) (res int, more bool, err error) {
+func keyApplyTo(f string, b *Buffer, off Off, next, null bool) (res Off, more bool, err error) {
 	if next || off == None {
 		return None, false, nil
 	}

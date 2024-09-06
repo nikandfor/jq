@@ -6,18 +6,18 @@ import (
 
 type (
 	Any struct {
-		arr []int
+		arr []Off
 	}
 
 	All struct {
-		arr []int
+		arr []Off
 	}
 )
 
 func NewAny() *Any { return &Any{} }
 func NewAll() *All { return &All{} }
 
-func (f *Any) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Any) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -26,7 +26,7 @@ func (f *Any) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err er
 	return res, false, err
 }
 
-func (f *All) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *All) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -35,7 +35,7 @@ func (f *All) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err er
 	return res, false, err
 }
 
-func anyAllApplyTo(b *Buffer, off int, flip int, arr0 []int) (res int, arr []int, err error) {
+func anyAllApplyTo(b *Buffer, off Off, flip Off, arr0 []Off) (res Off, arr []Off, err error) {
 	arr = arr0
 
 	tag := b.Reader().Tag(off)

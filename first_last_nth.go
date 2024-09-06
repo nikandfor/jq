@@ -25,7 +25,7 @@ func NewFirst(e Filter) First    { return First{Expr: e} }
 func NewLast(e Filter) Last      { return Last{Expr: e} }
 func NewNth(n int, e Filter) Nth { return Nth{N: n, Expr: e} }
 
-func (f First) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f First) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -49,7 +49,7 @@ func (f First) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err e
 	return f.Expr.ApplyTo(b, None, next)
 }
 
-func (f Last) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Last) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -70,7 +70,7 @@ func (f Last) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err er
 		return res, false, nil
 	}
 
-	last := Null
+	last := Off(Null)
 
 	for {
 		res, next, err = f.Expr.ApplyTo(b, None, next)
@@ -90,7 +90,7 @@ func (f Last) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err er
 	return last, false, nil
 }
 
-func (f Nth) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Nth) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}

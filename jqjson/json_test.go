@@ -74,7 +74,7 @@ func TestFilter(tb *testing.T) {
 }
 
 func TestMergeString(tb *testing.T) {
-	b, root := func() (*jq.Buffer, int) {
+	b, root := func() (*jq.Buffer, Off) {
 		var r []byte
 		var e jq.Encoder
 

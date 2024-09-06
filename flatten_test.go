@@ -6,11 +6,11 @@ func TestFlatten(tb *testing.T) {
 	b := NewBuffer(nil)
 
 	d6 := b.appendVal(arr{6, 7})
-	d5 := b.appendVal(arr{"5", code(d6)})
-	d4 := b.appendVal(arr{obj{"a", 4}, code(d5)})
-	d3 := b.appendVal(arr{3, code(d4)})
-	d2 := b.appendVal(arr{2, code(d3)})
-	d1 := b.appendVal(arr{1, code(d2)})
+	d5 := b.appendVal(arr{"5", d6})
+	d4 := b.appendVal(arr{obj{"a", 4}, d5})
+	d3 := b.appendVal(arr{3, d4})
+	d2 := b.appendVal(arr{2, d3})
+	d1 := b.appendVal(arr{1, d2})
 
 	root := d1
 

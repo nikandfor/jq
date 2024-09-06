@@ -16,7 +16,7 @@ type (
 
 		FilterTag byte
 
-		arr []int
+		arr []Off
 	}
 )
 
@@ -26,7 +26,7 @@ func NewEncoder() *Encoder {
 	}
 }
 
-func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	var err error
 
 	res := b.Writer().Len()
@@ -52,7 +52,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	return res, false, nil
 }
 
-func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) {
+func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
@@ -90,7 +90,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) 
 	case cbor.Labeled:
 		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
-		return e.Encode(w, b, i)
+		return e.Encode(w, b, Off(i))
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -140,7 +140,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off int) (_ []byte, err error) 
 	return w, nil
 }
 
-func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off int) ([]byte, error) {
+func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
 	d := &b.Decoder.CBOR
 	r, st := b.Buf(off)
 
@@ -174,7 +174,7 @@ func (e *Encoder) encStr(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
 	return w, i
 }
 
-func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off int) ([]byte, error) {
+func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
 	if e.Base64 == nil {
 		e.Base64 = base64.StdEncoding
 	}

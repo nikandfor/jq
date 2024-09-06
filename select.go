@@ -14,7 +14,7 @@ type (
 
 func NewSelect(cond Filter) *Select { return &Select{Cond: cond} }
 
-func (f *Select) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -43,7 +43,7 @@ func (f *Select) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err
 	return None, false, nil
 }
 
-func IsTrue(b *Buffer, off int) bool {
+func IsTrue(b *Buffer, off Off) bool {
 	if off < 0 {
 		return off != None && off != Null && off != False
 	}

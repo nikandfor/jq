@@ -6,10 +6,12 @@ import (
 )
 
 type (
+	Off = jq.Off
+
 	Decoder struct {
 		CBOR cbor.Decoder
 
-		arr []int
+		arr []Off
 	}
 )
 
@@ -19,7 +21,7 @@ func NewDecoder() *Decoder {
 	}
 }
 
-func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
+func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
@@ -37,7 +39,7 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off int, next bool) (int, bool, error) {
 	return res, false, nil
 }
 
-func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off, i int, err error) {
+func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err error) {
 	bw := b.Writer()
 
 	reset := bw.Len()

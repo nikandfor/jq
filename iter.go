@@ -8,7 +8,7 @@ type (
 	Iter struct {
 		IgnoreTypeError bool
 
-		arr []int
+		arr []Off
 		j   int
 	}
 )
@@ -17,7 +17,7 @@ var _ FilterPath = (*Iter)(nil)
 
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int, path Path, at1 int, more bool, err error) {
+func (f *Iter) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
 	off := base[at]
 
 	res, more, err = f.ApplyTo(b, off, next)
@@ -36,7 +36,7 @@ func (f *Iter) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res int,
 	return res, path, at, more, nil
 }
 
-func (f *Iter) ApplyTo(b *Buffer, off int, next bool) (_ int, more bool, err error) {
+func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (_ Off, more bool, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)

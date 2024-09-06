@@ -20,15 +20,15 @@ const (
 	offReserve = 8
 )
 
-func (e Encoder) AppendArray(b []byte, off int, items []int) []byte {
+func (e Encoder) AppendArray(b []byte, off Off, items []Off) []byte {
 	return e.AppendArrayMap(b, cbor.Array, off, items)
 }
 
-func (e Encoder) AppendMap(b []byte, off int, items []int) []byte {
+func (e Encoder) AppendMap(b []byte, off Off, items []Off) []byte {
 	return e.AppendArrayMap(b, cbor.Map, off, items)
 }
 
-func (e Encoder) AppendArrayMap(b []byte, tag byte, off int, items []int) []byte {
+func (e Encoder) AppendArrayMap(b []byte, tag byte, off Off, items []Off) []byte {
 	//	reset := len(b)
 
 	tagLen := len(items)
@@ -55,7 +55,7 @@ func (e Encoder) AppendArrayMap(b []byte, tag byte, off int, items []int) []byte
 
 		for _, item := range items {
 			if item < 0 {
-				b = append(b, byte(size+item))
+				b = append(b, byte(size)+byte(item))
 				continue
 			}
 
@@ -74,7 +74,7 @@ func (e Encoder) AppendArrayMap(b []byte, tag byte, off int, items []int) []byte
 		size *= size
 	}
 
-	for size = 0x100; d >= size-offReserve; {
+	for size = 0x100; int(d) >= size-offReserve; {
 		ss++
 		size *= size
 	}
@@ -86,11 +86,11 @@ func (e Encoder) AppendArrayMap(b []byte, tag byte, off int, items []int) []byte
 
 	for _, item := range items {
 		if item < 0 {
-			b = e.AppendIntX(b, 1<<ss, size+item)
+			b = e.AppendIntX(b, 1<<ss, size+int(item))
 			continue
 		}
 
-		b = e.AppendIntX(b, 1<<ss, off-item)
+		b = e.AppendIntX(b, 1<<ss, int(off)-int(item))
 	}
 
 	//	log.Printf("append array/map  %x %x  % x -> %d %d   % x", tag, off, items, ll, ss, b[reset:])

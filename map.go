@@ -10,20 +10,20 @@ type (
 	Map struct {
 		Filter Filter
 
-		arr []int
+		arr []Off
 	}
 
 	MapValues struct {
 		Filter Filter
 
-		arr []int
+		arr []Off
 	}
 )
 
 func NewMap(f Filter) *Map             { return &Map{Filter: f} }
 func NewMapValues(f Filter) *MapValues { return &MapValues{Filter: f} }
 
-func (f *Map) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *Map) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -32,7 +32,7 @@ func (f *Map) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err er
 	return res, false, err
 }
 
-func (f *MapValues) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f *MapValues) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
@@ -41,7 +41,7 @@ func (f *MapValues) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, 
 	return res, false, err
 }
 
-func mapApplyTo(f Filter, b *Buffer, off int, arr []int, values bool) (res int, _ []int, err error) {
+func mapApplyTo(f Filter, b *Buffer, off Off, arr []Off, values bool) (res Off, _ []Off, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)

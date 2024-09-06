@@ -12,7 +12,7 @@ type (
 	}
 )
 
-func (f Length) ApplyTo(b *Buffer, off int, next bool) (res int, more bool, err error) {
+func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
