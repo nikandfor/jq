@@ -35,7 +35,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res O
 			return None, base, false, nil
 		}
 
-		return None, base, false, ErrType
+		return None, base, false, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	if addpath {

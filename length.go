@@ -17,6 +17,8 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		return None, false, nil
 	}
 
+	te := NewTypeError(b.Reader().TagRaw(off))
+
 	if off < 0 {
 		switch off {
 		case Zero, One:
@@ -24,7 +26,7 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		case Null:
 			return Zero, false, nil
 		default:
-			return off, false, ErrType
+			return off, false, te
 		}
 	}
 
@@ -59,10 +61,10 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 				res = b.Writer().Float(-f)
 			}
 		default:
-			return off, false, ErrType
+			return off, false, te
 		}
 	default:
-		return off, false, ErrType
+		return off, false, te
 	}
 
 	return res, false, nil

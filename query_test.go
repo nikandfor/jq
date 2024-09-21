@@ -2,6 +2,8 @@ package jq
 
 import (
 	"testing"
+
+	"nikand.dev/go/cbor"
 )
 
 func TestQuery(tb *testing.T) {
@@ -62,7 +64,7 @@ func TestQueryIgnoreTypeError(tb *testing.T) {
 	root2 := b.appendVal(arr{"a", "b"})
 
 	testOne(tb, NewQuery(KeyOrNull("a")), b, root2, nil)
-	testError(tb, NewQuery("a"), b, root2, ErrType)
+	testError(tb, NewQuery("a"), b, root2, NewTypeError(cbor.Array, cbor.Map))
 
 	if tb.Failed() {
 		tb.Logf("buffer\n%s", Dump(b))

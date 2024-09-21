@@ -26,7 +26,7 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 
 	tag := br.Tag(off)
 	if tag != cbor.Bytes && tag != cbor.String {
-		return off, false, jq.ErrType
+		return off, false, jq.NewTypeError(tag, cbor.Bytes, cbor.String)
 	}
 
 	s := br.Bytes(off)

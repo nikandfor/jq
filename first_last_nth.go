@@ -34,7 +34,7 @@ func (f Nth) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err err
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		return off, false, ErrType
+		return off, false, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	_, res = br.ArrayMapIndex(off, int(f))

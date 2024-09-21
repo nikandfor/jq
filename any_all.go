@@ -40,7 +40,7 @@ func anyAllApplyTo(b *Buffer, off Off, flip Off, arr0 []Off) (res Off, arr []Off
 
 	tag := b.Reader().Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		return off, arr, ErrType
+		return off, arr, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	val := 0

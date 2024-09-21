@@ -46,7 +46,7 @@ func mapApplyTo(f Filter, b *Buffer, off Off, arr []Off, values bool) (res Off, 
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		return off, arr, ErrType
+		return off, arr, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	val := 0

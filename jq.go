@@ -44,6 +44,8 @@ type (
 		b   []byte
 		arr []Off
 	}
+
+	TypeError int
 )
 
 const (
@@ -56,10 +58,8 @@ const (
 	One
 )
 
-var (
-	ErrType = errors.New("type error")
-	ErrHalt = errors.New("halted")
-)
+// ErrType = errors.New("type error")
+var ErrHalt = errors.New("halted")
 
 func ApplyGetPath(f Filter, b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
 	fp, ok := f.(FilterPath)
@@ -285,13 +285,14 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 }
 
 func (d *Dumper) encodeString(w []byte, b *Buffer, off Off) ([]byte, error) {
+	tag := b.Reader().Tag(off)
 	r, st := b.Buf(off)
 
 	w = append(w, '"')
 	w, i := d.encStr(w, r, st)
 	w = append(w, '"')
 	if i < 0 {
-		return w, ErrType
+		return w, NewTypeError(tag, cbor.Bytes, cbor.String)
 	}
 
 	return w, nil
@@ -445,4 +446,41 @@ func (p PathSeg) Format(s fmt.State, v rune) {
 
 func (p PathSeg) String() string {
 	return fmt.Sprintf("%v:%x", p.Off, p.Index)
+}
+
+func NewTypeError(got byte, wanted ...byte) TypeError {
+	var e TypeError
+
+	e |= TypeError(got)
+
+	for _, t := range wanted {
+		e |= 1 << (8 + t>>5)
+	}
+
+	return e
+}
+
+func (e TypeError) Error() string {
+	var b strings.Builder
+
+	tag := byte(e)
+
+	_, _ = fmt.Fprintf(&b, "type error: %s (%x)", tagString(tag), tag)
+
+	return b.String()
+}
+
+func tagString(tag byte) string {
+	return tag2str[tag>>5]
+}
+
+var tag2str = []string{
+	cbor.Int >> 5:     "Int",
+	cbor.Neg >> 5:     "Neg",
+	cbor.Bytes >> 5:   "Bytes",
+	cbor.String >> 5:  "String",
+	cbor.Array >> 5:   "Array",
+	cbor.Map >> 5:     "Map",
+	cbor.Simple >> 5:  "Simple",
+	cbor.Labeled >> 5: "Labeled",
 }

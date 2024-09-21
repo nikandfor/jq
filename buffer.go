@@ -52,6 +52,25 @@ func (b BufferReader) Tag(off Off) byte {
 	return tag
 }
 
+func (b BufferReader) TagRaw(off Off) byte {
+	if off < 0 {
+		q := []byte{
+			-None:  cbor.Simple | cbor.None,
+			-Null:  cbor.Simple | cbor.Null,
+			-True:  cbor.Simple | cbor.True,
+			-False: cbor.Simple | cbor.False,
+			-Zero:  cbor.Int | 0,
+			-One:   cbor.Int | 1,
+		}
+
+		return q[-off]
+	}
+
+	buf, st := b.Buf(off)
+
+	return buf[st]
+}
+
 func (b BufferReader) Raw(off Off) []byte {
 	switch off {
 	case False, True, Null, None:

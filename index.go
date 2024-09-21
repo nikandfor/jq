@@ -60,7 +60,7 @@ func indexApplyTo(f int, b *Buffer, off Off, base Path, next, addpath, null bool
 			return Null, path, false, nil
 		}
 
-		return off, path, false, ErrType
+		return off, path, false, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	l := br.ArrayMapLen(off)
@@ -120,7 +120,7 @@ func keyApplyTo(f string, b *Buffer, off Off, base Path, next, addpath, null boo
 			return Null, path, false, nil
 		}
 
-		return off, path, false, ErrType
+		return off, path, false, NewTypeError(tag, cbor.Map)
 	}
 
 	l := br.ArrayMapLen(off)

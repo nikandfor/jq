@@ -23,7 +23,7 @@ func (f *Slice) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 
 	tag := b.Reader().Tag(off)
 	if tag != cbor.Array {
-		return off, false, ErrType
+		return off, false, NewTypeError(tag, cbor.Array)
 	}
 
 	f.arr = b.Reader().ArrayMap(off, f.arr[:0])
