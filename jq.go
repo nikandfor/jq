@@ -17,10 +17,15 @@ type (
 	FilterFunc func(b *Buffer, off Off, next bool) (Off, bool, error)
 
 	FilterPath interface {
-		ApplyToGetPath(b *Buffer, path Path, at int, next bool) (res Off, path1 Path, at1 int, more bool, err error)
+		ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error)
 	}
 
-	Path []Off
+	Path []PathSeg
+
+	PathSeg struct {
+		Off   Off
+		Index int
+	}
 
 	Off   int
 	Dot   struct{}
@@ -33,6 +38,8 @@ type (
 	Dumper struct {
 		Writer  io.Writer
 		Decoder Decoder
+
+		Base int
 
 		b   []byte
 		arr []Off
@@ -112,17 +119,17 @@ func (f Literal) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return b.Writer().Raw(f), false, nil
 }
 
-func DumpBytes(b []byte) string {
-	return (&Dumper{}).Dump(b)
+func DumpBytes(base int, b []byte) string {
+	return (&Dumper{Base: -1}).Dump(base, b)
 }
 
 func Dump(b *Buffer) string {
-	d := Dumper{}
+	d := Dumper{Base: -1}
 	d.dumpBuffer(b)
 	return string(d.b)
 }
 
-func NewDumper(w io.Writer) *Dumper { return &Dumper{Writer: w} }
+func NewDumper(w io.Writer) *Dumper { return &Dumper{Writer: w, Base: -1} }
 
 func (d *Dumper) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
@@ -143,10 +150,16 @@ func (d *Dumper) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return off, false, nil
 }
 
-func (d *Dumper) Dump(b []byte) string {
+func (d *Dumper) Dump(base int, b []byte) string {
 	d.b = d.b[:0]
 
-	d.dump(b, -1, 0)
+	d.dump(b, base, 0)
+
+	if d.Base >= 0 {
+		d.Base += len(b) // TODO: base
+		d.b = fmt.Appendf(d.b, "%06x  ", d.Base)
+	}
+
 	d.b = fmt.Appendf(d.b, "%06x\n", len(b))
 
 	return string(d.b)
@@ -162,6 +175,11 @@ func (d *Dumper) dumpBuffer(b *Buffer) {
 	d.dump(b.R, 0, 0)
 	d.b = append(d.b, "wbuf\n"...)
 	d.dump(b.W, len(b.R), 0)
+
+	if d.Base >= 0 {
+		d.Base += len(b.R) + len(b.W)
+		d.b = fmt.Appendf(d.b, "%06x  ", d.Base)
+	}
 
 	d.b = fmt.Appendf(d.b, "%06x\n", len(b.R)+len(b.W))
 }
@@ -179,6 +197,10 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 
 		d.b = fmt.Appendf(d.b, "panic: %v\n", p)
 	}()
+
+	if d.Base >= 0 {
+		base += d.Base
+	}
 
 	for i := 0; i >= 0 && i < len(b); {
 		st := i
@@ -239,7 +261,7 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 					d.b = fmt.Appendf(d.b, "%s", spaces[:8])
 				}
 				d.b = fmt.Appendf(d.b, "%s", spaces[:8+depth+4])
-				d.b = fmt.Appendf(d.b, "%3x: %6x\n", j, off)
+				d.b = fmt.Appendf(d.b, "%3x: %6x\n", j, int64(off))
 			}
 		default:
 			panic(tag)
@@ -303,6 +325,15 @@ func (d *Dumper) appendQStr(w, v []byte) []byte {
 	return w
 }
 
+func (f Off) String() string { return fmt.Sprintf("%x", int(f)) }
+func (f Off) Format(s fmt.State, v rune) {
+	if v == 'v' {
+		v = 'x'
+	}
+
+	_, _ = fmt.Fprintf(s, "%"+string(v), int64(f))
+}
+
 func (f Dot) String() string   { return "." }
 func (f Empty) String() string { return "empty" }
 
@@ -364,6 +395,11 @@ func appendHex(b, a []byte) []byte {
 }
 
 func (p Path) Format(s fmt.State, v rune) {
+	if len(p) == 0 {
+		_, _ = s.Write([]byte{'/'})
+		return
+	}
+
 	for i, off := range p {
 		if i != 0 {
 			_, _ = s.Write([]byte{'/'})
@@ -374,6 +410,10 @@ func (p Path) Format(s fmt.State, v rune) {
 }
 
 func (p Path) String() string {
+	if len(p) == 0 {
+		return "/"
+	}
+
 	var b strings.Builder
 
 	for i, off := range p {
@@ -385,4 +425,13 @@ func (p Path) String() string {
 	}
 
 	return b.String()
+}
+
+func (p PathSeg) Format(s fmt.State, v rune) {
+	p.Off.Format(s, v)
+	_, _ = fmt.Fprintf(s, ":%"+string(v), p.Index)
+}
+
+func (p PathSeg) String() string {
+	return fmt.Sprintf("%v:%x", p.Off, p.Index)
 }

@@ -16,7 +16,7 @@ func TestEncoderDecoder(tb *testing.T) {
 		code(False),
 	})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
+	tb.Logf("buffer %x\n%s", root, DumpBytes(0, b))
 
 	var d Decoder
 
@@ -59,7 +59,7 @@ func TestEncoderDecoderLong(tb *testing.T) {
 	root := len(b)
 	b = e.AppendArray(b, Off(len(b)), []Off{el1, el2, True, False})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
+	tb.Logf("buffer %x\n%s", root, DumpBytes(0, b))
 
 	var d Decoder
 

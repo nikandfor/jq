@@ -17,35 +17,29 @@ var _ FilterPath = (*Iter)(nil)
 
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
-	off := base[at]
-
-	res, more, err = f.ApplyTo(b, off, next)
-	if err != nil {
-		return off, base, at, false, err
-	}
-
-	index := f.j
-	if b.Reader().Tag(off) == cbor.Map {
-		index /= 2
-	}
-
-	path = base
-	at++
-
-	return res, path, at, more, nil
+func (f *Iter) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+	return f.applyTo(b, off, base, next, true)
 }
 
-func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (_ Off, more bool, err error) {
+func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	res, _, more, err = f.applyTo(b, off, nil, next, false)
+	return
+}
+
+func (f *Iter) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
 		if f.IgnoreTypeError {
-			return None, false, nil
+			return None, base, false, nil
 		}
 
-		return None, false, ErrType
+		return None, base, false, ErrType
+	}
+
+	if addpath {
+		path = append(base, PathSeg{Off: off, Index: -1})
 	}
 
 	val := 0
@@ -63,13 +57,17 @@ func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (_ Off, more bool, err err
 	//	log.Printf("buf r (%x) % x  w (%x) % x", len(b.r), b.r, len(b.w), b.w)
 	//	log.Printf("tag %x  off %x  j %d  val %d  of %02x", tag, off, f.j, val, f.arr)
 
-	if f.j == len(f.arr) {
-		return None, false, nil
+	if f.j >= len(f.arr) {
+		return None, base, false, nil
 	}
 
 	more = (f.j + 1 + val) < len(f.arr)
 
-	return f.arr[f.j+val], more, nil
+	if addpath {
+		path[len(path)-1].Index = f.j / (1 + val)
+	}
+
+	return f.arr[f.j+val], path, more, nil
 }
 
 func (f Iter) String() string { return ".[]" }

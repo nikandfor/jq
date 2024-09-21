@@ -10,11 +10,12 @@ type (
 		Filters []Filter
 
 		stack []pipeState
+		path  Path
 	}
 
 	pipeState struct {
 		off  Off
-		at   int
+		path int
 		next bool
 	}
 )
@@ -25,30 +26,30 @@ func NewPipe(fs ...Filter) *Pipe {
 	return &Pipe{Filters: fs}
 }
 
-func (f *Pipe) ApplyToGetPath(b *Buffer, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
-	return f.applyToGetPath(b, -1, base, at, next)
+func (f *Pipe) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+	return f.applyTo(b, off, base, next, true)
 }
 
 func (f *Pipe) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, _, more, err = f.applyToGetPath(b, off, nil, -1, next)
-
-	return res, more, err
+	res, _, more, err = f.applyTo(b, off, nil, next, false)
+	return
 }
 
-func (f *Pipe) applyToGetPath(b *Buffer, off Off, base Path, at int, next bool) (res Off, path Path, at1 int, more bool, err error) {
+func (f *Pipe) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
 	if len(f.Filters) == 0 {
-		return off, base, at, false, nil
+		return off, base, false, nil
 	}
 
 	bw := b.Writer()
+	path = base
 
 	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
-	path = base
-
 	if !next {
-		f.init(off, path, at)
+		f.init(off, base)
+	} else {
+		path = append(path, f.path...)
 	}
 
 	fi := len(f.Filters)
@@ -61,35 +62,31 @@ back:
 			next = true
 		}
 		if fi < 0 {
-			return None, base, at, false, nil
+			return None, base, false, nil
 		}
 
 		for ; fi < len(f.Filters); fi++ {
 			st := f.stack[fi]
 			ff := f.Filters[fi]
 
-			fp := filterPath(ff, at)
+			fp := filterPath(ff)
 
-			//	log.Printf("pipe step %x %v  % x  %+v", fi, ff, path, st)
-
-			if fp != nil {
-
-				off, path, at, f.stack[fi].next, err = fp.ApplyToGetPath(b, path, st.at, st.next)
-				f.stack[fi+1] = pipeState{
-					off: off,
-					at:  at,
-				}
-				path = append(path[:at], off)
+			if addpath && fp != nil {
+				off, path, f.stack[fi].next, err = fp.ApplyToGetPath(b, st.off, path[:st.path], st.next)
 			} else {
-				f.stack[fi+1].off, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
-				f.stack[fi+1].at = st.at
+				off, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
 			}
-			//	log.Printf("pipe step %x %v   % x  %+v  %v  <----", fi, ff, path, f.stack[fi+1], err)
+			//	log.Printf("pipe step %d  %v:%v -> %v:%v  (%v)", fi, path[:st.path], st.off, path, off, addpath && fp != nil)
 			if err != nil {
-				return None, base, at, false, err
+				return None, path, false, err
 			}
-			if f.stack[fi+1].off == None {
+			if off == None {
 				continue back
+			}
+
+			f.stack[fi+1] = pipeState{
+				off:  off,
+				path: len(path),
 			}
 		}
 
@@ -98,22 +95,19 @@ back:
 
 	last := len(f.Filters)
 	res = f.stack[last].off
-	at = f.stack[last].at
 	more = f.back(last) >= 0
+
+	f.path = append(f.path[:0], path...)
 
 	//	log.Printf("pipe %x %v  %v", off, more, f.stack)
 
-	return res, path, at, more, nil
+	return res, path, more, nil
 }
 
-func (f *Pipe) init(off Off, path Path, at int) {
+func (f *Pipe) init(off Off, path Path) {
 	f.stack = resize(f.stack, len(f.Filters)+1)
 
-	if at < 0 {
-		f.stack[0] = pipeState{off: off}
-	} else {
-		f.stack[0] = pipeState{off: path[at], at: at}
-	}
+	f.stack[0] = pipeState{off: off, path: len(path)}
 }
 
 func (f *Pipe) back(fi int) int {
@@ -126,7 +120,7 @@ func (f *Pipe) back(fi int) int {
 	return fi
 }
 
-func (s pipeState) String() string { return fmt.Sprintf("{%x %x %v}", s.off, s.at, s.next) }
+func (s pipeState) String() string { return fmt.Sprintf("{%x %x %v}", s.off, s.path, s.next) }
 
 func (f Pipe) String() string {
 	if len(f.Filters) == 0 {
@@ -150,11 +144,7 @@ func (f Pipe) String() string {
 	return b.String()
 }
 
-func filterPath(f Filter, at int) FilterPath {
-	if at < 0 {
-		return nil
-	}
-
+func filterPath(f Filter) FilterPath {
 	fp, ok := f.(FilterPath)
 	if !ok {
 		return nil

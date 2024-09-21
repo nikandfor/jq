@@ -3,6 +3,7 @@ package jq
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"runtime"
 	"testing"
 )
@@ -21,7 +22,7 @@ func testError(tb testing.TB, f Filter, b *Buffer, root Off, experr error) {
 }
 
 func testSame(tb testing.TB, f Filter, b *Buffer, eoff, off Off) {
-	tb.Logf("root %3x   filter: %v", off, f)
+	tb.Logf("root %v   filter: %v", off, f)
 
 	off, more, err := f.ApplyTo(b, off, false)
 	assertNoError(tb, err)
@@ -35,7 +36,7 @@ func testSame(tb testing.TB, f Filter, b *Buffer, eoff, off Off) {
 }
 
 func testOne(tb testing.TB, f Filter, b *Buffer, root Off, val any) {
-	tb.Logf("root %3x   filter: %v", root, f)
+	tb.Logf("root %v   filter: %v", root, f)
 
 	eoff := b.appendVal(val)
 
@@ -50,8 +51,25 @@ func testOne(tb testing.TB, f Filter, b *Buffer, root Off, val any) {
 	}
 }
 
+func testOnePath(tb testing.TB, f FilterPath, b *Buffer, root Off, val any, exp Path) {
+	tb.Logf("root %v   filter: %v", root, f)
+
+	eoff := b.appendVal(val)
+
+	off, path, more, err := f.ApplyToGetPath(b, root, nil, false)
+	assertNoError(tb, err)
+	assertEqualVal(tb, b, eoff, off, "wanted %v", val)
+	assertDeepEqual(tb, exp, path)
+	assertTrue(tb, !more, "didn't want more")
+
+	if tb.Failed() {
+		_, file, line, _ := runtime.Caller(1)
+		tb.Logf("from %v:%d", file, line)
+	}
+}
+
 func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
-	tb.Logf("root %3x   filter: %v", root, f)
+	tb.Logf("root %v   filter: %v", root, f)
 
 	defer func() {
 		p := recover()
@@ -61,22 +79,17 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 
 		defer panic(p)
 
-		tb.Logf("buffer  root %x\n%s", root, Dump(b))
+		tb.Logf("buffer  root %v\n%s", root, Dump(b))
 	}()
 
 	for j, elem := range vals {
-		//	log.Printf("testIter  j %x  root %x", j, root)
-
 		eoff := b.appendVal(elem)
 
 		off, more, err := f.ApplyTo(b, root, j != 0)
-		//	log.Printf("test iter  root %x  off %x  eoff %x  expect %v  err %v", root, off, eoff, elem, err)
 		if assertNoError(tb, err, "j %d", j) {
 			assertEqualVal(tb, b, eoff, off, "j %d  value %v", j, elem)
 
-			//	if j < len(vals)-1 {
 			assertTrue(tb, more == (j+1 < len(vals)), "wanted more: %v", j+1 < len(vals))
-			//	}
 		} else {
 			return
 		}
@@ -85,6 +98,50 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 	off, more, err := f.ApplyTo(b, root, len(vals) != 0)
 	if assertNoError(tb, err, "after") {
 		assertEqualOff(tb, None, off, "after")
+		assertTrue(tb, !more, "didn't want more")
+	}
+
+	if tb.Failed() {
+		_, file, line, _ := runtime.Caller(1)
+		tb.Logf("from %v:%d", file, line)
+	}
+}
+
+func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, paths []Path) {
+	tb.Logf("root %v   filter: %v", root, f)
+
+	defer func() {
+		p := recover()
+		if p == nil {
+			return
+		}
+
+		defer panic(p)
+
+		tb.Logf("buffer  root %v\n%s", root, Dump(b))
+	}()
+
+	var base Path
+
+	for j, elem := range vals {
+		eoff := b.appendVal(elem)
+
+		off, path, more, err := f.ApplyToGetPath(b, root, base, j != 0)
+		if assertNoError(tb, err, "j %d", j) {
+			assertEqualVal(tb, b, eoff, off, "j %d  value %v", j, elem)
+			assertDeepEqual(tb, paths[j], path, "wanted path %v", paths[j])
+
+			assertTrue(tb, more == (j+1 < len(vals)), "wanted more: %v", j+1 < len(vals))
+		} else {
+			return
+		}
+	}
+
+	off, path, more, err := f.ApplyToGetPath(b, root, base, len(vals) != 0)
+	if assertNoError(tb, err, "after") {
+		assertEqualOff(tb, None, off, "after")
+		assertDeepEqual(tb, base, path, "wanted path %v", base)
+
 		assertTrue(tb, !more, "didn't want more")
 	}
 
@@ -170,7 +227,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 	}
 
 	if loff < 0 && roff < 0 && loff != roff {
-		tb.Errorf("Assertion failed: %d (%#[1]x) != %d (%#[2]x)", loff, roff)
+		tb.Errorf("Assertion failed: %v != %v", loff, roff)
 	} else {
 
 		var log bytes.Buffer
@@ -179,8 +236,25 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 			Writer: &log,
 		}).ApplyTo(b, 0, false)
 
-		tb.Errorf("Assertion failed: %x is not equal to %x, buffer:\n%s", loff, roff, log.Bytes())
+		tb.Errorf("Assertion failed: %v is not equal to %v, buffer:\n%s", loff, roff, log.Bytes())
 	}
+
+	if len(args) != 0 {
+		msg := args[0].(string)
+		tb.Errorf(msg, args[1:]...)
+	}
+
+	return false
+}
+
+func assertDeepEqual(tb testing.TB, exp, got any, args ...any) bool {
+	tb.Helper()
+
+	if reflect.DeepEqual(exp, got) {
+		return true
+	}
+
+	tb.Errorf("expected to be equal\nexp: %#v\ngot: %#v", exp, got)
 
 	if len(args) != 0 {
 		msg := args[0].(string)
