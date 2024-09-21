@@ -64,7 +64,7 @@ func (f *Comma) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res 
 
 func (f Comma) String() string {
 	if len(f.Filters) == 0 {
-		return ""
+		return "empty"
 	}
 
 	var b strings.Builder

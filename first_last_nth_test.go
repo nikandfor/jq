@@ -19,3 +19,21 @@ func TestFirstLastNth(tb *testing.T) {
 	testOne(tb, NewNthOf(expr, -10), b, None, None)
 	testOne(tb, NewNthOf(NewComma(Literal{1}, Literal{2}, Literal{3}), 5), b, None, None)
 }
+
+func TestLimit(tb *testing.T) {
+	b := NewBuffer(nil)
+	arr := b.appendVal(arr{0, 1, 2, 3, 4})
+
+	testIter(tb, NewLimit(NewIter(), 3), b, arr, []any{0, 1, 2})
+	testIter(tb, NewLimit(NewComma(Index(-1), Index(-2), Index(-3), Key("fail")), 3), b, arr, []any{4, 3, 2})
+}
+
+func TestIsEmpty(tb *testing.T) {
+	b := NewBuffer(nil)
+	arr1 := b.appendVal(arr{0, 1, 2, 3, 4})
+	arr2 := b.appendVal(arr{})
+
+	testOne(tb, NewIsEmpty(NewIter()), b, arr1, False)
+	testOne(tb, NewIsEmpty(NewIter()), b, arr2, True)
+	testOne(tb, NewIsEmpty(Empty{}), b, arr2, True)
+}

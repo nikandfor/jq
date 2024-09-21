@@ -15,6 +15,17 @@ type (
 
 		arr []Off
 	}
+
+	Limit struct {
+		Expr Filter
+		N    int
+
+		n int
+	}
+
+	IsEmpty struct {
+		Expr Filter
+	}
 )
 
 func NewFirst() Nth    { return Nth(0) }
@@ -24,6 +35,9 @@ func NewNth(n int) Nth { return Nth(n) }
 func NewFirstOf(e Filter) NthOf      { return NthOf{Expr: e, N: 0} }
 func NewLastOf(e Filter) NthOf       { return NthOf{Expr: e, N: -1} }
 func NewNthOf(e Filter, n int) NthOf { return NthOf{Expr: e, N: n} }
+
+func NewLimit(e Filter, n int) *Limit { return &Limit{Expr: e, N: n} }
+func NewIsEmpty(e Filter) IsEmpty     { return IsEmpty{Expr: e} }
 
 func (f Nth) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
@@ -109,6 +123,53 @@ func (f NthOf) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 	return res, false, nil
 }
 
+func (f *Limit) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	if !next {
+		f.n = 0
+	}
+	if f.n >= f.N {
+		return None, false, nil
+	}
+
+	for {
+		res, next, err = f.Expr.ApplyTo(b, off, next)
+		if err != nil {
+			return off, false, err
+		}
+		if res == None && next {
+			continue
+		}
+		if res == None {
+			return None, false, nil
+		}
+
+		f.n++
+
+		return res, next && f.n < f.N, nil
+	}
+}
+
+func (f IsEmpty) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	if next {
+		return None, false, nil
+	}
+
+	for {
+		res, next, err = f.Expr.ApplyTo(b, off, next)
+		if err != nil {
+			return off, false, err
+		}
+		if res == None && next {
+			continue
+		}
+		if res == None {
+			return True, false, nil
+		}
+
+		return False, false, nil
+	}
+}
+
 func (f Nth) String() string {
 	if f == 0 {
 		return "first"
@@ -131,4 +192,12 @@ func (f NthOf) String() string {
 	}
 
 	return fmt.Sprintf("nth(%d; %v)", f.N, f.Expr)
+}
+
+func (f Limit) String() string {
+	return fmt.Sprintf("limit(%d; %v)", f.N, f.Expr)
+}
+
+func (f IsEmpty) String() string {
+	return fmt.Sprintf("isempty(%v)", f.Expr)
 }
