@@ -69,10 +69,8 @@ back:
 			st := f.stack[fi]
 			ff := f.Filters[fi]
 
-			fp := filterPath(ff)
-
-			if addpath && fp != nil {
-				off, path, f.stack[fi].next, err = fp.ApplyToGetPath(b, st.off, path[:st.path], st.next)
+			if addpath {
+				off, path, f.stack[fi].next, err = ApplyGetPath(ff, b, st.off, path[:st.path], st.next)
 			} else {
 				off, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
 			}
@@ -142,15 +140,6 @@ func (f Pipe) String() string {
 	_ = b.WriteByte(')')
 
 	return b.String()
-}
-
-func filterPath(f Filter) FilterPath {
-	fp, ok := f.(FilterPath)
-	if !ok {
-		return nil
-	}
-
-	return fp
 }
 
 func resize[T any](s []T, n int) []T {

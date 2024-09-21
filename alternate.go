@@ -14,22 +14,36 @@ type (
 
 func NewAlternate(l, r Filter) *Alternate { return &Alternate{Left: l, Right: r} }
 
+func (f *Alternate) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+	return f.applyTo(b, off, base, next, true)
+}
+
 func (f *Alternate) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	res, _, more, err = f.applyTo(b, off, nil, next, false)
+	return
+}
+
+func (f *Alternate) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
 	subf := f.Left
 	if f.right {
 		subf = f.Right
 	}
 
 	first := !next
+	path = base
 
 	//	defer func(next bool) {
 	//		log.Printf("alternate  %x %v => %x %v   from %v", off, next, res, more, loc.Caller(1))
 	//	}(next)
 
 	for {
-		res, more, err = subf.ApplyTo(b, off, next)
+		if addpath {
+			res, path, more, err = ApplyGetPath(subf, b, off, base, next)
+		} else {
+			res, more, err = subf.ApplyTo(b, off, next)
+		}
 		if err != nil {
-			return off, false, err
+			return off, path, false, err
 		}
 
 		//	log.Printf("alternate  %x %v -> %x %v   left %v  f %v", off, next, res, more, !f.right, subf)
@@ -41,16 +55,16 @@ func (f *Alternate) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, 
 			}
 
 			if !b.Reader().IsSimple(res, None, Null, False) {
-				return res, more, nil
+				return res, path, more, nil
 			}
 		} else {
 			if res != None {
-				return res, more, nil
+				return res, path, more, nil
 			}
 		}
 
 		if !first || f.right {
-			return None, false, nil
+			return None, path, false, nil
 		}
 
 		f.right = true

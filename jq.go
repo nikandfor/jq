@@ -61,6 +61,17 @@ var (
 	ErrHalt = errors.New("halted")
 )
 
+func ApplyGetPath(f Filter, b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+	fp, ok := f.(FilterPath)
+	if ok {
+		return fp.ApplyToGetPath(b, off, base, next)
+	}
+
+	path = base
+	res, more, err = f.ApplyTo(b, off, next)
+	return
+}
+
 func (f FilterFunc) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return f(b, off, next)
 }
