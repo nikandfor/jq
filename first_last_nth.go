@@ -7,88 +7,23 @@ import (
 )
 
 type (
-	First struct {
-		Expr Filter
-	}
+	Nth int
 
-	Last struct {
+	NthOf struct {
 		Expr Filter
-	}
-
-	Nth struct {
 		N    int
-		Expr Filter
+
+		arr []Off
 	}
 )
 
-func NewFirst(e Filter) First    { return First{Expr: e} }
-func NewLast(e Filter) Last      { return Last{Expr: e} }
-func NewNth(n int, e Filter) Nth { return Nth{N: n, Expr: e} }
+func NewFirst() Nth    { return Nth(0) }
+func NewLast() Nth     { return Nth(-1) }
+func NewNth(n int) Nth { return Nth(n) }
 
-func (f First) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	if next {
-		return None, false, nil
-	}
-
-	br := b.Reader()
-
-	if f.Expr == nil {
-		tag := br.Tag(off)
-		if tag != cbor.Array {
-			return off, false, ErrType
-		}
-
-		_, res = br.ArrayMapIndex(off, 0)
-		if res == None {
-			res = Null
-		}
-
-		return res, false, nil
-	}
-
-	return f.Expr.ApplyTo(b, None, next)
-}
-
-func (f Last) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	if next {
-		return None, false, nil
-	}
-
-	br := b.Reader()
-
-	if f.Expr == nil {
-		tag := br.Tag(off)
-		if tag != cbor.Array {
-			return off, false, ErrType
-		}
-
-		_, res = br.ArrayMapIndex(off, -1)
-		if res == None {
-			res = Null
-		}
-
-		return res, false, nil
-	}
-
-	last := Off(Null)
-
-	for {
-		res, next, err = f.Expr.ApplyTo(b, None, next)
-		if err != nil {
-			return off, false, err
-		}
-
-		if res != None {
-			last = res
-		}
-
-		if !next {
-			break
-		}
-	}
-
-	return last, false, nil
-}
+func NewFirstOf(e Filter) NthOf      { return NthOf{Expr: e, N: 0} }
+func NewLastOf(e Filter) NthOf       { return NthOf{Expr: e, N: -1} }
+func NewNthOf(e Filter, n int) NthOf { return NthOf{Expr: e, N: n} }
 
 func (f Nth) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
@@ -97,63 +32,103 @@ func (f Nth) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err err
 
 	br := b.Reader()
 
-	if f.Expr == nil {
-		tag := br.Tag(off)
-		if tag != cbor.Array {
-			return off, false, ErrType
-		}
-
-		_, res = br.ArrayMapIndex(off, f.N)
-		if res == None {
-			res = Null
-		}
-
-		return res, false, nil
+	tag := br.Tag(off)
+	if tag != cbor.Array && tag != cbor.Map {
+		return off, false, ErrType
 	}
 
-	n := 0
+	_, res = br.ArrayMapIndex(off, int(f))
+	if res == None {
+		res = Null
+	}
+
+	return res, false, nil
+}
+
+func (f NthOf) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	if next {
+		return None, false, nil
+	}
+
+	if n := f.N; n >= 0 {
+		var next bool
+
+		for {
+			res, next, err = f.Expr.ApplyTo(b, off, next)
+			if err != nil {
+				return off, false, err
+			}
+			if res == None {
+				continue
+			}
+
+			if n == 0 {
+				return res, false, nil
+			}
+
+			if !next {
+				break
+			}
+
+			n--
+		}
+
+		return None, false, nil
+	}
+
+	f.arr = resize(f.arr, -f.N)
+
+	next = false
+	i := 0
 
 	for {
-		res, next, err = f.Expr.ApplyTo(b, None, next)
+		res, next, err = f.Expr.ApplyTo(b, off, next)
 		if err != nil {
 			return off, false, err
 		}
+		if res == None {
+			continue
+		}
 
-		if res != None && n == f.N {
-			return res, false, nil
-		}
-		if res != None {
-			n++
-		}
+		f.arr[i%len(f.arr)] = res
+		i++
 
 		if !next {
 			break
 		}
 	}
 
-	return None, false, nil
-}
+	i = i + f.N
 
-func (f First) String() string {
-	if f.Expr == nil {
-		return "first"
+	if i < 0 {
+		return None, false, nil
 	}
 
-	return fmt.Sprintf("first(%v)", f.Expr)
-}
+	res = f.arr[i%len(f.arr)]
 
-func (f Last) String() string {
-	if f.Expr == nil {
-		return "last"
-	}
-
-	return fmt.Sprintf("last(%v)", f.Expr)
+	return res, false, nil
 }
 
 func (f Nth) String() string {
-	if f.Expr == nil {
-		return fmt.Sprintf("nth(%d)", f.N)
+	if f == 0 {
+		return "first"
 	}
 
-	return fmt.Sprintf("nth(%v; %v)", f.N, f.Expr)
+	if f == -1 {
+		return "last"
+	}
+
+	return fmt.Sprintf("nth(%d)", int(f))
+}
+
+func (f NthOf) String() string {
+	if f.N == 0 {
+		return fmt.Sprintf("first(%v)", f.Expr)
+	}
+
+	if f.N == -1 {
+		return fmt.Sprintf("last(%v)", f.Expr)
+	}
+
+	return fmt.Sprintf("nth(%d; %v)", f.N, f.Expr)
 }
