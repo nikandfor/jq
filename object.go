@@ -74,7 +74,7 @@ func (f *Object) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err
 
 	//	defer func(off Off) { log.Printf("object.Apply %x %v  =>  %x %v", off, next, res, err) }(off)
 
-	reset := bw.Len()
+	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
 	if !next {

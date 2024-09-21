@@ -42,7 +42,7 @@ func (f *Pipe) applyToGetPath(b *Buffer, off Off, base Path, at int, next bool) 
 
 	bw := b.Writer()
 
-	reset := bw.Len()
+	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
 	path = base

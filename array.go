@@ -30,7 +30,7 @@ func (f *Array) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error) {
 	bw := b.Writer()
 
-	defer bw.ResetIfErr(bw.Len(), &err)
+	defer bw.ResetIfErr(bw.Off(), &err)
 	defer func(reset int) {
 		if err != nil {
 			arr0 = arr0[:reset]

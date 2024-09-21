@@ -42,7 +42,7 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err error) {
 	bw := b.Writer()
 
-	reset := bw.Len()
+	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
 	tag, sub, i := d.CBOR.Tag(r, st)

@@ -25,7 +25,7 @@ func NewEncoder() *Encoder {
 func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	var err error
 
-	res := b.Writer().Len()
+	res := b.Writer().Off()
 
 	tag := e.FilterTag
 	if tag == 0 {
