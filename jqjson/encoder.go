@@ -18,7 +18,45 @@ type (
 
 		arr []Off
 	}
+
+	RawEncoder struct {
+		*Encoder
+
+		Separator []byte
+
+		sep bool
+	}
 )
+
+func NewRawEncoder() *RawEncoder {
+	return &RawEncoder{Encoder: NewEncoder()}
+}
+
+func (e *RawEncoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+	if !next {
+		e.sep = false
+	}
+
+	var err error
+	res := b.Writer().Off()
+
+	if off == jq.None {
+		return res, false, nil
+	}
+
+	if e.sep {
+		b.W = append(b.W, e.Separator...)
+	}
+
+	e.sep = true
+
+	b.W, err = e.Encode(b.W, b, off)
+	if err != nil {
+		return jq.None, false, err
+	}
+
+	return res, false, nil
+}
 
 func NewEncoder() *Encoder {
 	return &Encoder{
@@ -27,9 +65,13 @@ func NewEncoder() *Encoder {
 }
 
 func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+	if next {
+		return jq.None, false, nil
+	}
+
 	var err error
 
-	res := b.Writer().Len()
+	res := b.Writer().Off()
 
 	tag := e.FilterTag
 	if tag == 0 {
@@ -83,7 +125,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 
 			return strconv.AppendFloat(w, f, 'f', -1, 64), nil
 		case cbor.Undefined, cbor.None:
-			return w, jq.ErrType
+			return w, jq.NewTypeError(br.TagRaw(off))
 		default:
 			panic(sub)
 		}
@@ -116,7 +158,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 		if tag == cbor.Map {
 			tag := br.Tag(e.arr[j])
 			if tag != cbor.String {
-				return w, jq.ErrType
+				return w, jq.NewTypeError(tag, cbor.String)
 			}
 
 			w, err = e.Encode(w, b, e.arr[j])
@@ -148,7 +190,7 @@ func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off Off) ([]byte, error) 
 	w, i := e.encStr(w, r, st, d)
 	w = append(w, '"')
 	if i < 0 {
-		return w, jq.ErrType
+		return w, jq.NewTypeError(r[st], cbor.Bytes, cbor.String)
 	}
 
 	return w, nil
@@ -186,7 +228,7 @@ func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
 	w, i := e.encBytes(w, r, st, d)
 	w = append(w, '"')
 	if i < 0 {
-		return w, jq.ErrType
+		return w, jq.NewTypeError(r[st], cbor.Bytes, cbor.String)
 	}
 
 	return w, nil

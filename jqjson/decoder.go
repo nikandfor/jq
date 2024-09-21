@@ -1,6 +1,7 @@
 package jqjson
 
 import (
+	"errors"
 	"strconv"
 
 	"nikand.dev/go/cbor"
@@ -19,7 +20,92 @@ type (
 		arr  []Off
 		keys map[string]Off
 	}
+
+	RawDecoder struct {
+		*Decoder
+		i int
+	}
+
+	MultiDecoder struct {
+		*Decoder
+		i int
+	}
 )
+
+var ErrPartialRead = errors.New("partial read")
+
+func NewRawDecoder() *RawDecoder {
+	return &RawDecoder{
+		Decoder: NewDecoder(),
+	}
+}
+
+func (d *RawDecoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+	if !next {
+		d.i = 0
+
+		if d.DeduplicateKeys && d.keys == nil {
+			d.keys = map[string]Off{}
+		}
+
+		clear(d.keys)
+	}
+
+	d.i = d.JSON.SkipSpaces(b.R, d.i)
+	if d.i >= len(b.R) {
+		return jq.None, false, nil
+	}
+
+	off, i, err := d.decode(b, b.R, d.i, false)
+	if err != nil {
+		return jq.None, false, err
+	}
+
+	d.i = d.JSON.SkipSpaces(b.R, i)
+
+	return off, d.i < len(b.R), nil
+}
+
+func NewMultiDecoder() *MultiDecoder {
+	return &MultiDecoder{
+		Decoder: NewDecoder(),
+	}
+}
+
+func (d *MultiDecoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+	if !next {
+		d.i = 0
+
+		if d.DeduplicateKeys && d.keys == nil {
+			d.keys = map[string]Off{}
+		}
+
+		clear(d.keys)
+	}
+
+	br := b.Reader()
+
+	tag := br.Tag(off)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return off, false, jq.NewTypeError(tag, cbor.Bytes, cbor.String)
+	}
+
+	s := br.Bytes(off)
+
+	d.i = d.JSON.SkipSpaces(s, d.i)
+	if d.i == len(s) {
+		return jq.None, false, nil
+	}
+
+	res, i, err := d.decode(b, s, d.i, false)
+	if err != nil {
+		return off, false, err
+	}
+
+	d.i = d.JSON.SkipSpaces(s, i)
+
+	return res, d.i < len(s), nil
+}
 
 func NewDecoder() *Decoder {
 	return &Decoder{}
@@ -30,14 +116,19 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 
 	tag := br.Tag(off)
 	if tag != cbor.Bytes && tag != cbor.String {
-		return off, false, jq.ErrType
+		return off, false, jq.NewTypeError(tag, cbor.Bytes, cbor.String)
 	}
 
 	s := br.Bytes(off)
 
-	res, _, err := d.Decode(b, s, 0)
+	res, i, err := d.Decode(b, s, 0)
 	if err != nil {
 		return off, false, err
+	}
+
+	i = d.JSON.SkipSpaces(s, i)
+	if i != len(s) {
+		return jq.None, false, ErrPartialRead
 	}
 
 	return res, false, nil
@@ -58,7 +149,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err er
 func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i int, err error) {
 	bw := b.Writer()
 
-	reset := bw.Len()
+	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
 	i = st
@@ -121,7 +212,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 		return off, i, nil
 	case json.String:
 		reset := len(b.W)
-		off = bw.Len()
+		off = bw.Off()
 
 		n, _, err := d.JSON.DecodedStringLength(r, i)
 
