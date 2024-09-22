@@ -16,8 +16,6 @@ const (
 	//             // 1<<ll elements of size 1<<ss bytes are followed. 1<<(ll+1) for Map
 
 	arrEmbedMask = 0b0001_0000
-
-	offReserve = 8
 )
 
 func (e Encoder) AppendArray(b []byte, off Off, items []Off) []byte {

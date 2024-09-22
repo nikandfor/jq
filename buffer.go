@@ -22,6 +22,18 @@ type (
 	}
 )
 
+var shortToCBOR = []byte{
+	-None:  cbor.Simple | cbor.None,
+	-Null:  cbor.Simple | cbor.Null,
+	-True:  cbor.Simple | cbor.True,
+	-False: cbor.Simple | cbor.False,
+	-Zero:  cbor.Int | 0,
+	-One:   cbor.Int | 1,
+
+	-EmptyString: cbor.String | 0,
+	-EmptyArray:  cbor.Array | 0,
+}
+
 func NewBuffer(r []byte) *Buffer {
 	return &Buffer{R: r}
 }
@@ -39,13 +51,8 @@ func (b *Buffer) Reader() BufferReader { return BufferReader{b} }
 func (b *Buffer) Writer() BufferWriter { return BufferWriter{b} }
 
 func (b BufferReader) Tag(off Off) byte {
-	switch off {
-	case None:
-		return cbor.Simple
-	case False, True, Null:
-		return cbor.Simple
-	case Zero, One:
-		return cbor.Int
+	if off < 0 {
+		return shortToCBOR[-off] & cbor.TagMask
 	}
 
 	tag, _, _, _, _ := b.Decoder.Tag(b.Buf(off))
@@ -54,16 +61,7 @@ func (b BufferReader) Tag(off Off) byte {
 
 func (b BufferReader) TagRaw(off Off) byte {
 	if off < 0 {
-		q := []byte{
-			-None:  cbor.Simple | cbor.None,
-			-Null:  cbor.Simple | cbor.Null,
-			-True:  cbor.Simple | cbor.True,
-			-False: cbor.Simple | cbor.False,
-			-Zero:  cbor.Int | 0,
-			-One:   cbor.Int | 1,
-		}
-
-		return q[-off]
+		return shortToCBOR[-off]
 	}
 
 	buf, st := b.Buf(off)
@@ -72,18 +70,8 @@ func (b BufferReader) TagRaw(off Off) byte {
 }
 
 func (b BufferReader) Raw(off Off) []byte {
-	switch off {
-	case False, True, Null, None:
-		q := []byte{
-			-None:  cbor.None,
-			-Null:  cbor.Null,
-			-True:  cbor.True,
-			-False: cbor.False,
-		}
-
-		return []byte{cbor.Simple | q[-off]}
-	case Zero, One:
-		return []byte{cbor.Int | byte(Zero-off)}
+	if off < 0 {
+		return []byte{shortToCBOR[-off]}
 	}
 
 	raw, _ := b.Decoder.Raw(b.Buf(off))
@@ -91,16 +79,8 @@ func (b BufferReader) Raw(off Off) []byte {
 }
 
 func (b BufferReader) Simple(off Off) int {
-	switch off {
-	case False, True, Null, None:
-		q := []int{
-			-None:  cbor.None,
-			-Null:  cbor.Null,
-			-True:  cbor.True,
-			-False: cbor.False,
-		}
-
-		return q[-off]
+	if off < 0 {
+		return int(shortToCBOR[-off]) & cbor.SubMask
 	}
 
 	_, sub, _ := b.Decoder.CBOR.Tag(b.Buf(off))
@@ -163,16 +143,28 @@ func (b BufferReader) Bytes(off Off) []byte {
 }
 
 func (b BufferReader) ArrayMapLen(off Off) int {
+	if off == EmptyArray {
+		return 0
+	}
+
 	_, l, _, _ := b.Decoder.TagArrayMap(b.Buf(off))
 	return l
 }
 
 func (b BufferReader) ArrayMapIndex(off Off, index int) (k, v Off) {
+	if off == EmptyArray {
+		return None, Null
+	}
+
 	buf, base, eoff := b.BufBase(off)
 	return b.Decoder.ArrayMapIndex(buf, base, eoff, index)
 }
 
 func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
+	if off == EmptyArray {
+		return arr
+	}
+
 	buf, base, eoff := b.BufBase(off)
 	arr, _ = b.Decoder.ArrayMap(buf, base, eoff, arr)
 	return arr
@@ -226,6 +218,10 @@ func (b BufferWriter) Raw(raw []byte) Off {
 }
 
 func (b BufferWriter) Array(arr []Off) Off {
+	if len(arr) == 0 {
+		return EmptyArray
+	}
+
 	off := b.Off()
 	b.W = b.Encoder.AppendArray(b.W, off, arr)
 	return off
@@ -238,12 +234,20 @@ func (b BufferWriter) Map(arr []Off) Off {
 }
 
 func (b BufferWriter) ArrayMap(tag byte, arr []Off) Off {
+	if tag == cbor.Array && len(arr) == 0 {
+		return EmptyArray
+	}
+
 	off := b.Off()
 	b.W = b.Encoder.AppendArrayMap(b.W, tag, off, arr)
 	return off
 }
 
 func (b BufferWriter) String(v string) Off {
+	if v == "" {
+		return EmptyString
+	}
+
 	off := b.Off()
 	b.W = b.Encoder.AppendString(b.W, v)
 	return off
@@ -256,12 +260,20 @@ func (b BufferWriter) Bytes(v []byte) Off {
 }
 
 func (b BufferWriter) TagString(tag byte, v string) Off {
+	if tag == cbor.String && v == "" {
+		return EmptyString
+	}
+
 	off := b.Off()
 	b.W = b.Encoder.AppendTagString(b.W, tag, v)
 	return off
 }
 
 func (b BufferWriter) TagBytes(tag byte, v []byte) Off {
+	if tag == cbor.String && len(v) == 0 {
+		return EmptyString
+	}
+
 	off := b.Off()
 	b.W = b.Encoder.AppendTagBytes(b.W, tag, v)
 	return off

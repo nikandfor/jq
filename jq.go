@@ -46,9 +46,12 @@ const (
 	False
 	Zero
 	One
+	EmptyString
+	EmptyArray
+
+	offReserve = iota
 )
 
-// ErrType = errors.New("type error")
 var ErrHalt = errors.New("halted")
 
 func ApplyGetPath(f Filter, b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {

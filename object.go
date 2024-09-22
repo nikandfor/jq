@@ -31,7 +31,12 @@ func NewObject(kvs ...any) *Object {
 
 	obj := make([]ObjectKey, 0, len(kvs)/2)
 
-	for i := 0; i < len(kvs); {
+	for i := 0; i < len(kvs); i++ {
+		if kv, ok := kvs[i].(ObjectKey); ok {
+			obj = append(obj, kv)
+			continue
+		}
+
 		var key Filter
 
 		if k, ok := kvs[i].(string); ok {
@@ -39,6 +44,8 @@ func NewObject(kvs ...any) *Object {
 			b = e.AppendString(b, k)
 
 			key = Literal(b[st:])
+		} else if k, ok := kvs[i].(Filter); ok {
+			key = k
 		} else if s, ok := kvs[i].(ObjectCopyKey); ok {
 			st := len(b)
 			b = e.AppendString(b, string(s))
@@ -50,10 +57,7 @@ func NewObject(kvs ...any) *Object {
 				Value: NewQuery(string(s)),
 			})
 
-			i++
 			continue
-		} else if k, ok := kvs[i].(Filter); ok {
-			key = k
 		} else {
 			panic(kvs[i])
 		}
@@ -63,7 +67,7 @@ func NewObject(kvs ...any) *Object {
 			Value: kvs[i+1].(Filter),
 		})
 
-		i += 2
+		i++
 	}
 
 	return &Object{Keys: obj}
