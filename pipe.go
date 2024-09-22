@@ -10,7 +10,7 @@ type (
 		Filters []Filter
 
 		stack []pipeState
-		path  Path
+		path  NodePath
 	}
 
 	pipeState struct {
@@ -26,7 +26,7 @@ func NewPipe(fs ...Filter) *Pipe {
 	return &Pipe{Filters: fs}
 }
 
-func (f *Pipe) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+func (f *Pipe) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	return f.applyTo(b, off, base, next, true)
 }
 
@@ -35,7 +35,7 @@ func (f *Pipe) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 	return
 }
 
-func (f *Pipe) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
+func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
 	if len(f.Filters) == 0 {
 		return off, base, false, nil
 	}
@@ -102,7 +102,7 @@ back:
 	return res, path, more, nil
 }
 
-func (f *Pipe) init(off Off, path Path) {
+func (f *Pipe) init(off Off, path NodePath) {
 	f.stack = resize(f.stack, len(f.Filters)+1)
 
 	f.stack[0] = pipeState{off: off, path: len(path)}

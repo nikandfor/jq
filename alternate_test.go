@@ -36,7 +36,7 @@ func TestAlternatePath(tb *testing.T) {
 
 	testIterPath(tb, NewAlternate(NewQuery("a", Iter{}), NewQuery("b", Iter{})), b, r0,
 		[]any{1, nil, false, 2},
-		[]Path{
+		[]NodePath{
 			{ps(r0, 1), ps(rb, 0)},
 			{ps(r0, 1), ps(rb, 1)},
 			{ps(r0, 1), ps(rb, 2)},
@@ -45,12 +45,12 @@ func TestAlternatePath(tb *testing.T) {
 
 	testIterPath(tb, NewAlternate(NewQuery("b", Iter{}), NewQuery("d")), b, r0,
 		[]any{1, 2},
-		[]Path{
+		[]NodePath{
 			{ps(r0, 1), ps(rb, 0)},
 			{ps(r0, 1), ps(rb, 3)},
 		})
 
-	testIterPath(tb, NewAlternate(NewQuery("c", Iter{}), NewQuery("d")), b, r0, []any{5}, []Path{{ps(r0, 3)}})
+	testIterPath(tb, NewAlternate(NewQuery("c", Iter{}), NewQuery("d")), b, r0, []any{5}, []NodePath{{ps(r0, 3)}})
 
 	if tb.Failed() {
 		tb.Logf("buffer:\n%s", Dump(b))

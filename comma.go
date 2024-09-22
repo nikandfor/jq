@@ -20,7 +20,7 @@ func NewComma(fs ...Filter) *Comma {
 	return &Comma{Filters: fs}
 }
 
-func (f *Comma) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+func (f *Comma) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	return f.applyTo(b, off, base, next, true)
 }
 
@@ -29,7 +29,7 @@ func (f *Comma) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	return
 }
 
-func (f *Comma) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
+func (f *Comma) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
 	if !next {
 		f.j = 0
 		f.next = false

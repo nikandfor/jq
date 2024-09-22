@@ -17,7 +17,7 @@ var _ FilterPath = (*Iter)(nil)
 
 func NewIter() *Iter { return &Iter{} }
 
-func (f *Iter) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+func (f *Iter) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	return f.applyTo(b, off, base, next, true)
 }
 
@@ -26,7 +26,7 @@ func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 	return
 }
 
-func (f *Iter) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
+func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
@@ -39,7 +39,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res O
 	}
 
 	if addpath {
-		path = append(base, PathSeg{Off: off, Index: -1})
+		path = append(base, NodePathSeg{Off: off, Index: -1})
 	}
 
 	val := 0

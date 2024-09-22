@@ -34,7 +34,7 @@ func TestPipePathABC(tb *testing.T) {
 	r1 := b.appendVal(obj{"b", r2})
 	r0 := b.appendVal(obj{"a", r1})
 
-	testOnePath(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, r0, "d", Path{ps(r0, 0), ps(r1, 0), ps(r2, 0)})
+	testOnePath(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, r0, "d", NodePath{ps(r0, 0), ps(r1, 0), ps(r2, 0)})
 
 	if tb.Failed() {
 		tb.Logf("buffer\n%s", Dump(b))
@@ -48,7 +48,7 @@ func TestPipePathAAAA(tb *testing.T) {
 	testIterPath(tb, NewPipe(
 		NewComma(Dot{}, Dot{}),
 		NewComma(Dot{}, Dot{}),
-	), b, root, []any{"a", "a", "a", "a"}, []Path{nil, nil, nil, nil})
+	), b, root, []any{"a", "a", "a", "a"}, []NodePath{nil, nil, nil, nil})
 
 	if tb.Failed() {
 		tb.Logf("buffer\n%s", Dump(b))
@@ -65,7 +65,7 @@ func TestPipePathABCD(tb *testing.T) {
 	testIterPath(tb, NewPipe(
 		&Iter{}, &Iter{}, &Iter{},
 	), b, r0, []any{"a", "b", "c", "d"},
-		[]Path{
+		[]NodePath{
 			{ps(r0, 0), ps(r1, 0), ps(r10, 0)},
 			{ps(r0, 0), ps(r1, 0), ps(r10, 1)},
 			{ps(r0, 0), ps(r1, 1), ps(r11, 0)},

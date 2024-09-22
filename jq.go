@@ -17,12 +17,12 @@ type (
 	FilterFunc func(b *Buffer, off Off, next bool) (Off, bool, error)
 
 	FilterPath interface {
-		ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error)
+		ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error)
 	}
 
-	Path []PathSeg
+	NodePath []NodePathSeg
 
-	PathSeg struct {
+	NodePathSeg struct {
 		Off   Off
 		Index int
 	}
@@ -61,7 +61,7 @@ const (
 // ErrType = errors.New("type error")
 var ErrHalt = errors.New("halted")
 
-func ApplyGetPath(f Filter, b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+func ApplyGetPath(f Filter, b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	fp, ok := f.(FilterPath)
 	if ok {
 		return fp.ApplyToGetPath(b, off, base, next)
@@ -406,7 +406,7 @@ func appendHex(b, a []byte) []byte {
 	return b
 }
 
-func (p Path) Format(s fmt.State, v rune) {
+func (p NodePath) Format(s fmt.State, v rune) {
 	if len(p) == 0 {
 		_, _ = s.Write([]byte{'/'})
 		return
@@ -421,7 +421,7 @@ func (p Path) Format(s fmt.State, v rune) {
 	}
 }
 
-func (p Path) String() string {
+func (p NodePath) String() string {
 	if len(p) == 0 {
 		return "/"
 	}
@@ -439,12 +439,12 @@ func (p Path) String() string {
 	return b.String()
 }
 
-func (p PathSeg) Format(s fmt.State, v rune) {
+func (p NodePathSeg) Format(s fmt.State, v rune) {
 	p.Off.Format(s, v)
 	_, _ = fmt.Fprintf(s, ":%"+string(v), p.Index)
 }
 
-func (p PathSeg) String() string {
+func (p NodePathSeg) String() string {
 	return fmt.Sprintf("%v:%x", p.Off, p.Index)
 }
 

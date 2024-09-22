@@ -15,8 +15,8 @@ type (
 
 		rnext bool
 
-		base Path
-		path Path
+		base NodePath
+		path NodePath
 		arr  []Off
 	}
 

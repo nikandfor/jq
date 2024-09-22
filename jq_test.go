@@ -51,7 +51,7 @@ func testOne(tb testing.TB, f Filter, b *Buffer, root Off, val any) {
 	}
 }
 
-func testOnePath(tb testing.TB, f FilterPath, b *Buffer, root Off, val any, exp Path) {
+func testOnePath(tb testing.TB, f FilterPath, b *Buffer, root Off, val any, exp NodePath) {
 	tb.Logf("root %v   filter: %v", root, f)
 
 	eoff := b.appendVal(val)
@@ -107,7 +107,7 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 	}
 }
 
-func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, paths []Path) {
+func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, paths []NodePath) {
 	tb.Logf("root %v   filter: %v", root, f)
 
 	defer func() {
@@ -121,7 +121,7 @@ func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, 
 		tb.Logf("buffer  root %v\n%s", root, Dump(b))
 	}()
 
-	var base Path
+	var base NodePath
 
 	for j, elem := range vals {
 		eoff := b.appendVal(elem)

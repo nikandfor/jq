@@ -14,7 +14,7 @@ type (
 
 func NewAlternate(l, r Filter) *Alternate { return &Alternate{Left: l, Right: r} }
 
-func (f *Alternate) ApplyToGetPath(b *Buffer, off Off, base Path, next bool) (res Off, path Path, more bool, err error) {
+func (f *Alternate) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	return f.applyTo(b, off, base, next, true)
 }
 
@@ -23,7 +23,7 @@ func (f *Alternate) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, 
 	return
 }
 
-func (f *Alternate) applyTo(b *Buffer, off Off, base Path, next, addpath bool) (res Off, path Path, more bool, err error) {
+func (f *Alternate) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
 	subf := f.Left
 	if f.right {
 		subf = f.Right
