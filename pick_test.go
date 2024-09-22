@@ -20,7 +20,7 @@ func TestPickMap(tb *testing.T) {
 	b := NewBuffer(nil)
 	r := b.appendVal(obj{"a", "b", "c", "d", "e", "f"})
 
-	testOne(tb, NewPick(NewMulti("e", "a")), b, r, obj{"a", "b", "e", "f"})
+	testOne(tb, NewPick(NewMulti("e", "a")), b, r, obj{"e", "f", "a", "b"})
 }
 
 func TestPickMapAdd(tb *testing.T) {
