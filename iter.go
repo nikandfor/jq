@@ -39,7 +39,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (r
 	}
 
 	if addpath {
-		path = append(base, NodePathSeg{Off: off, Index: -1})
+		path = append(base, NodePathSeg{Off: off, Index: -1, Key: None})
 	}
 
 	val := 0

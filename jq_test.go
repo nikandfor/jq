@@ -59,7 +59,7 @@ func testOnePath(tb testing.TB, f FilterPath, b *Buffer, root Off, val any, exp 
 	off, path, more, err := f.ApplyToGetPath(b, root, nil, false)
 	assertNoError(tb, err)
 	assertEqualVal(tb, b, eoff, off, "wanted %v", val)
-	assertDeepEqual(tb, exp, path)
+	assertEqualPath(tb, b, exp, path)
 	assertTrue(tb, !more, "didn't want more")
 
 	if tb.Failed() {
@@ -229,7 +229,6 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 	if loff < 0 && roff < 0 && loff != roff {
 		tb.Errorf("Assertion failed: %v != %v", loff, roff)
 	} else {
-
 		var log bytes.Buffer
 
 		(&Dumper{
@@ -247,6 +246,26 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 	return false
 }
 
+func assertEqualPath(tb testing.TB, b *Buffer, l, r NodePath, args ...any) bool {
+	tb.Helper()
+
+	if len(l) == len(r) {
+		ok := true
+
+		for i := range l {
+			ok = ok && l[i].Off == r[i].Off && l[i].Index == r[i].Index && b.Equal(l[i].Key, r[i].Key)
+		}
+
+		if ok {
+			return true
+		}
+	}
+
+	tb.Errorf("Assertion failed: paths are not equal\nexp: %v\ngot %v", l, r)
+
+	return false
+}
+
 func assertDeepEqual(tb testing.TB, exp, got any, args ...any) bool {
 	tb.Helper()
 
@@ -254,7 +273,7 @@ func assertDeepEqual(tb testing.TB, exp, got any, args ...any) bool {
 		return true
 	}
 
-	tb.Errorf("expected to be equal\nexp: %#v\ngot: %#v", exp, got)
+	tb.Errorf("Assertion failed: expected to be equal\nexp: %#v\ngot: %#v", exp, got)
 
 	if len(args) != 0 {
 		msg := args[0].(string)

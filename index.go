@@ -41,15 +41,18 @@ func (f IndexOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool,
 }
 
 func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next, addpath, null bool) (res Off, path NodePath, more bool, err error) {
-	if next || off == None {
+	if off == None || next {
 		return None, base, false, nil
 	}
-	if b.Equal(off, Null) {
-		return Null, base, false, nil
-	}
+
+	path = base
 
 	if addpath {
-		path = append(base, NodePathSeg{Off: off, Index: -1})
+		path = append(base, NodePathSeg{Off: off, Index: f, Key: None})
+	}
+
+	if b.Equal(off, Null) {
+		return Null, path, false, nil
 	}
 
 	br := b.Reader()
@@ -101,15 +104,23 @@ func (f KeyOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, e
 }
 
 func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null bool) (res Off, path NodePath, more bool, err error) {
-	if next || off == None {
+	if off == None || next {
 		return None, base, false, nil
 	}
+
+	path = base
+
 	if b.Equal(off, Null) {
-		return Null, base, false, nil
+		if addpath {
+			key := b.Writer().String(f)
+			path = append(base, NodePathSeg{Off: off, Index: -1, Key: key})
+		}
+
+		return Null, path, false, nil
 	}
 
 	if addpath {
-		path = append(base, NodePathSeg{Off: off, Index: -1})
+		path = append(base, NodePathSeg{Off: off, Index: -1, Key: None})
 	}
 
 	br := b.Reader()
@@ -136,6 +147,10 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null
 		}
 
 		return v, path, false, nil
+	}
+
+	if addpath {
+		path[len(path)-1].Key = b.Writer().String(f)
 	}
 
 	return Null, path, false, nil

@@ -4,6 +4,10 @@ func NewQuery(fs ...any) *Pipe {
 	return NewPipe(query(fs)...)
 }
 
+func NewMulti(fs ...any) *Comma {
+	return NewComma(query(fs)...)
+}
+
 func query(p []any) []Filter {
 	q := make([]Filter, len(p))
 

@@ -74,7 +74,7 @@ back:
 			} else {
 				off, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
 			}
-			//	log.Printf("pipe step %d  %v:%v -> %v:%v  (%v)", fi, path[:st.path], st.off, path, off, addpath && fp != nil)
+			//	log.Printf("pipe step %d  %v#%v -> %v#%v  (path %v)  (%v)", fi, path[:st.path], st.off, path, off, addpath, ff)
 			if err != nil {
 				return None, path, false, err
 			}
@@ -154,6 +154,23 @@ func resize[T any](s []T, n int) []T {
 	}
 
 	return s[:n]
+}
+
+func ensure[T any](s []T, i int) []T {
+	if cap(s) == 0 {
+		return make([]T, i+1)
+	}
+	if i < len(s) {
+		return s
+	}
+
+	var zero T
+
+	for cap(s) < i+1 {
+		s = append(s[:cap(s)], zero)
+	}
+
+	return s[:i+1]
 }
 
 func csel[T any](c bool, t, f T) T {
