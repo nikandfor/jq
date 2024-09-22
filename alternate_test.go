@@ -22,35 +22,40 @@ func TestAlternate(tb *testing.T) {
 func TestAlternatePath(tb *testing.T) {
 	b := &Buffer{}
 
+	ka := b.appendVal("a")
+	kb := b.appendVal("b")
+	kc := b.appendVal("c")
+	kd := b.appendVal("d")
+
 	ra := b.appendVal(arr{})
 	rb := b.appendVal(arr{1, nil, false, 2})
 	rc := b.appendVal(arr{nil, false})
 	rd := b.appendVal(5)
 
 	r0 := b.appendVal(obj{
-		"a", ra,
-		"b", rb,
-		"c", rc,
-		"d", rd,
+		ka, ra,
+		kb, rb,
+		kc, rc,
+		kd, rd,
 	})
 
 	testIterPath(tb, NewAlternate(NewQuery("a", Iter{}), NewQuery("b", Iter{})), b, r0,
 		[]any{1, nil, false, 2},
 		[]NodePath{
-			{ps(r0, 1), ps(rb, 0)},
-			{ps(r0, 1), ps(rb, 1)},
-			{ps(r0, 1), ps(rb, 2)},
-			{ps(r0, 1), ps(rb, 3)},
+			{psk(r0, 1, kb), ps(rb, 0)},
+			{psk(r0, 1, kb), ps(rb, 1)},
+			{psk(r0, 1, kb), ps(rb, 2)},
+			{psk(r0, 1, kb), ps(rb, 3)},
 		})
 
 	testIterPath(tb, NewAlternate(NewQuery("b", Iter{}), NewQuery("d")), b, r0,
 		[]any{1, 2},
 		[]NodePath{
-			{ps(r0, 1), ps(rb, 0)},
-			{ps(r0, 1), ps(rb, 3)},
+			{psk(r0, 1, kb), ps(rb, 0)},
+			{psk(r0, 1, kb), ps(rb, 3)},
 		})
 
-	testIterPath(tb, NewAlternate(NewQuery("c", Iter{}), NewQuery("d")), b, r0, []any{5}, []NodePath{{ps(r0, 3)}})
+	testIterPath(tb, NewAlternate(NewQuery("c", Iter{}), NewQuery("d")), b, r0, []any{5}, []NodePath{{psk(r0, 3, kd)}})
 
 	if tb.Failed() {
 		tb.Logf("buffer:\n%s", Dump(b))

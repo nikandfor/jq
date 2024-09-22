@@ -110,40 +110,36 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null
 
 	path = base
 
-	if b.Equal(off, Null) {
-		if addpath {
-			key := b.Writer().String(f)
-			path = append(base, NodePathSeg{Off: off, Index: -1, Key: key})
-		}
-
-		return Null, path, false, nil
-	}
-
 	if addpath {
 		path = append(base, NodePathSeg{Off: off, Index: -1, Key: None})
 	}
 
 	br := b.Reader()
+	var l int
 
-	tag := br.Tag(off)
-	if tag != cbor.Map {
-		if null {
-			return Null, path, false, nil
+	if !b.Equal(off, Null) {
+		tag := br.Tag(off)
+		if tag != cbor.Map {
+			if null {
+				return Null, path, false, nil
+			}
+
+			return off, path, false, NewTypeError(tag, cbor.Map)
 		}
 
-		return off, path, false, NewTypeError(tag, cbor.Map)
+		l = br.ArrayMapLen(off)
 	}
-
-	l := br.ArrayMapLen(off)
 
 	for j := range l {
 		k, v := br.ArrayMapIndex(off, j)
-		if string(br.Bytes(k)) != string(f) {
+		if string(br.Bytes(k)) != f {
 			continue
 		}
 
 		if addpath {
-			path[len(path)-1].Index = j
+			last := len(path) - 1
+			path[last].Index = j
+			path[last].Key = k
 		}
 
 		return v, path, false, nil

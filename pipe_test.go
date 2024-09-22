@@ -30,11 +30,18 @@ func TestPipe(tb *testing.T) {
 
 func TestPipePathABC(tb *testing.T) {
 	b := NewBuffer(nil)
-	r2 := b.appendVal(obj{"c", "d"})
-	r1 := b.appendVal(obj{"b", r2})
-	r0 := b.appendVal(obj{"a", r1})
 
-	testOnePath(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, r0, "d", NodePath{ps(r0, 0), ps(r1, 0), ps(r2, 0)})
+	ka := b.appendVal("a")
+	kb := b.appendVal("b")
+	kc := b.appendVal("c")
+
+	r2 := b.appendVal(obj{kc, "d"})
+	r1 := b.appendVal(obj{kb, r2})
+	r0 := b.appendVal(obj{ka, r1})
+
+	testOnePath(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, r0, "d",
+		NodePath{psk(r0, 0, ka), psk(r1, 0, kb), psk(r2, 0, kc)},
+	)
 
 	if tb.Failed() {
 		tb.Logf("buffer\n%s", Dump(b))

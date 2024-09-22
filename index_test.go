@@ -42,14 +42,17 @@ func TestIndexPath(tb *testing.T) {
 
 func TestKeyPath(tb *testing.T) {
 	b := NewBuffer(nil)
+	ra := b.appendVal("a")
+	rb := b.appendVal("b")
+	rd := b.appendVal("d")
 	root := b.appendVal(obj{"a", 1, "b", 2, "c", 3, "d", 4})
 	ekey := b.appendVal("e")
 
-	testOnePath(tb, Key("a"), b, root, 1, NodePath{ps(root, 0)})
-	testOnePath(tb, Key("b"), b, root, 2, NodePath{ps(root, 1)})
-	testOnePath(tb, Key("d"), b, root, 4, NodePath{ps(root, 3)})
-	testOnePath(tb, Key("e"), b, root, code(Null), NodePath{psf(root, -1, ekey)})
+	testOnePath(tb, Key("a"), b, root, 1, NodePath{psk(root, 0, ra)})
+	testOnePath(tb, Key("b"), b, root, 2, NodePath{psk(root, 1, rb)})
+	testOnePath(tb, Key("d"), b, root, 4, NodePath{psk(root, 3, rd)})
+	testOnePath(tb, Key("e"), b, root, code(Null), NodePath{psk(root, -1, ekey)})
 }
 
 func ps(off Off, i int) NodePathSeg           { return NodePathSeg{Off: off, Index: i, Key: None} }
-func psf(off Off, i int, key Off) NodePathSeg { return NodePathSeg{Off: off, Index: i, Key: key} }
+func psk(off Off, i int, key Off) NodePathSeg { return NodePathSeg{Off: off, Index: i, Key: key} }
