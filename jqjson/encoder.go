@@ -15,16 +15,14 @@ type (
 		Base64 *base64.Encoding
 
 		FilterTag byte
+		Separator []byte
 
 		arr []Off
+		sep bool
 	}
 
 	RawEncoder struct {
 		*Encoder
-
-		Separator []byte
-
-		sep bool
 	}
 )
 
@@ -53,12 +51,6 @@ func (e *RawEncoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err erro
 		return w, nil
 	}
 
-	if e.sep {
-		w = append(w, e.Separator...)
-	}
-
-	e.sep = true
-
 	w, err = e.Encoder.Encode(w, b, off)
 	if err != nil {
 		return w, err
@@ -71,6 +63,10 @@ func NewEncoder() *Encoder {
 	return &Encoder{
 		FilterTag: cbor.String,
 	}
+}
+
+func (e *Encoder) Reset() {
+	e.sep = false
 }
 
 func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
@@ -109,6 +105,12 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 			w = w[:reset]
 		}
 	}(len(w))
+
+	if e.sep {
+		w = append(w, e.Separator...)
+	}
+
+	e.sep = true
 
 	br := b.Reader()
 	tag := br.Tag(off)

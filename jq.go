@@ -257,6 +257,20 @@ func (e TypeError) Error() string {
 
 	_, _ = fmt.Fprintf(&b, "type error: %s (%x)", tagString(tag), tag)
 
+	if e&0xff00 == 0 {
+		return b.String()
+	}
+
+	fmt.Fprintf(&b, " wanted:")
+
+	for t := range byte(8) {
+		if e&(1<<(8+t)) == 0 {
+			continue
+		}
+
+		fmt.Fprintf(&b, " %s (%x)", tagString(t<<5), t<<5)
+	}
+
 	return b.String()
 }
 

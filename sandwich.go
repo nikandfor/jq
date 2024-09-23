@@ -5,33 +5,47 @@ import (
 )
 
 type (
+	FormatDecoder interface {
+		Decode(b *Buffer, r []byte, st int) (Off, int, error)
+	}
+
+	FormatEncoder interface {
+		Encode(w []byte, b *Buffer, off Off) ([]byte, error)
+	}
+
 	Sandwich struct {
-		Pre, Post Filter
-		Buffer    *Buffer
+		Decoder FormatDecoder
+		Encoder FormatEncoder
+
+		Buffer *Buffer
 	}
 
 	SandwichFunc = func(f Filter, w, r []byte) ([]byte, error)
 )
 
-func NewSandwich(pre, post Filter) *Sandwich {
+func NewSandwich(d FormatDecoder, e FormatEncoder) *Sandwich {
 	return &Sandwich{
-		Pre:    pre,
-		Post:   post,
-		Buffer: NewBuffer(nil),
+		Decoder: d,
+		Encoder: e,
+		Buffer:  NewBuffer(nil),
 	}
 }
 
+func (s *Sandwich) Reset(d FormatDecoder, e FormatEncoder) {
+	s.Decoder, s.Encoder = d, e
+	s.Buffer.Reset(nil)
+}
+
 func (s *Sandwich) ProcessGetOne(f Filter, w, r []byte) (_ []byte, err error) {
-	s.Buffer.Reset(r)
-	reset(s.Pre)
-	reset(s.Post)
+	reset(s.Decoder)
+	reset(s.Encoder)
 
 	var off Off
 
-	if s.Pre != nil {
-		off, _, err = s.Pre.ApplyTo(s.Buffer, 0, false)
+	if s.Decoder != nil {
+		off, _, err = s.Decoder.Decode(s.Buffer, r, 0)
 		if err != nil {
-			return w, fmt.Errorf("pre: %w", err)
+			return w, fmt.Errorf("decode: %w", err)
 		}
 	}
 
@@ -42,31 +56,30 @@ func (s *Sandwich) ProcessGetOne(f Filter, w, r []byte) (_ []byte, err error) {
 		}
 	}
 
-	w, err = s.post(w, s.Buffer, off, false)
-	if err != nil {
-		return w, fmt.Errorf("post: %w", err)
+	if s.Encoder != nil {
+		w, err = s.Encoder.Encode(w, s.Buffer, off)
+		if err != nil {
+			return w, fmt.Errorf("encode: %w", err)
+		}
 	}
 
 	return w, nil
 }
 
 func (s *Sandwich) ProcessOne(f Filter, w, r []byte) (_ []byte, err error) {
-	s.Buffer.Reset(r)
-	reset(s.Pre)
-	reset(s.Post)
+	reset(s.Decoder)
+	reset(s.Encoder)
 
 	var off Off
 
-	if s.Pre != nil {
-		off, _, err = s.Pre.ApplyTo(s.Buffer, 0, false)
+	if s.Decoder != nil {
+		off, _, err = s.Decoder.Decode(s.Buffer, r, 0)
 		if err != nil {
-			return w, fmt.Errorf("pre: %w", err)
+			return w, fmt.Errorf("decode: %w", err)
 		}
 	}
 
-	//	log.Printf("apply to one off %v\n%s", off, DumpBytes(len(s.Buffer.R), s.Buffer.W))
-
-	w, err = s.filterAll(f, w, s.Buffer, off, false)
+	w, err = s.ApplyAll(f, w, off)
 	if err != nil {
 		return w, err
 	}
@@ -75,81 +88,70 @@ func (s *Sandwich) ProcessOne(f Filter, w, r []byte) (_ []byte, err error) {
 }
 
 func (s *Sandwich) ProcessAll(f Filter, w, r []byte) (_ []byte, err error) {
-	s.Buffer.Reset(r)
-	reset(s.Pre)
-	reset(s.Post)
+	reset(s.Decoder)
+	reset(s.Encoder)
 
-	reset := s.Buffer.Writer().Off()
-	pre, post := false, false
+	i := 0
 
-	for {
-		var off Off
-		s.Buffer.Writer().Reset(reset)
+	for i < len(r) {
+		off := Null
 
-		if s.Pre != nil {
-			off, pre, err = s.Pre.ApplyTo(s.Buffer, 0, pre)
+		if s.Decoder != nil {
+			off, i, err = s.Decoder.Decode(s.Buffer, r, i)
 			if err != nil {
-				return w, fmt.Errorf("pre: %w", err)
+				return w, fmt.Errorf("decode: %w", err)
 			}
 		}
 
-		w, err = s.filterAll(f, w, s.Buffer, off, post)
+		w, err = s.ApplyAll(f, w, off)
 		if err != nil {
 			return w, err
 		}
-
-		if !pre {
-			break
-		}
-
-		post = true
 	}
 
 	return w, nil
 }
 
-func (s *Sandwich) filterAll(f Filter, w []byte, b *Buffer, off Off, post bool) (_ []byte, err error) {
+func (s *Sandwich) ApplyOne(f Filter, w []byte, off Off) (_ []byte, err error) {
+	f = csel(f != nil, f, (Filter)(Dot{}))
+
+	res, _, err := f.ApplyTo(s.Buffer, off, false)
+	if err != nil {
+		return w, fmt.Errorf("apply: %w", err)
+	}
+
+	//	log.Printf("apply %v: %v -> %v  %v", f, off, res, next)
+
+	if s.Encoder != nil && res != None {
+		w, err = s.Encoder.Encode(w, s.Buffer, res)
+		if err != nil {
+			return w, fmt.Errorf("encode: %w", err)
+		}
+	}
+
+	return w, nil
+}
+
+func (s *Sandwich) ApplyAll(f Filter, w []byte, off Off) (_ []byte, err error) {
 	var res Off = None
 	next := false
 
 	f = csel(f != nil, f, (Filter)(Dot{}))
 
-	//	log.Printf("filter all %v", off)
-
 	for {
-		res, next, err = f.ApplyTo(b, off, next)
+		res, next, err = f.ApplyTo(s.Buffer, off, next)
 		if err != nil {
-			return w, fmt.Errorf("filter: %w", err)
+			return w, fmt.Errorf("apply: %w", err)
 		}
 
-		//	log.Printf("filter %v: %v -> %v  %v", f, off, res, next)
+		//	log.Printf("apply %v: %v -> %v  %v", f, off, res, next)
 
-		w, err = s.post(w, b, res, post)
-		if err != nil {
-			return w, fmt.Errorf("post: %w", err)
+		if s.Encoder != nil && res != None {
+			w, err = s.Encoder.Encode(w, s.Buffer, res)
+			if err != nil {
+				return w, fmt.Errorf("encode: %w", err)
+			}
 		}
-
-		if !next {
-			break
-		}
-
-		post = true
-	}
-
-	return w, nil
-}
-
-func (s *Sandwich) post(w []byte, b *Buffer, off Off, next bool) (_ []byte, err error) {
-	var res Off
-
-	for s.Post != nil {
-		res, next, err = s.Post.ApplyTo(b, off, next)
-		if err != nil {
-			return w, err
-		}
-
-		buf, st := b.Buf(res)
-		w = append(w, buf[st:]...)
 
 		if !next {
 			break
