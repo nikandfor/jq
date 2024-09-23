@@ -58,4 +58,29 @@ func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error
 	return arr, nil
 }
 
+func ApplyFuncAll(f Filter, b *Buffer, off Off, p func(off Off) error) (err error) {
+	var sub Off
+	next := false
+
+	for {
+		sub, next, err = f.ApplyTo(b, off, next)
+		if err != nil {
+			return err
+		}
+
+		if sub != None {
+			err = p(sub)
+			if err != nil {
+				return err
+			}
+		}
+
+		if !next {
+			break
+		}
+	}
+
+	return nil
+}
+
 func (f Array) String() string { return fmt.Sprintf("[%v]", f.Of) }
