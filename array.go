@@ -27,15 +27,16 @@ func (f *Array) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	return off, false, nil
 }
 
-func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error) {
+func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (res []Off, err error) {
 	bw := b.Writer()
+	res = arr
 
 	defer bw.ResetIfErr(bw.Off(), &err)
 	defer func(reset int) {
 		if err != nil {
-			arr0 = arr0[:reset]
+			res = res[:reset]
 		}
-	}(len(arr))
+	}(len(res))
 
 	var sub Off
 	next := false
@@ -43,11 +44,11 @@ func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error
 	for {
 		sub, next, err = f.ApplyTo(b, off, next)
 		if err != nil {
-			return arr, err
+			return res, err
 		}
 
 		if sub != None {
-			arr = append(arr, sub)
+			res = append(res, sub)
 		}
 
 		if !next {
@@ -55,7 +56,7 @@ func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (arr0 []Off, err error
 		}
 	}
 
-	return arr, nil
+	return res, nil
 }
 
 func ApplyFuncAll(f Filter, b *Buffer, off Off, p func(off Off) error) (err error) {
