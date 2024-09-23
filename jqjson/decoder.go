@@ -51,19 +51,48 @@ func (d *RawDecoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error
 		clear(d.keys)
 	}
 
-	d.i = d.JSON.SkipSpaces(b.R, d.i)
-	if d.i >= len(b.R) {
-		return jq.None, false, nil
-	}
-
-	off, i, err := d.decode(b, b.R, d.i, false)
+	res, i, err := d.Decode(b, b.R, d.i)
 	if err != nil {
-		return jq.None, false, err
+		return off, false, err
 	}
 
-	d.i = d.JSON.SkipSpaces(b.R, i)
+	d.i = i
 
-	return off, d.i < len(b.R), nil
+	return res, i < len(b.R), nil
+}
+
+func (d *RawDecoder) DecodeAll(b *jq.Buffer, r []byte, st int, arr []Off) (_ []Off, i int, err error) {
+	var off Off
+	i = st
+
+	for i < len(r) {
+		off, i, err = d.Decode(b, r, i)
+		if err != nil {
+			return arr, i, err
+		}
+
+		if off != jq.None {
+			arr = append(arr, off)
+		}
+	}
+
+	return arr, i, nil
+}
+
+func (d *RawDecoder) Decode(b *jq.Buffer, r []byte, st int) (Off, int, error) {
+	i := d.JSON.SkipSpaces(r, st)
+	if i >= len(r) {
+		return jq.None, i, nil
+	}
+
+	off, i, err := d.decode(b, r, i, false)
+	if err != nil {
+		return jq.None, i, err
+	}
+
+	i = d.JSON.SkipSpaces(r, i)
+
+	return off, i, nil
 }
 
 func NewMultiDecoder() *MultiDecoder {

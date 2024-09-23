@@ -40,22 +40,31 @@ func (e *RawEncoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error
 	var err error
 	res := b.Writer().Off()
 
+	b.W, err = e.Encode(b.W, b, off)
+	if err != nil {
+		return off, false, err
+	}
+
+	return res, false, nil
+}
+
+func (e *RawEncoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) {
 	if off == jq.None {
-		return res, false, nil
+		return w, nil
 	}
 
 	if e.sep {
-		b.W = append(b.W, e.Separator...)
+		w = append(w, e.Separator...)
 	}
 
 	e.sep = true
 
-	b.W, err = e.Encode(b.W, b, off)
+	w, err = e.Encoder.Encode(w, b, off)
 	if err != nil {
-		return jq.None, false, err
+		return w, err
 	}
 
-	return res, false, nil
+	return w, nil
 }
 
 func NewEncoder() *Encoder {
@@ -95,8 +104,13 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 }
 
 func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) {
-	br := b.Reader()
+	defer func(reset int) {
+		if err != nil {
+			w = w[:reset]
+		}
+	}(len(w))
 
+	br := b.Reader()
 	tag := br.Tag(off)
 
 	switch tag {
@@ -138,32 +152,51 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 		panic(tag)
 	}
 
+	w, _, err = e.EncodeContainer(w, b, off, true, true, false)
+	return w, err
+}
+
+func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off Off, open, clos, next bool) (_ []byte, _ bool, err error) {
+	defer func(reset int) {
+		if err != nil {
+			w = w[:reset]
+		}
+	}(len(w))
+
+	br := b.Reader()
+	tag := br.Tag(off)
+
+	if tag != cbor.Array && tag != cbor.Map {
+		return w, next, jq.NewTypeError(tag, cbor.Array, cbor.Map)
+	}
+
 	arrbase := len(e.arr)
 	defer func() { e.arr = e.arr[:arrbase] }()
 
 	e.arr = br.ArrayMap(off, e.arr)
+	arr := e.arr[arrbase:]
 
-	open := byte('[')
+	bt := byte('[')
 	if tag == cbor.Map {
-		open = '{'
+		bt = '{'
 	}
 
-	w = append(w, open)
+	w = append(w, bt)
 
-	for j := arrbase; j < len(e.arr); j++ {
-		if j != arrbase {
+	for j := 0; j < len(arr); j++ {
+		if next {
 			w = append(w, ',')
 		}
 
 		if tag == cbor.Map {
-			tag := br.Tag(e.arr[j])
+			tag := br.Tag(arr[j])
 			if tag != cbor.String {
-				return w, jq.NewTypeError(tag, cbor.String)
+				return w, next, jq.NewTypeError(tag, cbor.String)
 			}
 
-			w, err = e.Encode(w, b, e.arr[j])
+			w, err = e.Encode(w, b, arr[j])
 			if err != nil {
-				return w, err
+				return w, next, err
 			}
 
 			j++
@@ -171,15 +204,19 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 			w = append(w, ':')
 		}
 
-		w, err = e.Encode(w, b, e.arr[j])
+		w, err = e.Encode(w, b, arr[j])
 		if err != nil {
-			return w, err
+			return w, next, err
 		}
+
+		next = true
 	}
 
-	w = append(w, open+2)
+	if clos {
+		w = append(w, bt+2)
+	}
 
-	return w, nil
+	return w, next, nil
 }
 
 func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
