@@ -113,8 +113,8 @@ func (b BufferReader) ArrayMapIndex(off Off, index int) (k, v Off) {
 		return None, Null
 	}
 
-	buf, base, eoff := b.BufBase(off)
-	return b.Decoder.ArrayMapIndex(buf, base, eoff, index)
+	buf, st := b.Buf(off)
+	return b.Decoder.ArrayMapIndex(buf, st, index)
 }
 
 func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
@@ -122,8 +122,8 @@ func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
 		return arr
 	}
 
-	buf, base, eoff := b.BufBase(off)
-	arr, _ = b.Decoder.ArrayMap(buf, base, eoff, arr)
+	buf, st := b.Buf(off)
+	arr, _ = b.Decoder.ArrayMap(buf, st, arr)
 	return arr
 }
 

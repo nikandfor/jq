@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestIndex(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{"a", "b", "c", "d"})
 
 	testOne(tb, Index(0), b, root, "a")
@@ -17,7 +17,7 @@ func TestIndex(tb *testing.T) {
 }
 
 func TestKey(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", 1, "b", 2, "c", 3, "d", 4})
 
 	testOne(tb, Key("a"), b, root, 1)
@@ -27,7 +27,7 @@ func TestKey(tb *testing.T) {
 }
 
 func TestIndexPath(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{"a", "b", "c", "d"})
 
 	testOnePath(tb, Index(0), b, root, "a", NodePath{ps(root, 0)})
@@ -41,7 +41,7 @@ func TestIndexPath(tb *testing.T) {
 }
 
 func TestKeyPath(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	ra := b.appendVal("a")
 	rb := b.appendVal("b")
 	rd := b.appendVal("d")

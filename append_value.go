@@ -28,7 +28,7 @@ func (b *Buffer) AppendValue(v any) (off Off) {
 }
 
 func (b *Buffer) appendVal(v any) (off Off) {
-	b.W, off = appendValBuf(b.W, len(b.R), v)
+	b.B, off = appendValBuf(b.B, 0, v)
 	if off < 0 {
 		return off
 	}

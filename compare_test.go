@@ -5,7 +5,7 @@ import (
 )
 
 func TestCompareEqualBasic(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", obj{"b", 10}, "b", 10})
 	root2 := b.appendVal(obj{"a", obj{"b", 10}, "b", 20})
 
@@ -17,7 +17,7 @@ func TestCompareEqualBasic(tb *testing.T) {
 }
 
 func TestCompareEqualMultiOne(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", arr{1, 2, 3}, "b", arr{1, 2, 3}})
 
 	testIter(tb, NewEqual(NewQuery("a", Iter{}), Off(One)), b, root, []any{
@@ -26,14 +26,14 @@ func TestCompareEqualMultiOne(tb *testing.T) {
 }
 
 func TestCompareEqualMultiNone(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", arr{1, 2, 3}, "b", arr{}})
 
 	testIter(tb, NewEqual(NewQuery("a", Iter{}), NewQuery("b", Iter{})), b, root, []any{})
 }
 
 func TestCompareEqualMultiMulti(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", arr{1, 2, 3}, "b", arr{1, 2, 3}})
 
 	testIter(tb, NewEqual(NewQuery("a", Iter{}), NewQuery("b", Iter{})), b, root, []any{
@@ -48,7 +48,7 @@ func TestCompareEqualMultiMulti(tb *testing.T) {
 }
 
 func TestCompareNot(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	testOne(tb, NewNot(), b, b.appendVal(true), false)
 	testOne(tb, NewNot(), b, b.appendVal(1), false)
@@ -60,7 +60,7 @@ func TestCompareNot(tb *testing.T) {
 }
 
 func TestCompareNotOf(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	testOne(tb, NewNotOf(Dot{}), b, b.appendVal(true), false)
 	testOne(tb, NewNotOf(NewNotOf(Dot{})), b, b.appendVal(1), true)

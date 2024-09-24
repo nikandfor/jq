@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestFlatten(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	d6 := b.appendVal(arr{6, 7})
 	d5 := b.appendVal(arr{"5", d6})

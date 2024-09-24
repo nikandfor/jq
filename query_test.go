@@ -7,7 +7,7 @@ import (
 )
 
 func TestQuery(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
 	testOne(tb, NewQuery("a"), b, root, 1)
@@ -21,14 +21,14 @@ func TestQuery(tb *testing.T) {
 }
 
 func TestQueryIter1(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", 1, "b", obj{"c", arr{2, "3", obj{"d", 5}, true}}})
 
 	testIter(tb, NewQuery("b", "c", Iter{}), b, root, []any{2, "3", obj{"d", 5}, true})
 }
 
 func TestQueryIter2(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{
 		obj{"a", 1, "b", lab{lab: 4, val: 2}, "c", "d"},
 		true,
@@ -40,7 +40,7 @@ func TestQueryIter2(tb *testing.T) {
 }
 
 func TestQueryMultiIter(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{
 		obj{"q", obj{"a", 1, "b", 2}},
 		obj{"q", arr{}, "w", -5},
@@ -55,7 +55,7 @@ func TestQueryMultiIter(tb *testing.T) {
 }
 
 func TestQueryIgnoreTypeError(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", "b"})
 
 	testOne(tb, NewQuery("a"), b, root, "b")

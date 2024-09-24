@@ -8,7 +8,7 @@ import (
 
 type (
 	Buffer struct {
-		R, W []byte
+		B []byte
 
 		Decoder Decoder
 		Encoder Encoder
@@ -22,29 +22,41 @@ type (
 	}
 )
 
-var shortToCBOR = []byte{
-	-None:  cbor.Simple | cbor.None,
-	-Null:  cbor.Simple | cbor.Null,
-	-True:  cbor.Simple | cbor.True,
-	-False: cbor.Simple | cbor.False,
-	-Zero:  cbor.Int | 0,
-	-One:   cbor.Int | 1,
+var (
+	shortToCBOR = []byte{
+		-None:  cbor.Simple | cbor.None,
+		-Null:  cbor.Simple | cbor.Null,
+		-True:  cbor.Simple | cbor.True,
+		-False: cbor.Simple | cbor.False,
+		-Zero:  cbor.Int | 0,
+		-One:   cbor.Int | 1,
 
-	-EmptyString: cbor.String | 0,
-	-EmptyArray:  cbor.Array | 0,
+		-EmptyString: cbor.String | 0,
+		-EmptyArray:  cbor.Array | 0,
+	}
+
+	cborToShort = []Off{
+		cbor.Simple | cbor.Null:  Null,
+		cbor.Simple | cbor.True:  True,
+		cbor.Simple | cbor.False: False,
+		cbor.Int | 0:             Zero,
+		cbor.Int | 1:             One,
+
+		cbor.String | 0: EmptyString,
+		cbor.Array | 0:  EmptyArray,
+	}
+)
+
+func NewBuffer() *Buffer {
+	return &Buffer{}
 }
 
-func NewBuffer(r []byte) *Buffer {
-	return &Buffer{R: r}
+func MakeBuffer() Buffer {
+	return Buffer{}
 }
 
-func MakeBuffer(r []byte) Buffer {
-	return Buffer{R: r}
-}
-
-func (b *Buffer) Reset(r []byte) {
-	b.R = r
-	b.W = b.W[:0]
+func (b *Buffer) Reset() {
+	b.B = b.B[:0]
 }
 
 func (b *Buffer) Reader() BufferReader { return BufferReader{b} }
@@ -95,29 +107,9 @@ func (b *Buffer) Equal(loff, roff Off) (res bool) {
 }
 
 func (b *Buffer) Buf(off Off) ([]byte, int) {
-	if int(off) < len(b.R) {
-		return b.R, int(off)
-	}
-
-	return b.W, int(off) - len(b.R)
+	return b.B, int(off)
 }
 
-func (b *Buffer) BufBase(off Off) ([]byte, int, int) {
-	if int(off) < len(b.R) {
-		return b.R, 0, int(off)
-	}
-
-	return b.W, len(b.R), int(off) - len(b.R)
-}
-
-func (b *Buffer) Unwrap() (r0, r1 []byte) {
-	return b.R, b.W
-}
-
-func (b *Buffer) Shift() {
-	b.R, b.W = b.W, nil
-}
-
-func (b *Buffer) Unshift() {
-	b.R, b.W = nil, b.R
+func (b *Buffer) Unwrap() []byte {
+	return b.B
 }

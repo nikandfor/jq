@@ -23,7 +23,7 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		switch off {
 		case Zero, One:
 			return off, false, nil
-		case Null:
+		case Null, EmptyString, EmptyArray:
 			return Zero, false, nil
 		default:
 			return off, false, te

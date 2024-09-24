@@ -50,7 +50,7 @@ func (d Decoder) TagArrayMap(b []byte, st int) (tag byte, l, s, i int) {
 	return tag, l, s, i
 }
 
-func (d Decoder) ArrayMapIndex(b []byte, base, st, index int) (k, v Off) {
+func (d Decoder) ArrayMapIndex(b []byte, st, index int) (k, v Off) {
 	tag := b[st] & cbor.TagMask
 
 	if b[st]&arrEmbedMask == 0 {
@@ -69,7 +69,7 @@ func (d Decoder) ArrayMapIndex(b []byte, base, st, index int) (k, v Off) {
 				return Off(b[i+j]) - 0x100
 			}
 
-			return Off(base+st) - Off(b[i+j])
+			return Off(st) - Off(b[i+j])
 		}
 
 		if tag == cbor.Map {
@@ -104,7 +104,7 @@ func (d Decoder) ArrayMapIndex(b []byte, base, st, index int) (k, v Off) {
 			return Off(v - size)
 		}
 
-		return Off(base + st - v)
+		return Off(st - v)
 	}
 
 	if tag == cbor.Map {
@@ -114,7 +114,7 @@ func (d Decoder) ArrayMapIndex(b []byte, base, st, index int) (k, v Off) {
 	return None, val(index)
 }
 
-func (d Decoder) ArrayMap(b []byte, base, st int, arr []Off) ([]Off, int) {
+func (d Decoder) ArrayMap(b []byte, st int, arr []Off) ([]Off, int) {
 	tag := b[st] & cbor.TagMask
 
 	if b[st]&arrEmbedMask == 0 {
@@ -130,7 +130,7 @@ func (d Decoder) ArrayMap(b []byte, base, st int, arr []Off) ([]Off, int) {
 				return Off(b[i+j]) - 0x100
 			}
 
-			return Off(base+st) - Off(b[i+j])
+			return Off(st) - Off(b[i+j])
 		}
 
 		for j := range l {
@@ -164,7 +164,7 @@ func (d Decoder) ArrayMap(b []byte, base, st int, arr []Off) ([]Off, int) {
 			return Off(v - size)
 		}
 
-		return Off(base+st) - Off(v)
+		return Off(st) - Off(v)
 	}
 
 	for j := range l {

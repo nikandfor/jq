@@ -62,7 +62,7 @@ func TestDecodeEncode(tb *testing.T) {
 		return b
 	}()
 
-	b := jq.NewBuffer(nil)
+	b := jq.NewBuffer()
 	var d Decoder
 
 	off, i, err := d.Decode(b, data, 0)

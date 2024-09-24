@@ -5,7 +5,8 @@ import (
 )
 
 func TestSelect(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, arr{
+	b := NewBuffer()
+	root := b.appendVal(arr{
 		nil,
 		false,
 		true,
@@ -15,11 +16,11 @@ func TestSelect(tb *testing.T) {
 		obj{},
 		arr{},
 	})
-	b := NewBuffer(d)
 
 	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(nil))), b, root, arr{true, 0, 1, "a", obj{}, arr{}})
 
-	d, root = appendValBuf(d, 0, arr{
+	b.Reset()
+	root = b.appendVal(arr{
 		obj{"a", nil},
 		obj{"a", false},
 		obj{"a", true},
@@ -29,7 +30,6 @@ func TestSelect(tb *testing.T) {
 		obj{"a", obj{}},
 		obj{"a", arr{}},
 	})
-	b.Reset(d)
 
 	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(NewQuery("a")))), b, root, arr{
 		obj{"a", true},
@@ -42,7 +42,7 @@ func TestSelect(tb *testing.T) {
 }
 
 func TestSelectSpecial(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	_ = b.appendVal(make([]byte, 250))
 
 	root := b.appendVal(arr{
@@ -58,7 +58,7 @@ func TestSelectSpecial(tb *testing.T) {
 }
 
 func TestPipeSelect(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	off := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}, obj{"a", nil, "v", 4}})
 	exp := b.appendVal(arr{obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}})
 

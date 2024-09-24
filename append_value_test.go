@@ -7,7 +7,7 @@ import (
 )
 
 func TestBufferAppendValue(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	off := b.AppendValue(Arr{
 		Obj{"a", "b"},

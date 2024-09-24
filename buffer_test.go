@@ -28,8 +28,8 @@ func TestIsSimpleAppendVal(tb *testing.T) {
 }
 
 func TestIsSimpleCBOREncoder(tb *testing.T) {
-	var r []byte
-	b := NewBuffer(r)
+	b := NewBuffer()
+	bw := b.Writer()
 
 	for j, tc := range []struct {
 		CBOR byte
@@ -42,9 +42,7 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 		{CBOR: cbor.Simple | cbor.True, Code: True},
 		{CBOR: cbor.Simple | cbor.Null, Code: Null},
 	} {
-		off := Off(len(r))
-		r = append(r, tc.CBOR)
-		b.Reset(r)
+		off := bw.Raw([]byte{tc.CBOR})
 
 		assertTrue(tb, b.Reader().IsSimple(off, tc.Code), "j: %x  cbor: %x  code: %x", j, tc.CBOR, tc.Code)
 		assertTrue(tb, b.Reader().IsSimple(off, Zero, One, True, False, Null, None), "j: %x  cbor: %x  code: all", j, tc.CBOR)

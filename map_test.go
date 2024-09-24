@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestMapArr(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{"a", 1})
 
 	testOne(tb, NewMap(NewComma(Dot{}, Dot{})), b, root, arr{"a", "a", 1, 1})
@@ -13,7 +13,7 @@ func TestMapArr(tb *testing.T) {
 }
 
 func TestMapObj(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", "q", "b", 2})
 
 	testOne(tb, NewMap(NewComma(Dot{}, Dot{})), b, root, arr{"q", "q", 2, 2})
@@ -21,7 +21,7 @@ func TestMapObj(tb *testing.T) {
 }
 
 func TestMapObjObj(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", obj{"x", "y", "y", "z"}, "b", obj{"x", "a", "z", arr{"b", "c"}}})
 
 	testOne(tb, NewMap(NewComma(

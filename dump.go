@@ -19,8 +19,8 @@ type (
 	}
 )
 
-func DumpBytes(base int, b []byte) string {
-	return (&Dumper{Base: -1}).Dump(base, b)
+func DumpBytes(b []byte) string {
+	return (&Dumper{Base: -1}).DumpBytes(b)
 }
 
 func Dump(b *Buffer) string {
@@ -50,10 +50,10 @@ func (d *Dumper) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return off, false, nil
 }
 
-func (d *Dumper) Dump(base int, b []byte) string {
+func (d *Dumper) DumpBytes(b []byte) string {
 	d.b = d.b[:0]
 
-	d.dump(b, base, 0)
+	d.dump(b, 0)
 
 	if d.Base >= 0 {
 		d.Base += len(b) // TODO: base
@@ -65,26 +65,23 @@ func (d *Dumper) Dump(base int, b []byte) string {
 	return string(d.b)
 }
 
-func (d *Dumper) DumpBuffer(b *Buffer) string {
+func (d *Dumper) Dump(b *Buffer) string {
 	d.dumpBuffer(b)
 	return string(d.b)
 }
 
 func (d *Dumper) dumpBuffer(b *Buffer) {
-	d.b = append(d.b, "rbuf\n"...)
-	d.dump(b.R, 0, 0)
-	d.b = append(d.b, "wbuf\n"...)
-	d.dump(b.W, len(b.R), 0)
+	d.dump(b.B, 0)
 
 	if d.Base >= 0 {
-		d.Base += len(b.R) + len(b.W)
+		d.Base += len(b.B)
 		d.b = fmt.Appendf(d.b, "%06x  ", d.Base)
 	}
 
-	d.b = fmt.Appendf(d.b, "%06x\n", len(b.R)+len(b.W))
+	d.b = fmt.Appendf(d.b, "%06x\n", len(b.B))
 }
 
-func (d *Dumper) dump(b []byte, base, depth int) {
+func (d *Dumper) dump(b []byte, depth int) {
 	const spaces = "                    "
 
 	defer func() {
@@ -98,18 +95,14 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 		d.b = fmt.Appendf(d.b, "panic: %v\n", p)
 	}()
 
-	if d.Base >= 0 {
-		base += d.Base
-	}
-
 	for i := 0; i >= 0 && i < len(b); {
 		st := i
 		tag := d.Decoder.TagOnly(b, i)
 
 		//	log.Printf("dump loop %x", i)
 
-		if base >= 0 {
-			d.b = fmt.Appendf(d.b, "%06x  ", base+i)
+		if d.Base >= 0 {
+			d.b = fmt.Appendf(d.b, "%06x  ", d.Base+i)
 		}
 
 		d.b = fmt.Appendf(d.b, "%06x  %s", i, spaces[:depth])
@@ -146,18 +139,13 @@ func (d *Dumper) dump(b []byte, base, depth int) {
 			depth += 4
 			continue
 		case cbor.Array, cbor.Map:
-			bb := 0
-			if base >= 0 {
-				bb = base
-			}
-
 			_, l, s, end := d.Decoder.TagArrayMap(b, i)
-			d.arr, i = d.Decoder.ArrayMap(b, bb, i, d.arr[:0])
+			d.arr, i = d.Decoder.ArrayMap(b, i, d.arr[:0])
 
 			d.b = fmt.Appendf(d.b, "% 02x  l %2d  s %d\n", b[st:end], l, s)
 
 			for j, off := range d.arr {
-				if base >= 0 {
+				if d.Base >= 0 {
 					d.b = fmt.Appendf(d.b, "%s", spaces[:8])
 				}
 				d.b = fmt.Appendf(d.b, "%s", spaces[:8+depth+4])

@@ -7,7 +7,7 @@ import (
 )
 
 func TestFirstLastNth(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(arr{0, 1, 2, 3})
 
 	testOne(tb, NewArray(NewComma(NewFirst(), NewLast(), NewNth(2))), b, b.appendVal(arr{}), arr{nil, nil, nil})
@@ -21,7 +21,7 @@ func TestFirstLastNth(tb *testing.T) {
 }
 
 func TestLimit(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	arr := b.appendVal(arr{0, 1, 2, 3, 4})
 
 	testIter(tb, NewLimit(NewIter(), 3), b, arr, []any{0, 1, 2})
@@ -29,7 +29,7 @@ func TestLimit(tb *testing.T) {
 }
 
 func TestIsEmpty(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	arr1 := b.appendVal(arr{0, 1, 2, 3, 4})
 	arr2 := b.appendVal(arr{})
 

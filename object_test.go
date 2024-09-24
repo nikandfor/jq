@@ -5,7 +5,7 @@ import (
 )
 
 func TestObject(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{
 		"a", "q",
 		"b", 1,
@@ -21,7 +21,8 @@ func TestObject(tb *testing.T) {
 }
 
 func TestObjectIter(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, obj{
+	b := NewBuffer()
+	root := b.appendVal(obj{
 		"a", "b",
 		"c",
 		obj{
@@ -32,7 +33,6 @@ func TestObjectIter(tb *testing.T) {
 		},
 	})
 
-	b := NewBuffer(d)
 	f := NewObject("a", NewQuery("a"), "e", NewQuery("c", "d", Iter{}, "e"))
 
 	testIter(tb, f, b, root, []any{
@@ -42,7 +42,8 @@ func TestObjectIter(tb *testing.T) {
 }
 
 func TestObjectIterMulti(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, obj{
+	b := NewBuffer()
+	root := b.appendVal(obj{
 		"a",
 		arr{"q", "w", "e"},
 		"c",
@@ -54,7 +55,6 @@ func TestObjectIterMulti(tb *testing.T) {
 		},
 	})
 
-	b := NewBuffer(d)
 	f := NewObject("a", NewQuery("a", Iter{}), "e", NewQuery("c", "d", Iter{}, "e"))
 
 	testIter(tb, f, b, root, []any{
@@ -68,7 +68,7 @@ func TestObjectIterMulti(tb *testing.T) {
 }
 
 func TestObjectCopyKeys(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal(obj{"a", 1, "b", 2})
 
 	f := NewObject(

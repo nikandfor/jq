@@ -3,8 +3,8 @@ package jq
 import "testing"
 
 func TestPipe(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, obj{"a", obj{"b", obj{"c", "d"}}})
-	b := NewBuffer(d)
+	b := NewBuffer()
+	root := b.appendVal(obj{"a", obj{"b", obj{"c", "d"}}})
 
 	testOne(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, root, "d")
 
@@ -12,16 +12,16 @@ func TestPipe(tb *testing.T) {
 		tb.Logf("buffer\n%s", Dump(b))
 	}
 
-	d, root = appendValBuf(d, 0, "a")
-	b.Reset(d)
+	b.Reset()
+	root = b.appendVal("a")
 
 	testIter(tb, NewPipe(
 		NewComma(Dot{}, Dot{}),
 		NewComma(Dot{}, Dot{}),
 	), b, root, []any{"a", "a", "a", "a"})
 
-	d, root = appendValBuf(d, 0, arr{arr{arr{"a", "b"}, arr{"c", "d"}}})
-	b.Reset(d)
+	b.Reset()
+	root = b.appendVal(arr{arr{arr{"a", "b"}, arr{"c", "d"}}})
 
 	testIter(tb, NewPipe(
 		&Iter{}, &Iter{}, &Iter{},
@@ -29,7 +29,7 @@ func TestPipe(tb *testing.T) {
 }
 
 func TestPipePathABC(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	ka := b.appendVal("a")
 	kb := b.appendVal("b")
@@ -49,7 +49,7 @@ func TestPipePathABC(tb *testing.T) {
 }
 
 func TestPipePathAAAA(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	root := b.appendVal("a")
 
 	testIterPath(tb, NewPipe(
@@ -63,7 +63,7 @@ func TestPipePathAAAA(tb *testing.T) {
 }
 
 func TestPipePathABCD(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	r10 := b.appendVal(arr{"a", "b"})
 	r11 := b.appendVal(arr{"c", "d"})
 	r1 := b.appendVal(arr{r10, r11})

@@ -16,12 +16,12 @@ func TestEncoderDecoder(tb *testing.T) {
 		code(False),
 	})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(0, b))
+	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
 
 	var d Decoder
 
 	exp := []Off{0, 1, True, False}
-	arr, _ := d.ArrayMap(b, 0, int(root), nil)
+	arr, _ := d.ArrayMap(b, int(root), nil)
 
 	cmp := func(n string) {
 		if len(exp) != len(arr) {
@@ -40,7 +40,7 @@ func TestEncoderDecoder(tb *testing.T) {
 	arr = make([]Off, len(exp))
 
 	for i := range exp {
-		_, arr[i] = d.ArrayMapIndex(b, 0, int(root), i)
+		_, arr[i] = d.ArrayMapIndex(b, int(root), i)
 	}
 
 	cmp("elements")
@@ -59,12 +59,12 @@ func TestEncoderDecoderLong(tb *testing.T) {
 	root := len(b)
 	b = e.AppendArray(b, Off(len(b)), []Off{el1, el2, True, False})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(0, b))
+	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
 
 	var d Decoder
 
 	exp := []Off{0, 1, True, False}
-	arr, _ := d.ArrayMap(b, 0, root, nil)
+	arr, _ := d.ArrayMap(b, root, nil)
 
 	cmp := func(n string) {
 		if len(exp) != len(arr) {
@@ -83,7 +83,7 @@ func TestEncoderDecoderLong(tb *testing.T) {
 	arr = make([]Off, len(exp))
 
 	for i := range exp {
-		_, arr[i] = d.ArrayMapIndex(b, 0, root, i)
+		_, arr[i] = d.ArrayMapIndex(b, root, i)
 	}
 
 	cmp("elements")

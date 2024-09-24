@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestSlice(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	root := b.appendVal(arr{0, 1, 2, 3, 4, 5})
 	arr1 := b.appendVal(arr{1, 2, 3, 4})

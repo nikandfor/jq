@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestIfPipe(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	off := b.appendVal(arr{false, 1, 2})
 
 	testIter(tb, NewPipe(NewIter(), NewIf(nil, NewObject("x", Dot{}), NewLiteral("no"))), b, off, []any{
@@ -12,7 +12,7 @@ func TestIfPipe(tb *testing.T) {
 }
 
 func TestIfIter(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 	off := b.appendVal(arr{false, 1, 2})
 
 	testIter(tb, NewIf(NewIter(), NewObject("x", Dot{}), NewLiteral("no")), b, off, []any{

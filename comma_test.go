@@ -5,8 +5,8 @@ import (
 )
 
 func TestComma(tb *testing.T) {
-	d, root := appendValBuf(nil, 0, arr{4, 3, 2, 1})
-	b := NewBuffer(d)
+	b := NewBuffer()
+	root := b.appendVal(arr{4, 3, 2, 1})
 
 	testOne(tb, NewComma(), b, root, code(None))
 	testIter(tb, NewComma(NewQuery(3), NewQuery(2), NewQuery(1), NewQuery(0)), b, root, []any{1, 2, 3, 4})
@@ -15,8 +15,8 @@ func TestComma(tb *testing.T) {
 		return
 	}
 
-	d, root = appendValBuf(d, 0, arr{arr{3, 4}, arr{1, 2}})
-	b.Reset(d)
+	b.Reset()
+	root = b.appendVal(arr{arr{3, 4}, arr{1, 2}})
 
 	testIter(tb, NewComma(NewQuery(1, Iter{}), NewQuery(0, Iter{})), b, root, []any{1, 2, 3, 4})
 

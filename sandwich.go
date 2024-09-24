@@ -27,13 +27,13 @@ func NewSandwich(d FormatDecoder, e FormatEncoder) *Sandwich {
 	return &Sandwich{
 		Decoder: d,
 		Encoder: e,
-		Buffer:  NewBuffer(nil),
+		Buffer:  NewBuffer(),
 	}
 }
 
 func (s *Sandwich) Reset(d FormatDecoder, e FormatEncoder) {
 	s.Decoder, s.Encoder = d, e
-	s.Buffer.Reset(nil)
+	s.Buffer.Reset()
 }
 
 func (s *Sandwich) ProcessGetOne(f Filter, w, r []byte) (_ []byte, err error) {

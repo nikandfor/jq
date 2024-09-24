@@ -3,11 +3,11 @@ package jq
 import "nikand.dev/go/cbor"
 
 func (b BufferWriter) Off() Off {
-	return Off(len(b.R) + len(b.W))
+	return Off(len(b.B))
 }
 
 func (b BufferWriter) Reset(off Off) {
-	b.W = b.W[:int(off)-len(b.R)]
+	b.B = b.B[:off]
 }
 
 func (b BufferWriter) ResetIfErr(off Off, errp *error) {
@@ -19,8 +19,15 @@ func (b BufferWriter) ResetIfErr(off Off, errp *error) {
 }
 
 func (b BufferWriter) Raw(raw []byte) Off {
+	if len(raw) == 1 {
+		off := cborToShort[raw[0]]
+		if off < 0 {
+			return off
+		}
+	}
+
 	off := b.Off()
-	b.W = append(b.W, raw...)
+	b.B = append(b.B, raw...)
 
 	return off
 }
@@ -31,13 +38,13 @@ func (b BufferWriter) Array(arr []Off) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendArray(b.W, off, arr)
+	b.B = b.Encoder.AppendArray(b.B, off, arr)
 	return off
 }
 
 func (b BufferWriter) Map(arr []Off) Off {
 	off := b.Off()
-	b.W = b.Encoder.AppendMap(b.W, off, arr)
+	b.B = b.Encoder.AppendMap(b.B, off, arr)
 	return off
 }
 
@@ -47,7 +54,7 @@ func (b BufferWriter) ArrayMap(tag byte, arr []Off) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendArrayMap(b.W, tag, off, arr)
+	b.B = b.Encoder.AppendArrayMap(b.B, tag, off, arr)
 	return off
 }
 
@@ -57,13 +64,13 @@ func (b BufferWriter) String(v string) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendString(b.W, v)
+	b.B = b.Encoder.AppendString(b.B, v)
 	return off
 }
 
 func (b BufferWriter) Bytes(v []byte) Off {
 	off := b.Off()
-	b.W = b.Encoder.AppendBytes(b.W, v)
+	b.B = b.Encoder.AppendBytes(b.B, v)
 	return off
 }
 
@@ -73,7 +80,7 @@ func (b BufferWriter) TagString(tag byte, v string) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendTagString(b.W, tag, v)
+	b.B = b.Encoder.AppendTagString(b.B, tag, v)
 	return off
 }
 
@@ -83,7 +90,7 @@ func (b BufferWriter) TagBytes(tag byte, v []byte) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendTagBytes(b.W, tag, v)
+	b.B = b.Encoder.AppendTagBytes(b.B, tag, v)
 	return off
 }
 
@@ -93,7 +100,7 @@ func (b BufferWriter) Int(v int) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendInt(b.W, v)
+	b.B = b.Encoder.AppendInt(b.B, v)
 	return off
 }
 
@@ -103,7 +110,7 @@ func (b BufferWriter) Int64(v int64) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendInt64(b.W, v)
+	b.B = b.Encoder.AppendInt64(b.B, v)
 	return off
 }
 
@@ -113,7 +120,7 @@ func (b BufferWriter) Uint(v uint) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendUint(b.W, v)
+	b.B = b.Encoder.AppendUint(b.B, v)
 	return off
 }
 
@@ -123,18 +130,18 @@ func (b BufferWriter) Uint64(v uint64) Off {
 	}
 
 	off := b.Off()
-	b.W = b.Encoder.AppendUint64(b.W, v)
+	b.B = b.Encoder.AppendUint64(b.B, v)
 	return off
 }
 
 func (b BufferWriter) Float(v float64) Off {
 	off := b.Off()
-	b.W = b.Encoder.AppendFloat(b.W, v)
+	b.B = b.Encoder.AppendFloat(b.B, v)
 	return off
 }
 
 func (b BufferWriter) Float32(v float32) Off {
 	off := b.Off()
-	b.W = b.Encoder.AppendFloat32(b.W, v)
+	b.B = b.Encoder.AppendFloat32(b.B, v)
 	return off
 }

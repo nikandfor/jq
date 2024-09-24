@@ -3,7 +3,7 @@ package jq
 import "testing"
 
 func TestAnyAll(tb *testing.T) {
-	b := NewBuffer(nil)
+	b := NewBuffer()
 
 	root := b.appendVal(arr{
 		arr{},
