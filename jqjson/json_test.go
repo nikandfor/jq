@@ -42,13 +42,12 @@ func TestFilter(tb *testing.T) {
 	data := `{"a":"b","c":"d"}`
 
 	b := func() *jq.Buffer {
-		var r []byte
-		var e jq.Encoder
+		b := jq.NewBuffer()
 
-		r = e.CBOR.AppendTag(r, cbor.String, len(data))
-		r = append(r, data...)
+		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, len(data))
+		b.B = append(b.B, data...)
 
-		return jq.NewBuffer(r)
+		return b
 	}()
 
 	f := jq.NewPipe(
@@ -67,29 +66,27 @@ func TestFilter(tb *testing.T) {
 	}
 
 	if tb.Failed() {
-		tb.Logf("hex R\n%s", hex.Dump(b.R))
-		tb.Logf("hex W\n%s", hex.Dump(b.W))
+		tb.Logf("hex\n%s", hex.Dump(b.B))
 		tb.Logf("buffer\n%s", jq.Dump(b))
 	}
 }
 
 func TestMergeString(tb *testing.T) {
 	b, root := func() (*jq.Buffer, Off) {
-		var r []byte
-		var e jq.Encoder
+		b := jq.NewBuffer()
 
-		r = e.CBOR.AppendTag(r, cbor.String, -1)
+		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, -1)
 
-		r = e.CBOR.AppendString(r, "one_")
+		b.B = b.Encoder.CBOR.AppendString(b.B, "one_")
 
-		r = e.CBOR.AppendTag(r, cbor.String, -1)
-		r = e.CBOR.AppendString(r, "two_")
-		r = e.CBOR.AppendString(r, "three")
-		r = e.CBOR.AppendBreak(r)
+		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, -1)
+		b.B = b.Encoder.CBOR.AppendString(b.B, "two_")
+		b.B = b.Encoder.CBOR.AppendString(b.B, "three")
+		b.B = b.Encoder.CBOR.AppendBreak(b.B)
 
-		r = e.CBOR.AppendBreak(r)
+		b.B = b.Encoder.CBOR.AppendBreak(b.B)
 
-		return jq.NewBuffer(r), 0
+		return b, 0
 	}()
 
 	var e Encoder
@@ -103,7 +100,7 @@ func TestMergeString(tb *testing.T) {
 	}
 
 	//	if tb.Failed() {
-	tb.Logf("res %x\n%s", root, hex.Dump(b.R))
+	tb.Logf("res %x\n%s", root, hex.Dump(b.B))
 	// }
 }
 

@@ -10,8 +10,8 @@ import (
 func TestSandwichNil(tb *testing.T) {
 	var w []byte
 
-	d := NewRawDecoder()
-	e := NewRawEncoder()
+	d := NewDecoder()
+	e := NewEncoder()
 
 	s := jq.NewSandwich(d, e)
 
@@ -32,8 +32,8 @@ func TestSandwichNil(tb *testing.T) {
 func TestSandwich(tb *testing.T) {
 	var w []byte
 
-	d := NewRawDecoder()
-	e := NewRawEncoder()
+	d := NewDecoder()
+	e := NewEncoder()
 	e.Separator = []byte{' '}
 
 	f := jq.NewQuery("a", jq.Iter{})
@@ -81,8 +81,8 @@ func TestSandwich(tb *testing.T) {
 func TestSandwichElements(tb *testing.T) {
 	var w []byte
 
-	d := NewRawDecoder()
-	e := NewRawEncoder()
+	d := NewDecoder()
+	e := NewEncoder()
 	e.Separator = []byte{',', '\n'}
 
 	f := jq.NewQuery("a", jq.Iter{})

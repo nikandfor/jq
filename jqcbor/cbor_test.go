@@ -108,13 +108,12 @@ func TestFilter(tb *testing.T) {
 	}()
 
 	b := func() *jq.Buffer {
-		var r []byte
-		var e jq.Encoder
+		b := jq.NewBuffer()
 
-		r = e.CBOR.AppendTag(r, cbor.String, len(data))
-		r = append(r, data...)
+		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, len(data))
+		b.B = append(b.B, data...)
 
-		return jq.NewBuffer(r)
+		return b
 	}()
 
 	f := jq.NewPipe(
@@ -133,8 +132,7 @@ func TestFilter(tb *testing.T) {
 	}
 
 	if tb.Failed() {
-		tb.Logf("hex R\n%s", hex.Dump(b.R))
-		tb.Logf("hex W\n%s", hex.Dump(b.W))
+		tb.Logf("hex\n%s", hex.Dump(b.B))
 		tb.Logf("buffer\n%s", jq.Dump(b))
 	}
 }

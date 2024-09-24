@@ -21,11 +21,6 @@ type (
 		keys map[string]Off
 	}
 
-	RawDecoder struct {
-		*Decoder
-		i int
-	}
-
 	MultiDecoder struct {
 		*Decoder
 		i int
@@ -33,67 +28,6 @@ type (
 )
 
 var ErrPartialRead = errors.New("partial read")
-
-func NewRawDecoder() *RawDecoder {
-	return &RawDecoder{
-		Decoder: NewDecoder(),
-	}
-}
-
-func (d *RawDecoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
-	if !next {
-		d.i = 0
-
-		if d.DeduplicateKeys && d.keys == nil {
-			d.keys = map[string]Off{}
-		}
-
-		clear(d.keys)
-	}
-
-	res, i, err := d.Decode(b, b.R, d.i)
-	if err != nil {
-		return off, false, err
-	}
-
-	d.i = i
-
-	return res, i < len(b.R), nil
-}
-
-func (d *RawDecoder) DecodeAll(b *jq.Buffer, r []byte, st int, arr []Off) (_ []Off, i int, err error) {
-	var off Off
-	i = st
-
-	for i < len(r) {
-		off, i, err = d.Decode(b, r, i)
-		if err != nil {
-			return arr, i, err
-		}
-
-		if off != jq.None {
-			arr = append(arr, off)
-		}
-	}
-
-	return arr, i, nil
-}
-
-func (d *RawDecoder) Decode(b *jq.Buffer, r []byte, st int) (Off, int, error) {
-	i := d.JSON.SkipSpaces(r, st)
-	if i >= len(r) {
-		return jq.None, i, nil
-	}
-
-	off, i, err := d.decode(b, r, i, false)
-	if err != nil {
-		return jq.None, i, err
-	}
-
-	i = d.JSON.SkipSpaces(r, i)
-
-	return off, i, nil
-}
 
 func NewMultiDecoder() *MultiDecoder {
 	return &MultiDecoder{
@@ -181,7 +115,10 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
-	i = st
+	i = d.JSON.SkipSpaces(r, st)
+	if i == len(r) {
+		return jq.None, i, nil
+	}
 
 	tp, i, err := d.JSON.Type(r, st)
 	if err != nil {
@@ -240,25 +177,25 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 
 		return off, i, nil
 	case json.String:
-		reset := len(b.W)
+		reset := len(b.B)
 		off = bw.Off()
 
 		n, _, err := d.JSON.DecodedStringLength(r, i)
 
-		b.W = b.Encoder.CBOR.AppendTag(b.W, cbor.String, n)
-		b.W, i, err = d.JSON.DecodeString(r, i, b.W)
+		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, n)
+		b.B, i, err = d.JSON.DecodeString(r, i, b.B)
 		if err != nil {
 			return off, st, err
 		}
 
-		if off, ok := d.keys[string(b.W[reset:])]; ok {
-			b.W = b.W[:reset]
+		if off, ok := d.keys[string(b.B[reset:])]; ok {
+			b.B = b.B[:reset]
 
 			return off, i, nil
 		}
 
 		if d.DeduplicateKeys {
-			d.keys[string(b.W[reset:])] = off
+			d.keys[string(b.B[reset:])] = off
 		}
 
 		return off, i, nil

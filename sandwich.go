@@ -56,7 +56,7 @@ func (s *Sandwich) ProcessGetOne(f Filter, w, r []byte) (_ []byte, err error) {
 		}
 	}
 
-	if s.Encoder != nil {
+	if s.Encoder != nil && off != None {
 		w, err = s.Encoder.Encode(w, s.Buffer, off)
 		if err != nil {
 			return w, fmt.Errorf("encode: %w", err)

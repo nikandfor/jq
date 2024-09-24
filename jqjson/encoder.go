@@ -20,44 +20,7 @@ type (
 		arr []Off
 		sep bool
 	}
-
-	RawEncoder struct {
-		*Encoder
-	}
 )
-
-func NewRawEncoder() *RawEncoder {
-	return &RawEncoder{Encoder: NewEncoder()}
-}
-
-func (e *RawEncoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
-	if !next {
-		e.sep = false
-	}
-
-	var err error
-	res := b.Writer().Off()
-
-	b.W, err = e.Encode(b.W, b, off)
-	if err != nil {
-		return off, false, err
-	}
-
-	return res, false, nil
-}
-
-func (e *RawEncoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) {
-	if off == jq.None {
-		return w, nil
-	}
-
-	w, err = e.Encoder.Encode(w, b, off)
-	if err != nil {
-		return w, err
-	}
-
-	return w, nil
-}
 
 func NewEncoder() *Encoder {
 	return &Encoder{
@@ -86,15 +49,15 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	var ce cbor.Encoder
 
 	expl := 100
-	b.W = ce.AppendTag(b.W, tag, expl)
-	st := len(b.W)
+	b.B = ce.AppendTag(b.B, tag, expl)
+	st := len(b.B)
 
-	b.W, err = e.Encode(b.W, b, off)
+	b.B, err = e.Encode(b.B, b, off)
 	if err != nil {
 		return off, false, err
 	}
 
-	b.W = ce.InsertLen(b.W, tag, st, expl, len(b.W)-st)
+	b.B = ce.InsertLen(b.B, tag, st, expl, len(b.B)-st)
 
 	return res, false, nil
 }

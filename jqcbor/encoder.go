@@ -35,15 +35,15 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	var ce cbor.Encoder
 
 	expl := 100
-	b.W = ce.AppendTag(b.W, tag, 100)
-	st := len(b.W)
+	b.B = ce.AppendTag(b.B, tag, 100)
+	st := len(b.B)
 
-	b.W, err = e.Encode(b.W, b, off)
+	b.B, err = e.Encode(b.B, b, off)
 	if err != nil {
 		return off, false, err
 	}
 
-	b.W = ce.InsertLen(b.W, tag, st, expl, len(b.W)-st)
+	b.B = ce.InsertLen(b.B, tag, st, expl, len(b.B)-st)
 
 	return res, false, nil
 }
