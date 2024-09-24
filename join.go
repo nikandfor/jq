@@ -9,7 +9,7 @@ import (
 type (
 	Join struct {
 		Separator Filter
-		Tag       byte
+		Tag       Tag
 
 		arr []Off
 	}

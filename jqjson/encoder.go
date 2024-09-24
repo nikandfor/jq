@@ -14,7 +14,7 @@ type (
 		JSON   json.Encoder
 		Base64 *base64.Encoding
 
-		FilterTag byte
+		FilterTag jq.Tag
 		Separator []byte
 
 		arr []Off
@@ -192,7 +192,7 @@ func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off Off) ([]byte, error) 
 	w, i := e.encStr(w, r, st, d)
 	w = append(w, '"')
 	if i < 0 {
-		return w, jq.NewTypeError(r[st], cbor.Bytes, cbor.String)
+		return w, jq.NewTypeError(jq.Tag(r[st]), cbor.Bytes, cbor.String)
 	}
 
 	return w, nil
@@ -230,7 +230,7 @@ func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
 	w, i := e.encBytes(w, r, st, d)
 	w = append(w, '"')
 	if i < 0 {
-		return w, jq.NewTypeError(r[st], cbor.Bytes, cbor.String)
+		return w, jq.NewTypeError(jq.Tag(r[st]), cbor.Bytes, cbor.String)
 	}
 
 	return w, nil

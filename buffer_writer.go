@@ -48,7 +48,7 @@ func (b BufferWriter) Map(arr []Off) Off {
 	return off
 }
 
-func (b BufferWriter) ArrayMap(tag byte, arr []Off) Off {
+func (b BufferWriter) ArrayMap(tag Tag, arr []Off) Off {
 	if tag == cbor.Array && len(arr) == 0 {
 		return EmptyArray
 	}
@@ -74,7 +74,7 @@ func (b BufferWriter) Bytes(v []byte) Off {
 	return off
 }
 
-func (b BufferWriter) TagString(tag byte, v string) Off {
+func (b BufferWriter) TagString(tag Tag, v string) Off {
 	if tag == cbor.String && v == "" {
 		return EmptyString
 	}
@@ -84,7 +84,7 @@ func (b BufferWriter) TagString(tag byte, v string) Off {
 	return off
 }
 
-func (b BufferWriter) TagBytes(tag byte, v []byte) Off {
+func (b BufferWriter) TagBytes(tag Tag, v []byte) Off {
 	if tag == cbor.String && len(v) == 0 {
 		return EmptyString
 	}

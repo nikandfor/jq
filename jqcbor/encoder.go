@@ -9,7 +9,7 @@ type (
 	Encoder struct {
 		CBOR cbor.Encoder
 
-		FilterTag byte
+		FilterTag jq.Tag
 
 		arr []Off
 	}

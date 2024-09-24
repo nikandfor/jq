@@ -26,7 +26,7 @@ func (e Encoder) AppendMap(b []byte, off Off, items []Off) []byte {
 	return e.AppendArrayMap(b, cbor.Map, off, items)
 }
 
-func (e Encoder) AppendArrayMap(b []byte, tag byte, off Off, items []Off) []byte {
+func (e Encoder) AppendArrayMap(b []byte, tag Tag, off Off, items []Off) []byte {
 	//	reset := len(b)
 
 	tagLen := len(items)
@@ -49,7 +49,7 @@ func (e Encoder) AppendArrayMap(b []byte, tag byte, off Off, items []Off) []byte
 	size := 0x100
 
 	if d < 0x100-offReserve && tagLen < 16 {
-		b = append(b, tag|byte(tagLen))
+		b = append(b, byte(tag)|byte(tagLen))
 
 		for _, item := range items {
 			if item < 0 {
@@ -77,7 +77,7 @@ func (e Encoder) AppendArrayMap(b []byte, tag byte, off Off, items []Off) []byte
 		size *= size
 	}
 
-	t := tag | 0b0001_0000 | ll<<2 | ss
+	t := byte(tag) | 0b0001_0000 | ll<<2 | ss
 
 	b = append(b, t)
 	b = e.AppendIntX(b, 1<<ll, tagLen)
@@ -121,10 +121,10 @@ func (e Encoder) AppendNull(b []byte) []byte               { return e.CBOR.Appen
 func (e Encoder) AppendString(b []byte, v string) []byte   { return e.CBOR.AppendString(b, v) }
 func (e Encoder) AppendBytes(b []byte, v []byte) []byte    { return e.CBOR.AppendBytes(b, v) }
 
-func (e Encoder) AppendTagString(b []byte, tag byte, v string) []byte {
+func (e Encoder) AppendTagString(b []byte, tag Tag, v string) []byte {
 	return e.CBOR.AppendTagString(b, tag, v)
 }
 
-func (e Encoder) AppendTagBytes(b []byte, tag byte, v []byte) []byte {
+func (e Encoder) AppendTagBytes(b []byte, tag Tag, v []byte) []byte {
 	return e.CBOR.AppendTagBytes(b, tag, v)
 }

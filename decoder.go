@@ -10,12 +10,12 @@ type (
 	}
 )
 
-func (d Decoder) TagOnly(b []byte, off int) (tag byte) {
-	return b[off] & cbor.TagMask
+func (d Decoder) TagOnly(b []byte, off int) (tag Tag) {
+	return Tag(b[off]) & cbor.TagMask
 }
 
-func (d Decoder) Tag(b []byte, off int) (tag byte, sub int64, l, s, i int) {
-	tag = b[off] & cbor.TagMask
+func (d Decoder) Tag(b []byte, off int) (tag Tag, sub int64, l, s, i int) {
+	tag = Tag(b[off]) & cbor.TagMask
 
 	if tag&0b1100_0000 == 0b1000_0000 {
 		tag, l, s, i = d.TagArrayMap(b, off)
@@ -26,8 +26,8 @@ func (d Decoder) Tag(b []byte, off int) (tag byte, sub int64, l, s, i int) {
 	return
 }
 
-func (d Decoder) TagArrayMap(b []byte, st int) (tag byte, l, s, i int) {
-	tag = b[st] & cbor.TagMask
+func (d Decoder) TagArrayMap(b []byte, st int) (tag Tag, l, s, i int) {
+	tag = Tag(b[st]) & cbor.TagMask
 
 	if b[st]&arrEmbedMask == 0 {
 		l = int(b[st] & 0xf)
@@ -51,7 +51,7 @@ func (d Decoder) TagArrayMap(b []byte, st int) (tag byte, l, s, i int) {
 }
 
 func (d Decoder) ArrayMapIndex(b []byte, st, index int) (k, v Off) {
-	tag := b[st] & cbor.TagMask
+	tag := Tag(b[st]) & cbor.TagMask
 
 	if b[st]&arrEmbedMask == 0 {
 		l := int(b[st] & 0xf)
@@ -115,7 +115,7 @@ func (d Decoder) ArrayMapIndex(b []byte, st, index int) (k, v Off) {
 }
 
 func (d Decoder) ArrayMap(b []byte, st int, arr []Off) ([]Off, int) {
-	tag := b[st] & cbor.TagMask
+	tag := Tag(b[st]) & cbor.TagMask
 
 	if b[st]&arrEmbedMask == 0 {
 		l := int(b[st] & 0xf)

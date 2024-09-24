@@ -204,7 +204,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 	arrbase := len(d.arr)
 	defer func() { d.arr = d.arr[:arrbase] }()
 
-	tag := byte(cbor.Array)
+	tag := cbor.Array
 	if tp == json.Object {
 		tag = cbor.Map
 	}

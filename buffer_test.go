@@ -32,7 +32,7 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 	bw := b.Writer()
 
 	for j, tc := range []struct {
-		CBOR byte
+		CBOR Tag
 		Code Off
 	}{
 		{CBOR: cbor.Int | 0, Code: Zero},
@@ -42,7 +42,7 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 		{CBOR: cbor.Simple | cbor.True, Code: True},
 		{CBOR: cbor.Simple | cbor.Null, Code: Null},
 	} {
-		off := bw.Raw([]byte{tc.CBOR})
+		off := bw.Raw([]byte{byte(tc.CBOR)})
 
 		assertTrue(tb, b.Reader().IsSimple(off, tc.Code), "j: %x  cbor: %x  code: %x", j, tc.CBOR, tc.Code)
 		assertTrue(tb, b.Reader().IsSimple(off, Zero, One, True, False, Null, None), "j: %x  cbor: %x  code: all", j, tc.CBOR)

@@ -79,7 +79,7 @@ func TestDecodeEncode(tb *testing.T) {
 	enc, err := e.Encode(nil, b, res)
 	assertNoError(tb, err)
 
-	if !bytes.Equal([]byte{cbor.Array | 6, 1, 2, 3, 4, 5, 6}, enc) {
+	if !bytes.Equal([]byte{byte(cbor.Array) | 6, 1, 2, 3, 4, 5, 6}, enc) {
 		tb.Errorf("wanted array of 1 to 6, got % x", enc)
 	}
 

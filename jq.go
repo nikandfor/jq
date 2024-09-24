@@ -27,6 +27,7 @@ type (
 		Key   Off
 	}
 
+	Tag   = cbor.Tag
 	Off   int
 	Dot   struct{}
 	Empty struct{}
@@ -239,7 +240,7 @@ func (p NodePathSeg) String() string {
 	return fmt.Sprintf("%v:%x", p.Off, p.Index)
 }
 
-func NewTypeError(got byte, wanted ...byte) TypeError {
+func NewTypeError(got Tag, wanted ...Tag) TypeError {
 	var e TypeError
 
 	e |= TypeError(got)

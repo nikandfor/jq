@@ -2,7 +2,7 @@ package jq
 
 import "nikand.dev/go/cbor"
 
-func (b BufferReader) Tag(off Off) byte {
+func (b BufferReader) Tag(off Off) Tag {
 	if off < 0 {
 		return shortToCBOR[-off] & cbor.TagMask
 	}
@@ -11,19 +11,19 @@ func (b BufferReader) Tag(off Off) byte {
 	return tag
 }
 
-func (b BufferReader) TagRaw(off Off) byte {
+func (b BufferReader) TagRaw(off Off) Tag {
 	if off < 0 {
 		return shortToCBOR[-off]
 	}
 
 	buf, st := b.Buf(off)
 
-	return buf[st]
+	return Tag(buf[st])
 }
 
 func (b BufferReader) Raw(off Off) []byte {
 	if off < 0 {
-		return []byte{shortToCBOR[-off]}
+		return []byte{byte(shortToCBOR[-off])}
 	}
 
 	raw, _ := b.Decoder.Raw(b.Buf(off))

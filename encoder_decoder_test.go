@@ -10,8 +10,8 @@ func TestEncoderDecoder(tb *testing.T) {
 	var b []byte
 
 	b, root := appendValBuf(b, 0, arr{
-		raw{cbor.Simple | cbor.True},
-		raw{cbor.Simple | cbor.False},
+		raw{byte(cbor.Simple | cbor.True)},
+		raw{byte(cbor.Simple | cbor.False)},
 		True,
 		False,
 	})
@@ -50,10 +50,10 @@ func TestEncoderDecoderLong(tb *testing.T) {
 	var e Encoder
 	var b []byte
 
-	b, el1 := appendValBuf(b, 0, raw{cbor.Simple | cbor.True})
-	b, el2 := appendValBuf(b, 0, raw{cbor.Simple | cbor.False})
+	b, el1 := appendValBuf(b, 0, raw{byte(cbor.Simple | cbor.True)})
+	b, el2 := appendValBuf(b, 0, raw{byte(cbor.Simple | cbor.False)})
 
-	b = append(b, cbor.String|cbor.Len2, 0x1, 0x00)
+	b = append(b, byte(cbor.String|cbor.Len2), 0x1, 0x00)
 	b = append(b, make([]byte, 0x100)...)
 
 	root := len(b)

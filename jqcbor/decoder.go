@@ -49,7 +49,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err er
 
 	switch tag {
 	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple:
-		switch r[st] {
+		switch cbor.Tag(r[st]) {
 		case cbor.Int | 0:
 			return jq.Zero, i, nil
 		case cbor.Int | 1:

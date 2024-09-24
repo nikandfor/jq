@@ -37,7 +37,7 @@ func (b *Buffer) appendVal(v any) (off Off) {
 func appendValBuf(w []byte, base int, v any) ([]byte, Off) {
 	var e Encoder
 	var a []Off
-	var tag byte
+	var tag Tag
 	var lst []any
 
 	off := Off(base + len(w))

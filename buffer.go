@@ -23,7 +23,7 @@ type (
 )
 
 var (
-	shortToCBOR = []byte{
+	shortToCBOR = []Tag{
 		-None:  cbor.Simple | cbor.None,
 		-Null:  cbor.Simple | cbor.Null,
 		-True:  cbor.Simple | cbor.True,

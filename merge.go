@@ -20,7 +20,7 @@ type (
 		off   Off
 		child []*node
 
-		tag byte
+		tag Tag
 		key Off
 	}
 )
@@ -126,7 +126,7 @@ func (m *merge) index(n *node, i int) *node {
 	return n.child[i]
 }
 
-func (m *merge) tag(b *Buffer, p NodePathSeg) byte {
+func (m *merge) tag(b *Buffer, p NodePathSeg) Tag {
 	if p.Off >= 0 {
 		return b.Reader().Tag(p.Off)
 	}
