@@ -128,8 +128,9 @@ func (f Off) Format(s fmt.State, v rune) {
 	if v == 'v' {
 		v = 'x'
 	}
+	plus := csel(s.Flag('+') || s.Flag('#'), "#", "")
 
-	_, _ = fmt.Fprintf(s, "%"+string(v), int64(f))
+	_, _ = fmt.Fprintf(s, "%"+plus+string(v), int64(f))
 }
 
 func (f Dot) String() string   { return "." }

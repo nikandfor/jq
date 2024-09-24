@@ -134,7 +134,7 @@ func (f Pipe) String() string {
 			_, _ = b.WriteString(" | ")
 		}
 
-		_, _ = fmt.Fprintf(&b, "%v", sub)
+		_, _ = fmt.Fprintf(&b, "%+v", sub)
 	}
 
 	_ = b.WriteByte(')')

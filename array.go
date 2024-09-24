@@ -10,7 +10,17 @@ type (
 	}
 )
 
-func NewArray(of Filter) *Array { return &Array{Of: of} }
+func NewArray(of ...Filter) *Array {
+	var x Filter
+
+	if len(of) == 1 {
+		x = of[0]
+	} else {
+		x = NewComma(of...)
+	}
+
+	return &Array{Of: x}
+}
 
 func (f *Array) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {

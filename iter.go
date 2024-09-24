@@ -16,6 +16,9 @@ type (
 var _ FilterPath = (*Iter)(nil)
 
 func NewIter() *Iter { return &Iter{} }
+func NewIterOf(f Filter) *Pipe {
+	return NewPipe(f, NewIter())
+}
 
 func (f *Iter) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	return f.applyTo(b, off, base, next, true)
