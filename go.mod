@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/stretchr/testify v1.8.4
-	nikand.dev/go/cbor v0.0.0-20240924202450-f37c4a04681e
+	nikand.dev/go/cbor v0.0.0-20240924213350-3e4a2aab18d9
 	nikand.dev/go/json v0.8.1-0.20240820200734-623ae526164f
 )
 

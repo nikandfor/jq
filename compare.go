@@ -9,6 +9,10 @@ type (
 		L, R Filter
 		Not  bool
 
+		binop Binop
+	}
+
+	Binop struct {
 		lastl        Off
 		lnext, rnext bool
 	}
@@ -28,15 +32,26 @@ func NewNotEqual(l, r Filter) *Equal {
 }
 
 func (f *Equal) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	l, r, more, err := f.binop.ApplyTo(b, off, next, f.L, f.R)
+	if err != nil || l == None {
+		return None, more, err
+	}
+
+	if b.Equal(l, r) == !f.Not {
+		return True, more, nil
+	}
+
+	return False, more, nil
+}
+
+func (f *Binop) ApplyTo(b *Buffer, off Off, next bool, L, R Filter) (l, r Off, more bool, err error) {
 	if !next {
 		f.lastl = None
 		f.lnext = false
 		f.rnext = false
 	} else if !f.lnext && !f.rnext {
-		return None, false, nil
+		return None, None, false, nil
 	}
-
-	var r Off
 
 	//	defer func(off Off, next bool, ff Equal) {
 	//		log.Printf("cmp equal %x %v (%x %v %v) -> %x %v  %x %v -> %v %v", off, next, ff.lastl, ff.lnext, ff.rnext, f.lastl, f.lnext, r, f.rnext, b.Equal(f.lastl, r) == !f.Not, more)
@@ -46,9 +61,9 @@ func (f *Equal) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		next = true
 
 		if !f.rnext {
-			f.lastl, f.lnext, err = f.L.ApplyTo(b, off, f.lnext)
+			f.lastl, f.lnext, err = L.ApplyTo(b, off, f.lnext)
 			if err != nil {
-				return off, false, err
+				return off, off, false, err
 			}
 
 			if f.lastl == None {
@@ -56,9 +71,9 @@ func (f *Equal) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 			}
 		}
 
-		r, f.rnext, err = f.R.ApplyTo(b, off, f.rnext)
+		r, f.rnext, err = R.ApplyTo(b, off, f.rnext)
 		if err != nil {
-			return off, false, err
+			return off, off, false, err
 		}
 
 		if r == None {
@@ -69,16 +84,12 @@ func (f *Equal) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	}
 
 	if f.lastl == None || r == None {
-		return None, false, nil
+		return None, None, false, nil
 	}
 
 	more = f.lnext || f.rnext
 
-	if b.Equal(f.lastl, r) == !f.Not {
-		return True, more, nil
-	}
-
-	return False, more, nil
+	return f.lastl, r, more, nil
 }
 
 func NewNot() Not { return Not{} }
