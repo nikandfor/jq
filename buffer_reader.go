@@ -90,11 +90,19 @@ func (b BufferReader) IsSimple(off Off, specials ...Off) (ok bool) {
 }
 
 func (b BufferReader) Bytes(off Off) []byte {
+	if off == EmptyString {
+		return []byte{}
+	}
+
 	s, _ := b.Decoder.Bytes(b.Buf(off))
 	return s
 }
 
 func (b BufferReader) String(off Off) string {
+	if off == EmptyString {
+		return ""
+	}
+
 	s, _ := b.Decoder.Bytes(b.Buf(off))
 	return string(s)
 }

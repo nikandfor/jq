@@ -62,7 +62,7 @@ func TestAssignLongArrayAbs(tb *testing.T) {
 		//	obj{"a", arr{0, 0, 0, 0, 0}},
 	})
 
-	testOne(tb, NewAssign(NewQuery(Iter{}, "a", Iter{}), Off(Zero), false), b, off, Code(exp))
+	testOne(tb, NewAssign(NewQuery(Iter{}, "a", Iter{}), Zero, false), b, off, exp)
 }
 
 func TestAssignComma(tb *testing.T) {
@@ -70,7 +70,7 @@ func TestAssignComma(tb *testing.T) {
 	off := b.appendVal(obj{"a", 1, "b", 2})
 	exp := b.appendVal(obj{"a", 10, "b", 10})
 
-	testOne(tb, NewAssign(NewComma(Key("a"), Key("b")), NewLiteral(10), false), b, off, code(exp))
+	testOne(tb, NewAssign(NewComma(Key("a"), Key("b")), NewLiteral(10), false), b, off, exp)
 }
 
 func TestAssignCommaPipe(tb *testing.T) {
@@ -93,7 +93,7 @@ func TestAssignCommaPipe(tb *testing.T) {
 			),
 			NewLiteral(10), false,
 		),
-		b, off, code(exp),
+		b, off, exp,
 	)
 }
 
@@ -102,7 +102,7 @@ func TestAssignSelect(tb *testing.T) {
 	off := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}, obj{"a", nil, "v", 4}})
 	exp := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 10}, obj{"a", 1, "v", 10}, obj{"a", nil, "v", 4}})
 
-	testOne(tb, NewAssign(NewPipe(NewIter(), NewSelect(Key("a")), Key("v")), NewLiteral(10), false), b, off, code(exp))
+	testOne(tb, NewAssign(NewPipe(NewIter(), NewSelect(Key("a")), Key("v")), NewLiteral(10), false), b, off, exp)
 }
 
 func TestAssignMulti(tb *testing.T) {
@@ -119,7 +119,7 @@ func TestAssignNoneAbs(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", 1, "b", 2})
 
-	testIter(tb, NewAssign(Key("b"), Off(None), false), b, off, nil)
+	testIter(tb, NewAssign(Key("b"), None, false), b, off, nil)
 }
 
 func TestAssignNoneRel(tb *testing.T) {
@@ -127,5 +127,5 @@ func TestAssignNoneRel(tb *testing.T) {
 	off := b.appendVal(obj{"a", 1, "b", 2})
 	exp := b.appendVal(obj{"a", 1})
 
-	testOne(tb, NewAssign(Key("b"), Off(None), true), b, off, code(exp))
+	testOne(tb, NewAssign(Key("b"), None, true), b, off, exp)
 }

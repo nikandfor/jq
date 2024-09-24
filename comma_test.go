@@ -8,7 +8,7 @@ func TestComma(tb *testing.T) {
 	b := NewBuffer()
 	root := b.appendVal(arr{4, 3, 2, 1})
 
-	testOne(tb, NewComma(), b, root, code(None))
+	testOne(tb, NewComma(), b, root, None)
 	testIter(tb, NewComma(NewQuery(3), NewQuery(2), NewQuery(1), NewQuery(0)), b, root, []any{1, 2, 3, 4})
 
 	if tb.Failed() {

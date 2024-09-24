@@ -15,10 +15,10 @@ func TestFlatten(tb *testing.T) {
 	root := d1
 
 	testSame(tb, NewFlatten(0), b, root, root)
-	testOne(tb, NewFlatten(1), b, root, arr{1, 2, code(d3)})
-	testOne(tb, NewFlatten(2), b, root, arr{1, 2, 3, code(d4)})
-	testOne(tb, NewFlatten(3), b, root, arr{1, 2, 3, obj{"a", 4}, code(d5)})
-	testOne(tb, NewFlatten(4), b, root, arr{1, 2, 3, obj{"a", 4}, "5", code(d6)})
+	testOne(tb, NewFlatten(1), b, root, arr{1, 2, d3})
+	testOne(tb, NewFlatten(2), b, root, arr{1, 2, 3, d4})
+	testOne(tb, NewFlatten(3), b, root, arr{1, 2, 3, obj{"a", 4}, d5})
+	testOne(tb, NewFlatten(4), b, root, arr{1, 2, 3, obj{"a", 4}, "5", d6})
 	testOne(tb, NewFlatten(5), b, root, arr{1, 2, 3, obj{"a", 4}, "5", 6, 7})
 	testOne(tb, NewFlatten(-1), b, root, arr{1, 2, 3, obj{"a", 4}, "5", 6, 7})
 }

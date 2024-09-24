@@ -10,7 +10,7 @@ func TestIsSimpleAppendVal(tb *testing.T) {
 	b := &Buffer{}
 
 	for j, x := range []Off{None, Null, True, False, Zero, One} {
-		off := b.appendVal(code(x))
+		off := b.appendVal(x)
 
 		assertEqualVal(tb, b, x, off, "%x", x)
 

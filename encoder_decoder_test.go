@@ -12,8 +12,8 @@ func TestEncoderDecoder(tb *testing.T) {
 	b, root := appendValBuf(b, 0, arr{
 		raw{cbor.Simple | cbor.True},
 		raw{cbor.Simple | cbor.False},
-		code(True),
-		code(False),
+		True,
+		False,
 	})
 
 	tb.Logf("buffer %x\n%s", root, DumpBytes(b))

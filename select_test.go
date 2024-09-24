@@ -46,11 +46,11 @@ func TestSelectSpecial(tb *testing.T) {
 	_ = b.appendVal(make([]byte, 250))
 
 	root := b.appendVal(arr{
-		code(Null),
-		code(True),
-		code(False),
-		code(Zero),
-		code(One),
+		Null,
+		True,
+		False,
+		Zero,
+		One,
 		obj{},
 	})
 
@@ -62,5 +62,5 @@ func TestPipeSelect(tb *testing.T) {
 	off := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}, obj{"a", nil, "v", 4}})
 	exp := b.appendVal(arr{obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}})
 
-	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(Key("a")))), b, off, code(exp))
+	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(Key("a")))), b, off, exp)
 }

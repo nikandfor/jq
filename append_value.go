@@ -8,16 +8,14 @@ import (
 )
 
 type (
-	Arr  = arr
-	Code = code
-	Obj  = obj
-	Raw  = raw
+	Arr = arr
+	Obj = obj
+	Raw = raw
 
-	code int
-	arr  []any
-	obj  []any
-	raw  []byte
-	lab  struct {
+	arr []any
+	obj []any
+	raw []byte
+	lab struct {
 		lab int
 		val any
 	}
@@ -45,8 +43,6 @@ func appendValBuf(w []byte, base int, v any) ([]byte, Off) {
 	off := Off(base + len(w))
 
 	switch v := v.(type) {
-	case code:
-		return w, Off(v)
 	case Off:
 		return w, v
 	case nil:
