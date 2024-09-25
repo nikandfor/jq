@@ -10,15 +10,10 @@ import (
 )
 
 type (
-	Off = jq.Off
-
 	Decoder struct {
 		JSON json.Decoder
 
-		DeduplicateKeys bool
-
-		arr  []Off
-		keys map[string]Off
+		arr []jq.Off
 	}
 
 	MultiDecoder struct {
@@ -35,15 +30,9 @@ func NewMultiDecoder() *MultiDecoder {
 	}
 }
 
-func (d *MultiDecoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+func (d *MultiDecoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, error) {
 	if !next {
 		d.i = 0
-
-		if d.DeduplicateKeys && d.keys == nil {
-			d.keys = map[string]Off{}
-		}
-
-		clear(d.keys)
 	}
 
 	br := b.Reader()
@@ -74,7 +63,7 @@ func NewDecoder() *Decoder {
 	return &Decoder{}
 }
 
-func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+func (d *Decoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, error) {
 	br := b.Reader()
 
 	tag := br.Tag(off)
@@ -97,19 +86,11 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	return res, false, nil
 }
 
-func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err error) {
-	if d.DeduplicateKeys {
-		if d.keys == nil {
-			d.keys = map[string]Off{}
-		}
-	}
-
-	defer clear(d.keys)
-
+func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
 	return d.decode(b, r, st, false)
 }
 
-func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i int, err error) {
+func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, i int, err error) {
 	bw := b.Writer()
 
 	reset := bw.Off()
@@ -160,7 +141,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 
 		if j == len(raw) {
 			if v == 0 || v == 1 {
-				return jq.Zero - Off(v), i, nil
+				return jq.Zero - jq.Off(v), i, nil
 			}
 
 			off = bw.Int(v)
@@ -177,7 +158,6 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 
 		return off, i, nil
 	case json.String:
-		reset := len(b.B)
 		off = bw.Off()
 
 		n, _, err := d.JSON.DecodedStringLength(r, i)
@@ -186,16 +166,6 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 		b.B, i, err = d.JSON.DecodeString(r, i, b.B)
 		if err != nil {
 			return off, st, err
-		}
-
-		if off, ok := d.keys[string(b.B[reset:])]; ok {
-			b.B = b.B[:reset]
-
-			return off, i, nil
-		}
-
-		if d.DeduplicateKeys {
-			d.keys[string(b.B[reset:])] = off
 		}
 
 		return off, i, nil
@@ -236,3 +206,5 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off Off, i i
 
 	return off, i, nil
 }
+
+func (d *Decoder) String() string { return "fromjson" }

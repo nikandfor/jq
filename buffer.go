@@ -12,6 +12,8 @@ type (
 
 		Decoder Decoder
 		Encoder Encoder
+
+		arr []Off
 	}
 
 	BufferReader struct {

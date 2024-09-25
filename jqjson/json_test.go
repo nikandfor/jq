@@ -72,7 +72,7 @@ func TestFilter(tb *testing.T) {
 }
 
 func TestMergeString(tb *testing.T) {
-	b, root := func() (*jq.Buffer, Off) {
+	b, root := func() (*jq.Buffer, jq.Off) {
 		b := jq.NewBuffer()
 
 		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, -1)

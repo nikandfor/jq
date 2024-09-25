@@ -17,7 +17,7 @@ type (
 		Tag       jq.Tag
 		Separator []byte
 
-		arr []Off
+		arr []jq.Off
 		sep bool
 	}
 )
@@ -32,7 +32,7 @@ func (e *Encoder) Reset() {
 	e.sep = false
 }
 
-func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
+func (e *Encoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, error) {
 	if next {
 		return jq.None, false, nil
 	}
@@ -62,7 +62,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 	return res, false, nil
 }
 
-func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) {
+func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
 	defer func(reset int) {
 		if err != nil {
 			w = w[:reset]
@@ -111,7 +111,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 	case cbor.Labeled:
 		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
-		return e.Encode(w, b, Off(i))
+		return e.Encode(w, b, jq.Off(i))
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -121,7 +121,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 	return w, err
 }
 
-func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off Off, open, clos, next bool) (_ []byte, _ bool, err error) {
+func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off jq.Off, open, clos, next bool) (_ []byte, _ bool, err error) {
 	defer func(reset int) {
 		if err != nil {
 			w = w[:reset]
@@ -184,7 +184,7 @@ func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off Off, open, clos, n
 	return w, next, nil
 }
 
-func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
+func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off jq.Off) ([]byte, error) {
 	d := &b.Decoder.CBOR
 	r, st := b.Buf(off)
 
@@ -218,7 +218,7 @@ func (e *Encoder) encStr(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
 	return w, i
 }
 
-func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off Off) ([]byte, error) {
+func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off jq.Off) ([]byte, error) {
 	if e.Base64 == nil {
 		e.Base64 = base64.StdEncoding
 	}
@@ -255,3 +255,5 @@ func (e *Encoder) encBytes(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
 
 	return w, i
 }
+
+func (d *Encoder) String() string { return "tojson" }
