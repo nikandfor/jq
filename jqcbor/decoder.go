@@ -97,3 +97,5 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err er
 
 	return off, i, nil
 }
+
+func (d *Decoder) String() string { return "@cbord" }

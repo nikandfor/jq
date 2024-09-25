@@ -187,3 +187,5 @@ func (e *Encoder) encodePair(w []byte, b *jq.Buffer, key, val jq.Off, depth int)
 
 	return w, nil
 }
+
+func (e *Encoder) String() string { return "@uri" }

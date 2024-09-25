@@ -207,4 +207,4 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 	return off, i, nil
 }
 
-func (d *Decoder) String() string { return "fromjson" }
+func (d *Decoder) String() string { return "@jsond" }

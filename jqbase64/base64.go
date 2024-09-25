@@ -151,3 +151,6 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 func (e *Encoder) Reset() {
 	e.sep = false
 }
+
+func (e *Encoder) String() string { return "@base64" }
+func (d *Decoder) String() string { return "@base64d" }

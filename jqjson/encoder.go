@@ -256,4 +256,4 @@ func (e *Encoder) encBytes(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
 	return w, i
 }
 
-func (d *Encoder) String() string { return "tojson" }
+func (d *Encoder) String() string { return "@json" }

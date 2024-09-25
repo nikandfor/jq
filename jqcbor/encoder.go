@@ -88,3 +88,5 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 
 	return w, nil
 }
+
+func (e *Encoder) String() string { return "@cbor" }

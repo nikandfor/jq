@@ -1,9 +1,8 @@
 package jqurl
 
 import (
-	"maps"
 	"net/url"
-	"slices"
+	"sort"
 	"strconv"
 
 	"nikand.dev/go/cbor"
@@ -51,7 +50,19 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 
 	d.arr = d.arr[:0]
 
-	for _, k := range slices.Sorted(maps.Keys(vals)) {
+	keys := make([]string, len(vals))
+
+	{
+		i := 0
+		for k := range vals {
+			keys[i] = k
+			i++
+		}
+
+		sort.Strings(keys)
+	}
+
+	for _, k := range keys {
 		vs := vals[k]
 
 		key := bw.String(k)
@@ -114,3 +125,5 @@ func (d *Decoder) decodeOne(b *jq.Buffer, v string) jq.Off {
 
 	return bw.String(v)
 }
+
+func (d *Decoder) String() string { return "@urid" }
