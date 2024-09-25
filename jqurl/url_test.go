@@ -29,6 +29,37 @@ func TestEncoderIter(tb *testing.T) {
 	assertBytes(tb, []byte(`a=b&a=4&a=false&a=1.1&a`), res)
 }
 
+func TestDecoderEncoder(tb *testing.T) {
+	b := jq.NewBuffer()
+
+	var d Decoder
+	var e Encoder
+
+	for _, x := range []string{
+		"",
+		"param",
+		"param=val",
+		"a=b&c=d&e",
+		"a=b&a=c&a=d",
+	} {
+		b.Reset()
+
+		off, i, err := d.Decode(b, []byte(x), 0)
+		assertNoError(tb, err)
+		assertEqual(tb, len(x), i)
+
+		y, err := e.Encode(nil, b, off)
+		assertNoError(tb, err)
+
+		assertBytes(tb, []byte(x), y)
+
+		if tb.Failed() {
+			tb.Logf("dump\n%s", b.Dump())
+			break
+		}
+	}
+}
+
 func assertNoError(tb testing.TB, err error) {
 	tb.Helper()
 
