@@ -58,6 +58,6 @@ func TestAlternatePath(tb *testing.T) {
 	testIterPath(tb, NewAlternate(NewQuery("c", Iter{}), NewQuery("d")), b, r0, []any{5}, []NodePath{{psk(r0, 3, kd)}})
 
 	if tb.Failed() {
-		tb.Logf("buffer:\n%s", Dump(b))
+		tb.Logf("buffer:\n%s", b.Dump())
 	}
 }

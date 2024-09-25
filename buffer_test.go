@@ -24,7 +24,7 @@ func TestIsSimpleAppendVal(tb *testing.T) {
 
 	}
 
-	tb.Logf("buffer\n%s", Dump(b))
+	tb.Logf("buffer\n%s", b.Dump())
 }
 
 func TestIsSimpleCBOREncoder(tb *testing.T) {
@@ -48,5 +48,5 @@ func TestIsSimpleCBOREncoder(tb *testing.T) {
 		assertTrue(tb, b.Reader().IsSimple(off, Zero, One, True, False, Null, None), "j: %x  cbor: %x  code: all", j, tc.CBOR)
 	}
 
-	tb.Logf("buffer\n%s", Dump(b))
+	tb.Logf("buffer\n%s", b.Dump())
 }

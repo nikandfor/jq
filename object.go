@@ -54,7 +54,7 @@ func NewObject(kvs ...any) *Object {
 
 			obj = append(obj, ObjectKey{
 				Key:   key,
-				Value: NewQuery(string(s)),
+				Value: Key(s),
 			})
 
 			continue

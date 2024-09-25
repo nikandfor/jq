@@ -48,11 +48,15 @@ var (
 )
 
 func NewBuffer() *Buffer {
-	return &Buffer{}
+	b := MakeBuffer()
+	return &b
 }
 
 func MakeBuffer() Buffer {
-	return Buffer{}
+	return Buffer{
+		Encoder: MakeEncoder(),
+		Decoder: MakeDecoder(),
+	}
 }
 
 func (b *Buffer) Reset() {
@@ -106,10 +110,22 @@ func (b *Buffer) Equal(loff, roff Off) (res bool) {
 	return true
 }
 
+func (b *Buffer) Len() int {
+	if b == nil {
+		return 0
+	}
+
+	return len(b.B)
+}
+
 func (b *Buffer) Buf(off Off) ([]byte, int) {
 	return b.B, int(off)
 }
 
 func (b *Buffer) Unwrap() []byte {
 	return b.B
+}
+
+func (b *Buffer) Dump() string {
+	return NewDumper(nil).Dump(b)
 }

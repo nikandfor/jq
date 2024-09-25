@@ -7,21 +7,21 @@ import (
 )
 
 func TestEncoderDecoder(tb *testing.T) {
-	var b []byte
+	b := NewBuffer()
 
-	b, root := appendValBuf(b, 0, arr{
+	root := b.appendVal(arr{
 		raw{byte(cbor.Simple | cbor.True)},
 		raw{byte(cbor.Simple | cbor.False)},
 		True,
 		False,
 	})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
+	tb.Logf("buffer %x\n%s", root, b.Dump())
 
 	var d Decoder
 
 	exp := []Off{0, 1, True, False}
-	arr, _ := d.ArrayMap(b, int(root), nil)
+	arr, _ := d.ArrayMap(b.B, int(root), nil)
 
 	cmp := func(n string) {
 		if len(exp) != len(arr) {
@@ -40,31 +40,30 @@ func TestEncoderDecoder(tb *testing.T) {
 	arr = make([]Off, len(exp))
 
 	for i := range exp {
-		_, arr[i] = d.ArrayMapIndex(b, int(root), i)
+		_, arr[i] = d.ArrayMapIndex(b.B, int(root), i)
 	}
 
 	cmp("elements")
 }
 
 func TestEncoderDecoderLong(tb *testing.T) {
-	var e Encoder
-	var b []byte
+	b := NewBuffer()
 
-	b, el1 := appendValBuf(b, 0, raw{byte(cbor.Simple | cbor.True)})
-	b, el2 := appendValBuf(b, 0, raw{byte(cbor.Simple | cbor.False)})
+	el1 := b.appendVal(raw{byte(cbor.Simple | cbor.True)})
+	el2 := b.appendVal(raw{byte(cbor.Simple | cbor.False)})
 
-	b = append(b, byte(cbor.String|cbor.Len2), 0x1, 0x00)
-	b = append(b, make([]byte, 0x100)...)
+	b.B = append(b.B, byte(cbor.String|cbor.Len2), 0x1, 0x00)
+	b.B = append(b.B, make([]byte, 0x100)...)
 
-	root := len(b)
-	b = e.AppendArray(b, Off(len(b)), []Off{el1, el2, True, False})
+	root := len(b.B)
+	b.B = b.Encoder.AppendArray(b.B, Off(len(b.B)), []Off{el1, el2, True, False})
 
-	tb.Logf("buffer %x\n%s", root, DumpBytes(b))
+	tb.Logf("buffer %x\n%s", root, b.Dump())
 
 	var d Decoder
 
 	exp := []Off{0, 1, True, False}
-	arr, _ := d.ArrayMap(b, root, nil)
+	arr, _ := d.ArrayMap(b.B, root, nil)
 
 	cmp := func(n string) {
 		if len(exp) != len(arr) {
@@ -83,7 +82,7 @@ func TestEncoderDecoderLong(tb *testing.T) {
 	arr = make([]Off, len(exp))
 
 	for i := range exp {
-		_, arr[i] = d.ArrayMapIndex(b, root, i)
+		_, arr[i] = d.ArrayMapIndex(b.B, root, i)
 	}
 
 	cmp("elements")

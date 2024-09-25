@@ -22,6 +22,7 @@ func TestLength(tb *testing.T) {
 		5, -5,
 		nil,
 		1.0, -1.0,
+		-100.0, -128.0, -130.0,
 	})
 
 	testIter(tb, NewPipe(&Iter{}, Length{}), b, root, []any{
@@ -31,5 +32,6 @@ func TestLength(tb *testing.T) {
 		5, 5,
 		0,
 		1.0, 1.0,
+		100.0, 128.0, 130.0,
 	})
 }

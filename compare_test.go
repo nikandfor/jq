@@ -43,7 +43,7 @@ func TestCompareEqualMultiMulti(tb *testing.T) {
 	})
 
 	if tb.Failed() {
-		tb.Logf("buffer  %x\n%s", root, Dump(b))
+		tb.Logf("buffer  %x\n%s", root, b.Dump())
 	}
 }
 

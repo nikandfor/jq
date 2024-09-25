@@ -23,12 +23,6 @@ func DumpBytes(b []byte) string {
 	return (&Dumper{Base: -1}).DumpBytes(b)
 }
 
-func Dump(b *Buffer) string {
-	d := Dumper{Base: -1}
-	d.dumpBuffer(b)
-	return string(d.b)
-}
-
 func NewDumper(w io.Writer) *Dumper { return &Dumper{Writer: w, Base: -1} }
 
 func (d *Dumper) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
@@ -66,6 +60,10 @@ func (d *Dumper) DumpBytes(b []byte) string {
 }
 
 func (d *Dumper) Dump(b *Buffer) string {
+	if b == nil {
+		return "<nil>"
+	}
+
 	d.dumpBuffer(b)
 	return string(d.b)
 }

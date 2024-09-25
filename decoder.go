@@ -1,14 +1,14 @@
 package jq
 
-import (
-	"nikand.dev/go/cbor"
-)
+import "nikand.dev/go/cbor"
 
 type (
 	Decoder struct {
 		CBOR cbor.Decoder
 	}
 )
+
+func MakeDecoder() Decoder { return Decoder{CBOR: cbor.MakeDecoder()} }
 
 func (d Decoder) TagOnly(b []byte, off int) (tag Tag) {
 	return Tag(b[off]) & cbor.TagMask

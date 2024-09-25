@@ -55,13 +55,31 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		switch sub {
 		case cbor.Null:
 			res = Zero
-		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
-			f := b.Reader().Float(off)
-			if f >= 0 {
+		case cbor.Float8:
+			if b.B[off+1]&0x80 == 0 {
 				res = off
-			} else {
-				res = b.Writer().Float(-f)
+				break
 			}
+
+			res = b.Writer().Off()
+			f := b.B[off+1]
+
+			if int8(f) == -128 {
+				b.B = append(b.B, byte(cbor.Simple|cbor.Float32), 0x43, 0x00, 0x00, 0x00)
+			} else {
+				b.B = append(b.B, b.B[off], -f)
+			}
+		case cbor.Float16, cbor.Float32, cbor.Float64:
+			if b.B[off+1]&0x80 == 0 {
+				res = off
+				break
+			}
+
+			res = b.Writer().Off()
+
+			sz := Off(1 + 1<<(sub-cbor.Float8))
+			b.B = append(b.B, b.B[off:off+sz]...)
+			b.B[res+1] &^= 0x80
 		default:
 			return off, false, te
 		}

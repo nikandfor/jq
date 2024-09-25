@@ -79,7 +79,7 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 
 		defer panic(p)
 
-		tb.Logf("buffer  root %v\n%s", root, Dump(b))
+		tb.Logf("buffer  root %v\n%s", root, b.Dump())
 	}()
 
 	for j, elem := range vals {
@@ -118,7 +118,7 @@ func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, 
 
 		defer panic(p)
 
-		tb.Logf("buffer  root %v\n%s", root, Dump(b))
+		tb.Logf("buffer  root %v\n%s", root, b.Dump())
 	}()
 
 	var base NodePath
@@ -227,7 +227,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 	}
 
 	if loff < 0 && roff < 0 && loff != roff {
-		tb.Errorf("Assertion failed: %v != %v", loff, roff)
+		tb.Errorf("Assertion failed: %+v != %+v", loff, roff)
 	} else {
 		var log bytes.Buffer
 
@@ -235,7 +235,7 @@ func assertEqualVal(tb testing.TB, b *Buffer, loff, roff Off, args ...any) bool 
 			Writer: &log,
 		}).ApplyTo(b, 0, false)
 
-		tb.Errorf("Assertion failed: %v is not equal to %v, buffer:\n%s", loff, roff, log.Bytes())
+		tb.Errorf("Assertion failed: %+v is not equal to %+v, buffer:\n%s", loff, roff, log.Bytes())
 	}
 
 	if len(args) != 0 {

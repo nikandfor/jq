@@ -29,7 +29,7 @@ func TestEncodeDecode(tb *testing.T) {
 		}
 
 		if tb.Failed() {
-			tb.Logf("res %x -> %x\n%s", off, off, jq.Dump(b))
+			tb.Logf("res %x -> %x\n%s", off, off, b.Dump())
 			break
 		}
 	}

@@ -1,8 +1,6 @@
 package jq
 
-import (
-	"nikand.dev/go/cbor"
-)
+import "nikand.dev/go/cbor"
 
 type (
 	Encoder struct {
@@ -17,6 +15,8 @@ const (
 
 	arrEmbedMask = 0b0001_0000
 )
+
+func MakeEncoder() Encoder { return Encoder{CBOR: cbor.MakeEncoder()} }
 
 func (e Encoder) AppendArray(b []byte, off Off, items []Off) []byte {
 	return e.AppendArrayMap(b, cbor.Array, off, items)

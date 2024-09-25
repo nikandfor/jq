@@ -9,7 +9,7 @@ func TestPipe(tb *testing.T) {
 	testOne(tb, NewPipe(Key("a"), Key("b"), Key("c")), b, root, "d")
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", Dump(b))
+		tb.Logf("buffer\n%s", b.Dump())
 	}
 
 	b.Reset()
@@ -44,7 +44,7 @@ func TestPipePathABC(tb *testing.T) {
 	)
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", Dump(b))
+		tb.Logf("buffer\n%s", b.Dump())
 	}
 }
 
@@ -58,7 +58,7 @@ func TestPipePathAAAA(tb *testing.T) {
 	), b, root, []any{"a", "a", "a", "a"}, []NodePath{nil, nil, nil, nil})
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", Dump(b))
+		tb.Logf("buffer\n%s", b.Dump())
 	}
 }
 
@@ -80,6 +80,6 @@ func TestPipePathABCD(tb *testing.T) {
 		})
 
 	if tb.Failed() {
-		tb.Logf("buffer\n%s", Dump(b))
+		tb.Logf("buffer\n%s", b.Dump())
 	}
 }
