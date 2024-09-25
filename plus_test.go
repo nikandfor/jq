@@ -55,12 +55,14 @@ func TestPlusMap(tb *testing.T) {
 	e := b.appendVal(obj{})
 	a := b.appendVal(obj{"a", 1, "b", 2})
 	c := b.appendVal(obj{"a", 3, "c", 4})
+	d := b.appendVal(obj{"d", 10})
 
 	testOne(tb, NewPlus(a, a), b, Null, a)
 	testOne(tb, NewPlus(a, e), b, Null, a)
 	testOne(tb, NewPlus(e, a), b, Null, a)
 	testOne(tb, NewPlus(a, c), b, Null, obj{"a", 3, "b", 2, "c", 4})
 	testOne(tb, NewPlus(c, a), b, Null, obj{"a", 1, "c", 4, "b", 2})
+	testOne(tb, NewPlus(a, d), b, Null, obj{"a", 1, "b", 2, "d", 10})
 }
 
 func TestPlusFloat(tb *testing.T) {

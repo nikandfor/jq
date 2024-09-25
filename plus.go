@@ -111,7 +111,6 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 		f.arr = br.ArrayMap(left, f.arr[:0])
 		l := len(f.arr)
 		f.arr = br.ArrayMap(right, f.arr)
-
 		r := l
 
 	out:
@@ -121,10 +120,6 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 					f.arr[j+1] = f.arr[i+1]
 					continue out
 				}
-			}
-
-			if i == l {
-				continue
 			}
 
 			f.arr[r], f.arr[r+1] = f.arr[i], f.arr[i+1]
