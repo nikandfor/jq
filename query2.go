@@ -18,7 +18,7 @@ func query(p []any) []Filter {
 		case string:
 			q[i] = Key(x)
 		case Iter:
-			q[i] = &Iter{}
+			q[i] = &x
 		case Filter:
 			q[i] = x
 		default:

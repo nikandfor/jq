@@ -9,7 +9,7 @@ type (
 	Encoder struct {
 		CBOR cbor.Encoder
 
-		FilterTag jq.Tag
+		Tag jq.Tag
 
 		arr []Off
 	}
@@ -17,8 +17,8 @@ type (
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		CBOR:      cbor.Encoder{Flags: cbor.FtDefault},
-		FilterTag: cbor.String,
+		CBOR: cbor.Encoder{Flags: cbor.FtDefault},
+		Tag:  cbor.String,
 	}
 }
 
@@ -27,7 +27,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 
 	res := b.Writer().Off()
 
-	tag := e.FilterTag
+	tag := e.Tag
 	if tag == 0 {
 		tag = cbor.String
 	}

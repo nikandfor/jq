@@ -26,7 +26,8 @@ type (
 	}
 )
 
-func NewAssign(l FilterPath, r Filter, rel bool) *Assign { return &Assign{L: l, R: r, Relative: rel} }
+func NewAssign(l FilterPath, r Filter) *Assign       { return &Assign{L: l, R: r} }
+func NewUpdateAssign(l FilterPath, r Filter) *Assign { return &Assign{L: l, R: r, Relative: true} }
 
 func (f *Assign) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if !next {

@@ -90,6 +90,8 @@ func (f Empty) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return None, false, nil
 }
 
+func NewHalt(err error) Halt { return Halt{Err: err} }
+
 func (f Halt) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	err := f.Err
 	if err == nil {

@@ -6,42 +6,42 @@ func TestAssignObjectAbs(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", obj{"b", 10}, "b", 20})
 
-	testOne(tb, NewAssign(Key("a"), Key("b"), false), b, off, obj{"a", 20, "b", 20})
+	testOne(tb, NewAssign(Key("a"), Key("b")), b, off, obj{"a", 20, "b", 20})
 }
 
 func TestAssignObjectRel(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", obj{"b", 10}, "b", 20})
 
-	testOne(tb, NewAssign(Key("a"), Key("b"), true), b, off, obj{"a", 10, "b", 20})
+	testOne(tb, NewUpdateAssign(Key("a"), Key("b")), b, off, obj{"a", 10, "b", 20})
 }
 
 func TestAssignArrayAbs(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", arr{nil, obj{"c", obj{"v", 10}}}, "v", 20})
 
-	testOne(tb, NewAssign(NewQuery("a", 1, "c"), Key("v"), false), b, off, obj{"a", arr{nil, obj{"c", 20}}, "v", 20})
+	testOne(tb, NewAssign(NewQuery("a", 1, "c"), Key("v")), b, off, obj{"a", arr{nil, obj{"c", 20}}, "v", 20})
 }
 
 func TestAssignArrayRel(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", arr{nil, obj{"c", obj{"v", 10}}}, "v", 20})
 
-	testOne(tb, NewAssign(NewQuery("a", 1, "c"), Key("v"), true), b, off, obj{"a", arr{nil, obj{"c", 10}}, "v", 20})
+	testOne(tb, NewUpdateAssign(NewQuery("a", 1, "c"), Key("v")), b, off, obj{"a", arr{nil, obj{"c", 10}}, "v", 20})
 }
 
 func TestAssignArrayIterAbs(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", arr{obj{"c", obj{"v", 5}}, obj{"c", obj{"v", 10}}}, "v", 20})
 
-	testOne(tb, NewAssign(NewQuery("a", Iter{}, "c"), Key("v"), false), b, off, obj{"a", arr{obj{"c", 20}, obj{"c", 20}}, "v", 20})
+	testOne(tb, NewAssign(NewQuery("a", Iter{}, "c"), Key("v")), b, off, obj{"a", arr{obj{"c", 20}, obj{"c", 20}}, "v", 20})
 }
 
 func TestAssignArrayIterRel(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", arr{obj{"c", obj{"v", 5}}, obj{"c", obj{"v", 10}}}, "v", 20})
 
-	testOne(tb, NewAssign(NewQuery("a", Iter{}, "c"), Key("v"), true), b, off, obj{"a", arr{obj{"c", 5}, obj{"c", 10}}, "v", 20})
+	testOne(tb, NewUpdateAssign(NewQuery("a", Iter{}, "c"), Key("v")), b, off, obj{"a", arr{obj{"c", 5}, obj{"c", 10}}, "v", 20})
 }
 
 func TestAssignLongArrayAbs(tb *testing.T) {
@@ -62,7 +62,7 @@ func TestAssignLongArrayAbs(tb *testing.T) {
 		//	obj{"a", arr{0, 0, 0, 0, 0}},
 	})
 
-	testOne(tb, NewAssign(NewQuery(Iter{}, "a", Iter{}), Zero, false), b, off, exp)
+	testOne(tb, NewAssign(NewQuery(Iter{}, "a", Iter{}), Zero), b, off, exp)
 }
 
 func TestAssignComma(tb *testing.T) {
@@ -70,7 +70,7 @@ func TestAssignComma(tb *testing.T) {
 	off := b.appendVal(obj{"a", 1, "b", 2})
 	exp := b.appendVal(obj{"a", 10, "b", 10})
 
-	testOne(tb, NewAssign(NewComma(Key("a"), Key("b")), NewLiteral(10), false), b, off, exp)
+	testOne(tb, NewAssign(NewComma(Key("a"), Key("b")), NewLiteral(10)), b, off, exp)
 }
 
 func TestAssignCommaPipe(tb *testing.T) {
@@ -91,7 +91,7 @@ func TestAssignCommaPipe(tb *testing.T) {
 				),
 				Key("q"),
 			),
-			NewLiteral(10), false,
+			NewLiteral(10),
 		),
 		b, off, exp,
 	)
@@ -102,14 +102,14 @@ func TestAssignSelect(tb *testing.T) {
 	off := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 2}, obj{"a", 1, "v", 3}, obj{"a", nil, "v", 4}})
 	exp := b.appendVal(arr{obj{"a", false, "v", 1}, obj{"a", true, "v", 10}, obj{"a", 1, "v", 10}, obj{"a", nil, "v", 4}})
 
-	testOne(tb, NewAssign(NewPipe(NewIter(), NewSelect(Key("a")), Key("v")), NewLiteral(10), false), b, off, exp)
+	testOne(tb, NewAssign(NewPipe(NewIter(), NewSelect(Key("a")), Key("v")), NewLiteral(10)), b, off, exp)
 }
 
 func TestAssignMulti(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", arr{1, 2}, "b", arr{"q", "w"}})
 
-	testIter(tb, NewAssign(NewQuery("a", Iter{}), NewQuery("b", Iter{}), false), b, off, []any{
+	testIter(tb, NewAssign(NewQuery("a", Iter{}), NewQuery("b", Iter{})), b, off, []any{
 		obj{"a", arr{"q", "q"}, "b", arr{"q", "w"}},
 		obj{"a", arr{"w", "w"}, "b", arr{"q", "w"}},
 	})
@@ -119,7 +119,7 @@ func TestAssignNoneAbs(tb *testing.T) {
 	b := NewBuffer()
 	off := b.appendVal(obj{"a", 1, "b", 2})
 
-	testIter(tb, NewAssign(Key("b"), None, false), b, off, nil)
+	testIter(tb, NewAssign(Key("b"), None), b, off, nil)
 }
 
 func TestAssignNoneRel(tb *testing.T) {
@@ -127,5 +127,5 @@ func TestAssignNoneRel(tb *testing.T) {
 	off := b.appendVal(obj{"a", 1, "b", 2})
 	exp := b.appendVal(obj{"a", 1})
 
-	testOne(tb, NewAssign(Key("b"), None, true), b, off, exp)
+	testOne(tb, NewUpdateAssign(Key("b"), None), b, off, exp)
 }

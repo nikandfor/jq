@@ -8,9 +8,11 @@ import (
 
 type (
 	Length struct {
-		LenRunes bool
+		CountRunes bool
 	}
 )
+
+func NewLength() Length { return Length{} }
 
 func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
@@ -41,7 +43,7 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	case cbor.Bytes:
 		res = b.Writer().Int(int(sub))
 	case cbor.String:
-		if f.LenRunes {
+		if f.CountRunes {
 			s := b.Reader().Bytes(off)
 			res = b.Writer().Int(utf8.RuneCount(s))
 		} else {
@@ -70,4 +72,10 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	return res, false, nil
 }
 
-func (f Length) String() string { return "length" }
+func (f Length) String() string {
+	if f.CountRunes {
+		return "length_utf8"
+	}
+
+	return "length"
+}

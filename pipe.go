@@ -39,6 +39,15 @@ func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (r
 	if len(f.Filters) == 0 {
 		return off, base, false, nil
 	}
+	if len(f.Filters) == 1 {
+		if addpath {
+			res, path, more, err = ApplyGetPath(f.Filters[0], b, off, base, next)
+		} else {
+			res, more, err = f.Filters[0].ApplyTo(b, off, next)
+		}
+
+		return
+	}
 
 	bw := b.Writer()
 	path = base

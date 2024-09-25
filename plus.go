@@ -24,7 +24,7 @@ func NewPlus(l, r Filter) *Plus {
 
 func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	left, right, more, err := f.binop.ApplyTo(b, off, next, f.L, f.R)
-	if err != nil || left == None {
+	if err != nil || left == None || right == None {
 		return None, more, err
 	}
 

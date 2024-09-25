@@ -14,7 +14,7 @@ type (
 		JSON   json.Encoder
 		Base64 *base64.Encoding
 
-		FilterTag jq.Tag
+		Tag       jq.Tag
 		Separator []byte
 
 		arr []Off
@@ -24,7 +24,7 @@ type (
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		FilterTag: cbor.String,
+		Tag: cbor.String,
 	}
 }
 
@@ -41,7 +41,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 
 	res := b.Writer().Off()
 
-	tag := e.FilterTag
+	tag := e.Tag
 	if tag == 0 {
 		tag = cbor.String
 	}
@@ -105,9 +105,9 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 			return strconv.AppendFloat(w, f, 'f', -1, 64), nil
 		case cbor.Undefined, cbor.None:
 			return w, jq.NewTypeError(br.TagRaw(off))
-		default:
-			panic(sub)
 		}
+
+		panic(sub)
 	case cbor.Labeled:
 		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
