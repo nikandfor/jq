@@ -34,7 +34,9 @@ type (
 	Halt  struct {
 		Err error
 	}
-	Literal []byte
+	Literal struct {
+		Raw []byte
+	}
 
 	TypeError int
 )
@@ -106,13 +108,13 @@ func NewLiteral(x any) Literal {
 
 	switch x := x.(type) {
 	case string:
-		return Literal(e.AppendString(nil, x))
+		return Literal{e.AppendString(nil, x)}
 	case int:
-		return Literal(e.AppendInt(nil, x))
+		return Literal{e.AppendInt(nil, x)}
 	case int64:
-		return Literal(e.AppendInt64(nil, x))
+		return Literal{e.AppendInt64(nil, x)}
 	case bool:
-		return Literal(e.AppendBool(nil, x))
+		return Literal{e.AppendBool(nil, x)}
 	}
 
 	panic(x)
@@ -123,7 +125,7 @@ func (f Literal) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 		return None, false, nil
 	}
 
-	return b.Writer().Raw(f), false, nil
+	return b.Writer().Raw(f.Raw), false, nil
 }
 
 func (f Off) String() string { return fmt.Sprintf("%x", int(f)) }
@@ -142,12 +144,12 @@ func (f Empty) String() string { return "empty" }
 func (f Literal) String() string {
 	var d Decoder
 
-	tag := d.TagOnly(f, 0)
+	tag := d.TagOnly(f.Raw, 0)
 
 	switch tag {
 	case cbor.Int, cbor.Neg:
-		v, i := d.Unsigned(f, 0)
-		if i == len(f) {
+		v, i := d.Unsigned(f.Raw, 0)
+		if i == len(f.Raw) {
 			minus := ""
 			if tag == cbor.Neg {
 				minus = "-"
@@ -156,13 +158,13 @@ func (f Literal) String() string {
 			return fmt.Sprintf("%s%d", minus, v)
 		}
 	case cbor.String:
-		v, i := d.Bytes(f, 0)
-		if i == len(f) {
+		v, i := d.Bytes(f.Raw, 0)
+		if i == len(f.Raw) {
 			return fmt.Sprintf("%q", v)
 		}
 	case cbor.Simple:
-		_, sub, i := d.CBOR.Tag(f, 0)
-		if i != len(f) {
+		_, sub, i := d.CBOR.Tag(f.Raw, 0)
+		if i != len(f.Raw) {
 			break
 		}
 
@@ -174,12 +176,12 @@ func (f Literal) String() string {
 		case cbor.Null:
 			return "null"
 		case cbor.Float8, cbor.Float16, cbor.Float32, cbor.Float64:
-			v, _ := d.Float(f, 0)
+			v, _ := d.Float(f.Raw, 0)
 			return fmt.Sprintf("%v", v)
 		}
 	}
 
-	return fmt.Sprintf("Literal(%#x)", []byte(f))
+	return fmt.Sprintf("Literal(%#x)", []byte(f.Raw))
 }
 
 func appendHex(b, a []byte) []byte {
