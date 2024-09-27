@@ -6,13 +6,14 @@ import (
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
+	"nikand.dev/go/skip"
 )
 
 type (
 	Decoder struct {
 		Tag    jq.Tag
-		Comma  byte
 		Header bool
+		Flags  skip.Str
 
 		header bool
 
@@ -23,11 +24,15 @@ type (
 func NewDecoder() *Decoder {
 	return &Decoder{
 		Tag:   cbor.Array,
-		Comma: ',',
+		Flags: skip.CSV | skip.Raw | skip.Quo | skip.Sqt | ',',
 	}
 }
 
 func (d *Decoder) Reset() {
+	if d.Flags == 0 {
+		d.Flags = skip.CSV | skip.Raw | skip.Quo | skip.Sqt | ','
+	}
+
 	d.header = false
 	d.arr = d.arr[:0]
 }
@@ -51,34 +56,22 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 }
 
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
-	comma := csel(d.Comma != 0, d.Comma, ',')
 	tag := csel(d.Tag != 0, d.Tag, cbor.Array)
 	val := csel(tag == cbor.Map, 1, 0)
 	i = st
 
-	for i < len(r) && (r[i] == '\n' || r[i] == '\r') {
-		i++
-	}
 	if i == len(r) {
 		return jq.None, i, nil
 	}
 
 	for {
 		col := 0
-		hdr := csel(d.Header && tag == cbor.Map && !d.header, 1, 0)
+		hdr := csel(d.Header && !d.header && tag == cbor.Map, 1, 0)
 
 		for i < len(r) {
-			if r[i] == '\n' || r[i] == '\r' {
-				break
-			}
-
-			off, i, err = d.decodeOne(b, r, i)
+			off, i, err = d.decodeCell(b, r, i)
 			if err != nil {
-				return jq.None, i, err
-			}
-
-			if i < len(r) && r[i] == comma {
-				i++
+				return off, i, err
 			}
 
 			if col+val >= len(d.arr) {
@@ -91,14 +84,19 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 
 			d.arr[col+val-hdr] = off
 			col += 1 + val
-		}
 
-		for i < len(r) && (r[i] == '\n' || r[i] == '\r') {
-			i++
+			if i < len(r) && r[i] == '\r' {
+				i++
+			}
+			if i < len(r) && r[i] == '\n' {
+				i++
+				break
+			}
 		}
 
 		for col < len(d.arr) {
 			d.arr[col+val] = jq.Null
+			col += 1 + val
 		}
 
 		if d.Header && !d.header {
@@ -112,16 +110,8 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 	}
 }
 
-func (d *Decoder) decodeOne(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
+func (d *Decoder) decodeCell(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
 	str := cbor.String
-	comma := csel(d.Comma != 0, d.Comma, ',')
-	i = st
-
-	if r[i] == comma || r[i] == '\n' || r[i] == '\r' {
-		return jq.Null, i, nil
-	}
-
-	q := r[i] == '"'
 
 	bw := b.Writer()
 	off = bw.Off()
@@ -129,19 +119,25 @@ func (d *Decoder) decodeOne(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, 
 	expl := 20
 	b.B = b.Encoder.CBOR.AppendTag(b.B, str, expl)
 	data := len(b.B)
-	b.B, i = d.unquote(b.B, r, i)
+
+	var s skip.Str
+
+	s, b.B, i = skip.DecodeString(r, st, d.Flags, b.B)
+	if s.Err() {
+		return jq.None, i, s
+	}
+
 	b.B = b.Encoder.CBOR.InsertLen(b.B, str, data, expl, len(b.B)-data)
 
-	if val := d.decodeVal(b, b.B[data:], q); val != jq.None {
+	if val := d.decodeVal(b, b.B[data:], s.Any(skip.Quo|skip.Sqt)); val != jq.None {
 		if val < 0 {
 			bw.Reset(off)
 			return val, i, nil
 		}
 
+		size := bw.Off() - val
 		copy(b.B[off:], b.B[val:])
-		b.B = b.B[:off+(jq.Off(len(b.B))-val)]
-
-		return off, i, nil
+		b.B = b.B[:off+size]
 	}
 
 	return off, i, nil
@@ -181,46 +177,6 @@ func (d *Decoder) decodeVal(b *jq.Buffer, r []byte, q bool) (res jq.Off) {
 	}
 
 	return jq.None
-}
-
-func (d *Decoder) unquote(w, r []byte, st int) (_ []byte, i int) {
-	comma := csel(d.Comma != 0, d.Comma, ',')
-	i = st
-
-	if r[i] != '"' {
-		for i < len(r) && r[i] != comma && r[i] != '\r' && r[i] != '\n' {
-			i++
-		}
-
-		return append(w, r[st:i]...), i
-	}
-
-	i++
-
-	for {
-		done := i
-
-		for i < len(r) && r[i] != '"' {
-			i++
-		}
-		if i == len(r) {
-			return w, -1
-		}
-
-		w = append(w, r[done:i]...)
-		i++
-
-		if i < len(r) && r[i] == '"' {
-			w = append(w, '"')
-			i++
-
-			continue
-		}
-
-		break
-	}
-
-	return w, i
 }
 
 func (e *Decoder) String() string { return "@csvd" }

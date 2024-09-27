@@ -2,6 +2,7 @@ package jqcsv
 
 import (
 	"bytes"
+	"log"
 	"strings"
 	"testing"
 
@@ -22,11 +23,13 @@ func TestDecodeEncode(tb *testing.T) {
 		`1,2,3`,
 		`a,b,c`,
 		` a b,c d,e `,
-		`"qwe""qwe"""`,
+		`"qwe""qwe""q"`,
 	} {
 		b.Reset()
 		d.Reset()
 		e.Reset()
+
+		log.Printf("running test: %q", x)
 
 		off, i, err := d.Decode(b, []byte(x), 0)
 		assertNoError(tb, err)
@@ -57,8 +60,7 @@ func TestDecodeEncode(tb *testing.T) {
 }
 
 func TestMap(tb *testing.T) {
-	x := `
-a,b,c,d
+	x := `a,b,c,d
 1,2,3,4
 q,w,e,r
 ,,true,false

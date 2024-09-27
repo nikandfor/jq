@@ -168,12 +168,13 @@ out:
 
 			w = append(w, s[i:i+j]...)
 			w = append(w, '"', '"')
-			i = i + j + 1
+			i += j + 1
 
 			continue out
 		}
 
 		w = append(w, s[i:]...)
+		break
 	}
 
 	return append(w, '"')
