@@ -47,6 +47,10 @@ func (s *Sandwich) ProcessGetOne(f Filter, w, r []byte) (_ []byte, err error) {
 		if err != nil {
 			return w, fmt.Errorf("decode: %w", err)
 		}
+
+		if off == None {
+			return w, nil
+		}
 	}
 
 	if f != nil {
@@ -77,6 +81,10 @@ func (s *Sandwich) ProcessOne(f Filter, w, r []byte) (_ []byte, err error) {
 		if err != nil {
 			return w, fmt.Errorf("decode: %w", err)
 		}
+
+		if off == None {
+			return w, nil
+		}
 	}
 
 	w, err = s.ApplyAll(f, w, off)
@@ -100,6 +108,10 @@ func (s *Sandwich) ProcessAll(f Filter, w, r []byte) (_ []byte, err error) {
 			off, i, err = s.Decoder.Decode(s.Buffer, r, i)
 			if err != nil {
 				return w, fmt.Errorf("decode: %w", err)
+			}
+
+			if off == None {
+				return w, nil
 			}
 		}
 

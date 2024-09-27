@@ -54,10 +54,23 @@ func NewBuffer() *Buffer {
 	return &b
 }
 
+func NewBufferFrom(buf []byte) *Buffer {
+	b := MakeBufferFrom(buf)
+	return &b
+}
+
 func MakeBuffer() Buffer {
 	return Buffer{
 		Encoder: MakeEncoder(),
 		Decoder: MakeDecoder(),
+	}
+}
+
+func MakeBufferFrom(buf []byte) Buffer {
+	return Buffer{
+		Encoder: MakeEncoder(),
+		Decoder: MakeDecoder(),
+		B:       buf[:0],
 	}
 }
 

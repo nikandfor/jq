@@ -20,6 +20,16 @@ type (
 		arr []jq.Off
 		sep bool
 	}
+
+	ToOpen  bool
+	ToClose bool
+	IsNext  bool
+)
+
+const (
+	Open  ToOpen  = true
+	Close ToClose = true
+	Next  IsNext  = true
 )
 
 func NewEncoder() *Encoder {
@@ -118,10 +128,11 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 	}
 
 	w, _, err = e.EncodeContainer(w, b, off, true, true, false)
+
 	return w, err
 }
 
-func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off jq.Off, open, clos, next bool) (_ []byte, _ bool, err error) {
+func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off jq.Off, open ToOpen, clos ToClose, next IsNext) (_ []byte, _ IsNext, err error) {
 	defer func(reset int) {
 		if err != nil {
 			w = w[:reset]

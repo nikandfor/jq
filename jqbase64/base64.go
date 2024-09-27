@@ -121,12 +121,6 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 		}
 	}(len(w))
 
-	if e.sep {
-		w = append(w, e.Separator...)
-	}
-
-	e.sep = true
-
 	if b.Equal(off, jq.Null) {
 		return w, nil
 	}
@@ -142,6 +136,12 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 	if enc == nil {
 		enc = base64.StdEncoding
 	}
+
+	if e.sep {
+		w = append(w, e.Separator...)
+	}
+
+	e.sep = true
 
 	w = enc.AppendEncode(w, s)
 
