@@ -5,17 +5,17 @@ import (
 )
 
 type (
-	FormatDecoder interface {
+	DataDecoder interface {
 		Decode(b *Buffer, r []byte, st int) (Off, int, error)
 	}
 
-	FormatEncoder interface {
+	DataEncoder interface {
 		Encode(w []byte, b *Buffer, off Off) ([]byte, error)
 	}
 
 	Sandwich struct {
-		Decoder FormatDecoder
-		Encoder FormatEncoder
+		Decoder DataDecoder
+		Encoder DataEncoder
 
 		Buffer *Buffer
 	}
@@ -23,7 +23,7 @@ type (
 	SandwichFunc = func(f Filter, w, r []byte) ([]byte, error)
 )
 
-func NewSandwich(d FormatDecoder, e FormatEncoder) *Sandwich {
+func NewSandwich(d DataDecoder, e DataEncoder) *Sandwich {
 	return &Sandwich{
 		Decoder: d,
 		Encoder: e,
@@ -31,7 +31,7 @@ func NewSandwich(d FormatDecoder, e FormatEncoder) *Sandwich {
 	}
 }
 
-func (s *Sandwich) Reset(d FormatDecoder, e FormatEncoder) {
+func (s *Sandwich) Reset(d DataDecoder, e DataEncoder) {
 	s.Decoder, s.Encoder = d, e
 	s.Buffer.Reset()
 }
@@ -171,6 +171,30 @@ func (s *Sandwich) ApplyAll(f Filter, w []byte, off Off) (_ []byte, err error) {
 	}
 
 	return w, nil
+}
+
+func (s *Sandwich) ApplyTo(f Filter, off Off, next bool) (Off, bool, error) {
+	if f == nil {
+		return off, next, nil
+	}
+
+	return f.ApplyTo(s.Buffer, off, next)
+}
+
+func (s *Sandwich) Decode(r []byte, st int) (Off, int, error) {
+	if s.Decoder == nil {
+		return None, st, nil
+	}
+
+	return s.Decoder.Decode(s.Buffer, r, st)
+}
+
+func (s *Sandwich) Encode(w []byte, off Off) ([]byte, error) {
+	if s.Encoder == nil {
+		return w, nil
+	}
+
+	return s.Encoder.Encode(w, s.Buffer, off)
 }
 
 func reset(x any) {

@@ -1,6 +1,10 @@
 package jq
 
-import "nikand.dev/go/cbor"
+import (
+	"io"
+
+	"nikand.dev/go/cbor"
+)
 
 func (b BufferWriter) Off() Off {
 	return Off(len(b.B))
@@ -134,6 +138,16 @@ func (b BufferWriter) Uint64(v uint64) Off {
 	return off
 }
 
+func (b BufferWriter) TagUnsigned(tag Tag, v uint64) Off {
+	if v == 0 || v == 1 {
+		return Zero - Off(v)
+	}
+
+	off := b.Off()
+	b.B = b.Encoder.AppendTagUnsigned(b.B, tag, v)
+	return off
+}
+
 func (b BufferWriter) Float(v float64) Off {
 	off := b.Off()
 	b.B = b.Encoder.AppendFloat(b.B, v)
@@ -144,4 +158,27 @@ func (b BufferWriter) Float32(v float32) Off {
 	off := b.Off()
 	b.B = b.Encoder.AppendFloat32(b.B, v)
 	return off
+}
+
+type bufferIOWriter struct {
+	b   BufferWriter
+	tag Tag
+}
+
+func (b BufferWriter) StringWriter(tag Tag) (Off, io.Writer) {
+	return b.Off(), bufferIOWriter{b, tag}
+}
+
+func (b BufferWriter) RawWriter() (Off, io.Writer) {
+	return b.Off(), bufferIOWriter{b, 0}
+}
+
+func (w bufferIOWriter) Write(p []byte) (int, error) {
+	if w.tag == 0 {
+		_ = w.b.Raw(p)
+	} else {
+		_ = w.b.TagBytes(w.tag, p)
+	}
+
+	return len(p), nil
 }

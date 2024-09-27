@@ -128,3 +128,7 @@ func (e Encoder) AppendTagString(b []byte, tag Tag, v string) []byte {
 func (e Encoder) AppendTagBytes(b []byte, tag Tag, v []byte) []byte {
 	return e.CBOR.AppendTagBytes(b, tag, v)
 }
+
+func (e Encoder) AppendTagUnsigned(b []byte, tag Tag, v uint64) []byte {
+	return e.CBOR.AppendTagUnsigned(b, tag, v)
+}

@@ -38,7 +38,7 @@ type (
 		Raw []byte
 	}
 
-	TypeError int
+	TypeError int64
 )
 
 const (
@@ -244,44 +244,89 @@ func (p NodePathSeg) String() string {
 	return fmt.Sprintf("%v:%x", p.Off, p.Index)
 }
 
+func WantedFloat(raw Tag) TypeError {
+	return NewTypeError(raw, cbor.Simple|cbor.Float64, cbor.Simple|cbor.Float32, cbor.Simple|cbor.Float16, cbor.Simple|cbor.Float8)
+}
+
 func NewTypeError(got Tag, wanted ...Tag) TypeError {
-	var e TypeError
+	e := TypeError(got)
 
-	e |= TypeError(got)
-
-	for _, t := range wanted {
+	for i, t := range wanted {
 		e |= 1 << (8 + t>>5)
+
+		if t&cbor.TagMask == cbor.Simple && i < 4 {
+			e |= TypeError(t) << (8 * (2 + i))
+		}
 	}
 
 	return e
 }
 
-func (e TypeError) Error() string {
-	var b strings.Builder
+func (e TypeError) Format(s fmt.State, v rune) {
+	if s.Flag('#') {
+		fmt.Fprintf(s, "%#x", uint64(e))
+		return
+	}
 
 	tag := byte(e)
 
-	_, _ = fmt.Fprintf(&b, "type error: %s (%x)", tagString(tag), tag)
+	fmt.Fprintf(s, "type error: %s (%x)", tagString(tag), tag)
 
 	if e&0xff00 == 0 {
-		return b.String()
+		return
 	}
 
-	fmt.Fprintf(&b, " wanted:")
+	if e&^0xffff == 0 {
+		fmt.Fprintf(s, ", wanted: ")
+		comma := false
 
-	for t := range byte(8) {
-		if e&(1<<(8+t)) == 0 {
-			continue
+		for t := range byte(8) {
+			if e&(1<<(8+t)) == 0 {
+				continue
+			}
+			if comma {
+				fmt.Fprintf(s, ", ")
+			}
+
+			comma = true
+
+			fmt.Fprintf(s, "%s (%x)", tagString(t<<5), t<<5)
 		}
 
-		fmt.Fprintf(&b, " %s (%x)", tagString(t<<5), t<<5)
+		return
 	}
 
-	return b.String()
+	fmt.Fprintf(s, ", wanted: ")
+	comma := false
+
+	for j := 2; j < 6; j++ {
+		t := byte(e >> (8 * j))
+
+		if comma {
+			fmt.Fprintf(s, ", ")
+		}
+
+		comma = true
+
+		fmt.Fprintf(s, "%s (%x)", tagString(t), t)
+	}
+}
+
+func (e TypeError) Error() string {
+	return fmt.Sprintf("%v", e)
 }
 
 func tagString(tag byte) string {
-	return tag2str[tag>>5]
+	if tag&cbor.TagMask != byte(cbor.Simple) {
+		return tag2str[tag>>5]
+	}
+
+	v := simp2str[tag&cbor.SubMask]
+	if v != "" {
+		return v
+	}
+
+	return fmt.Sprintf("%#x", tag)
 }
 
 var tag2str = []string{
@@ -293,4 +338,18 @@ var tag2str = []string{
 	cbor.Map >> 5:     "Map",
 	cbor.Simple >> 5:  "Simple",
 	cbor.Labeled >> 5: "Labeled",
+}
+
+var simp2str = []string{
+	cbor.None:      "NONE",
+	cbor.Null:      "null",
+	cbor.False:     "false",
+	cbor.True:      "true",
+	cbor.Undefined: "undefined",
+	cbor.Break:     "break",
+
+	cbor.Float8:  "float8",
+	cbor.Float16: "float16",
+	cbor.Float32: "float32",
+	cbor.Float64: "float64",
 }

@@ -16,8 +16,8 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntN
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-nikand.dev/go/cbor v0.0.0-20240925140730-177fafcdf723 h1:4WX+PdE5cJxomLTDFCfD1F2jlrWaQ7iFPO31/1n1RVQ=
-nikand.dev/go/cbor v0.0.0-20240925140730-177fafcdf723/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
+nikand.dev/go/cbor v0.0.0-20240927214417-98af9ca7872f h1:ni1YmHBWF8YI22c1TW7uTBG9nfyezWSC4n+9zZT7RHQ=
+nikand.dev/go/cbor v0.0.0-20240927214417-98af9ca7872f/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
 nikand.dev/go/json v0.8.1-0.20240927171838-e6bd5d40a60a h1:URwjeom1iaMBVblZNuNyLccV2Vkz0ZPO8nL9x7dWqbU=
 nikand.dev/go/json v0.8.1-0.20240927171838-e6bd5d40a60a/go.mod h1:l5bxSiJ4/qiHQiUnXVdTisnvbkDquG6oeQ2PpU3Ov4M=
 nikand.dev/go/skip v0.0.0-20240927165805-d66c019f95a2 h1:zPN8co/OxGBeO8VOBKSMM1iXmwBJBQ+U/S+/T1z29A8=

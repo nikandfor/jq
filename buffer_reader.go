@@ -39,9 +39,25 @@ func (b BufferReader) Simple(off Off) int {
 	return int(sub)
 }
 
+func (b BufferReader) FloatChecked(off Off) (float64, error) {
+	if tag := b.TagRaw(off); !cbor.IsFloat(tag) {
+		return 0, WantedFloat(tag)
+	}
+
+	return b.Float(off), nil
+}
+
 func (b BufferReader) Float(off Off) float64 {
 	v, _ := b.Decoder.Float(b.Buf(off))
 	return v
+}
+
+func (b BufferReader) Float32Checked(off Off) (float32, error) {
+	if tag := b.TagRaw(off); !cbor.IsFloat(tag) {
+		return 0, WantedFloat(tag)
+	}
+
+	return b.Float32(off), nil
 }
 
 func (b BufferReader) Float32(off Off) float32 {
@@ -89,6 +105,14 @@ func (b BufferReader) IsSimple(off Off, specials ...Off) (ok bool) {
 	return false
 }
 
+func (b BufferReader) BytesChecked(off Off) ([]byte, error) {
+	if err := b.Check2(off, cbor.String, cbor.Bytes); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(off), nil
+}
+
 func (b BufferReader) Bytes(off Off) []byte {
 	if off == EmptyString {
 		return []byte{}
@@ -96,6 +120,14 @@ func (b BufferReader) Bytes(off Off) []byte {
 
 	s, _ := b.Decoder.Bytes(b.Buf(off))
 	return s
+}
+
+func (b BufferReader) StringChecked(off Off) (string, error) {
+	if err := b.Check2(off, cbor.String, cbor.Bytes); err != nil {
+		return "", err
+	}
+
+	return b.String(off), nil
 }
 
 func (b BufferReader) String(off Off) string {
@@ -135,8 +167,24 @@ func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
 	return arr
 }
 
+func (b BufferReader) IntChecked(off Off) (int, error) {
+	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+		return 0, err
+	}
+
+	return b.Int(off), nil
+}
+
 func (b BufferReader) Int(off Off) int {
 	return int(b.Signed(off))
+}
+
+func (b BufferReader) SignedChecked(off Off) (int64, error) {
+	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+		return 0, err
+	}
+
+	return b.Signed(off), nil
 }
 
 func (b BufferReader) Signed(off Off) int64 {
@@ -151,6 +199,14 @@ func (b BufferReader) Signed(off Off) int64 {
 	return v
 }
 
+func (b BufferReader) UnsignedChecked(off Off) (uint64, error) {
+	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+		return 0, err
+	}
+
+	return b.Unsigned(off), nil
+}
+
 func (b BufferReader) Unsigned(off Off) uint64 {
 	switch off {
 	case Zero:
@@ -161,4 +217,22 @@ func (b BufferReader) Unsigned(off Off) uint64 {
 
 	v, _ := b.Decoder.Unsigned(b.Buf(off))
 	return v
+}
+
+func (b BufferReader) Check(off Off, want Tag) error {
+	tag := b.Tag(off)
+	if tag != want {
+		return NewTypeError(tag, want)
+	}
+
+	return nil
+}
+
+func (b BufferReader) Check2(off Off, want, want2 Tag) error {
+	tag := b.Tag(off)
+	if tag != want {
+		return NewTypeError(tag, want, want2)
+	}
+
+	return nil
 }

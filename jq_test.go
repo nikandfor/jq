@@ -6,7 +6,17 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+
+	"nikand.dev/go/cbor"
 )
+
+func TestTypeError(tb *testing.T) {
+	e := WantedFloat(cbor.Int)
+
+	tb.Logf("%v", e.Error())
+	tb.Logf("%v", e)
+	tb.Logf("%#v", e)
+}
 
 func testError(tb testing.TB, f Filter, b *Buffer, root Off, experr error) {
 	tb.Logf("filter: %v", f)
