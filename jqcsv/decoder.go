@@ -122,7 +122,7 @@ func (d *Decoder) decodeCell(b *jq.Buffer, r []byte, st int) (off jq.Off, i int,
 
 	var s skip.Str
 
-	s, b.B, i = skip.DecodeString(r, st, d.Flags, b.B)
+	s, b.B, _, i = skip.DecodeString(r, st, d.Flags, b.B)
 	if s.Err() {
 		return jq.None, i, s
 	}

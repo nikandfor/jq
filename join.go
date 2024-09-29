@@ -48,27 +48,33 @@ func (f *Join) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 		return EmptyString, more, nil
 	}
 
-	res = bw.Off()
-	expl := 100
+	total := 0
 
-	b.B = b.Encoder.CBOR.AppendTag(b.B, tag, expl)
-	st := len(b.B)
+	for _, el := range f.arr {
+		tag := br.Tag(el)
+		if tag != cbor.String && tag != cbor.Bytes {
+			return off, false, NewTypeError(tag, cbor.String, cbor.Bytes)
+		}
+
+		total += len(br.Bytes(el))
+	}
+
+	if len(f.arr) != 0 {
+		total += len(sep) * (len(f.arr) - 1)
+	}
+
+	res = bw.Off()
+
+	b.B = b.Encoder.CBOR.AppendTag(b.B, tag, total)
 
 	for i, el := range f.arr {
 		if i != 0 && len(sep) != 0 {
 			b.B = append(b.B, sep...)
 		}
 
-		tag := br.Tag(el)
-		if tag != cbor.String && tag != cbor.Bytes {
-			return off, false, NewTypeError(tag, cbor.String, cbor.Bytes)
-		}
-
 		s := br.Bytes(el)
 		b.B = append(b.B, s...)
 	}
-
-	b.B = b.Encoder.CBOR.InsertLen(b.B, tag, st, expl, len(b.B)-st)
 
 	return res, more, nil
 }

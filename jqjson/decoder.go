@@ -160,7 +160,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 	case json.String:
 		off = bw.Off()
 
-		n, _, err := d.JSON.DecodedStringLength(r, i)
+		n, _, _, err := d.JSON.DecodedStringLength(r, i)
 
 		b.B = b.Encoder.CBOR.AppendTag(b.B, cbor.String, n)
 		b.B, i, err = d.JSON.DecodeString(r, i, b.B)
