@@ -1,22 +1,26 @@
 package jqurl
 
 import (
-	"net/url"
-	"sort"
 	"strconv"
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
+	"nikand.dev/go/skip"
 )
 
 type (
 	Decoder struct {
+		Fold bool
+
 		arr []jq.Off
+		b   []byte
 	}
 )
 
 func NewDecoder() *Decoder {
-	return &Decoder{}
+	return &Decoder{
+		Fold: true,
+	}
 }
 
 func (d *Decoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, error) {
@@ -38,61 +42,109 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 }
 
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
-	vals, err := url.ParseQuery(string(r[st:]))
-	if err != nil {
-		return jq.None, st, err
-	}
-
+	i = st
 	bw := b.Writer()
 
 	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
 	d.arr = d.arr[:0]
+	d.b = d.b[:0]
 
-	keys := make([]string, len(vals))
+	var s skip.Str
 
-	{
-		i := 0
-		for k := range vals {
-			keys[i] = k
-			i++
+	for i < len(r) {
+		br := len(d.b)
+
+		//	log.Printf("skip url %v %v %q", i, len(r), r[i])
+
+		s, d.b, i = skip.DecodeString(r, i, skip.URL, d.b)
+		if s.Err() {
+			return jq.None, i, s
 		}
 
-		sort.Strings(keys)
-	}
+		key := bw.TagBytes(cbor.String, d.b[br:])
 
-	for _, k := range keys {
-		vs := vals[k]
+		for j := 0; j < len(d.arr); j += 2 {
+			if !b.Equal(d.arr[j], key) {
+				continue
+			}
 
-		key := bw.String(k)
-		val := d.decode(b, vs)
+			bw.Reset(key)
+			key = d.arr[j]
+			break
+		}
+
+		val := jq.Null
+		br = len(d.b)
+
+		if i < len(r) && r[i] == '=' {
+			i++
+
+			s, d.b, i = skip.DecodeString(r, i, skip.URL, d.b)
+			if s.Err() {
+				return jq.None, i, s
+			}
+
+			val = d.decodeVal(b, string(d.b[br:]))
+		}
+
+		if i < len(r) && r[i] == '&' {
+			i++
+		}
 
 		d.arr = append(d.arr, key, val)
 	}
 
-	return bw.Map(d.arr), len(r), nil
+	if !d.Fold {
+		return bw.Map(d.arr), i, nil
+	}
+
+	dups := func(arr []jq.Off, j int) []jq.Off {
+		for k := j; k < len(arr); k += 2 {
+			if arr[k] == arr[j] {
+				arr = append(arr, arr[k+1])
+			}
+		}
+
+		return arr
+	}
+
+	move := func(arr []jq.Off, j int) []jq.Off {
+		w := j + 2
+		r := j + 2
+
+		for ; r < len(arr); r += 2 {
+			if arr[r] == arr[j] {
+				continue
+			}
+
+			arr[w], arr[w+1] = arr[r], arr[r+1]
+			w += 2
+		}
+
+		return arr[:w]
+	}
+
+	for j := 0; j < len(d.arr)-2; j += 2 {
+		l := len(d.arr)
+
+		d.arr = dups(d.arr, j)
+
+		if len(d.arr) == l+1 {
+			d.arr = d.arr[:l]
+			continue
+		}
+
+		d.arr[j+1] = bw.Array(d.arr[l:])
+
+		d.arr = move(d.arr[:l], j)
+	}
+
+	return bw.Map(d.arr), i, nil
 }
 
-func (d *Decoder) decode(b *jq.Buffer, vs []string) jq.Off {
-	if len(vs) == 0 || len(vs) == 1 && vs[0] == "" {
-		return jq.Null
-	}
-	if len(vs) == 1 {
-		return d.decodeOne(b, vs[0])
-	}
-
-	reset := len(d.arr)
-	defer func() { d.arr = d.arr[:reset] }()
-
-	for _, v := range vs {
-		d.arr = append(d.arr, d.decodeOne(b, v))
-	}
-
-	return b.Writer().Array(d.arr[reset:])
-}
-
-func (d *Decoder) decodeOne(b *jq.Buffer, v string) jq.Off {
+func (d *Decoder) decodeVal(b *jq.Buffer, v string) jq.Off {
 	switch v {
 	case "":
 		return jq.EmptyString

@@ -32,8 +32,8 @@ func TestEncoderIter(tb *testing.T) {
 func TestDecoderEncoder(tb *testing.T) {
 	b := jq.NewBuffer()
 
-	var d Decoder
-	var e Encoder
+	d := NewDecoder()
+	e := NewEncoder()
 
 	for _, x := range []string{
 		"",
@@ -53,8 +53,10 @@ func TestDecoderEncoder(tb *testing.T) {
 
 		assertBytes(tb, []byte(x), y)
 
+		tb.Logf("dump  %v  (%s)\n%s", off, x, b.Dump())
+
 		if tb.Failed() {
-			tb.Logf("dump\n%s", b.Dump())
+			tb.Logf("dump  %v  (%s)\n%s", off, x, b.Dump())
 			break
 		}
 	}

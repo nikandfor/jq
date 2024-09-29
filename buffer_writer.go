@@ -11,6 +11,10 @@ func (b BufferWriter) Off() Off {
 }
 
 func (b BufferWriter) Reset(off Off) {
+	if off < 0 {
+		return
+	}
+
 	b.B = b.B[:off]
 }
 
