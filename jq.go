@@ -268,9 +268,9 @@ func (e TypeError) Format(s fmt.State, v rune) {
 		return
 	}
 
-	tag := byte(e)
+	tag := Tag(e)
 
-	fmt.Fprintf(s, "type error: %s (%x)", tagString(tag), tag)
+	fmt.Fprintf(s, "type error: %s (%x)", tagString(tag), byte(tag))
 
 	if e&0xff00 == 0 {
 		return
@@ -280,7 +280,7 @@ func (e TypeError) Format(s fmt.State, v rune) {
 		fmt.Fprintf(s, ", wanted: ")
 		comma := false
 
-		for t := range byte(8) {
+		for t := range Tag(8) {
 			if e&(1<<(8+t)) == 0 {
 				continue
 			}
@@ -300,7 +300,7 @@ func (e TypeError) Format(s fmt.State, v rune) {
 	comma := false
 
 	for j := 2; j < 6; j++ {
-		t := byte(e >> (8 * j))
+		t := Tag(e >> (8 * j))
 
 		if comma {
 			fmt.Fprintf(s, ", ")
@@ -316,8 +316,8 @@ func (e TypeError) Error() string {
 	return fmt.Sprintf("%v", e)
 }
 
-func tagString(tag byte) string {
-	if tag&cbor.TagMask != byte(cbor.Simple) {
+func tagString(tag Tag) string {
+	if tag&cbor.TagMask != cbor.Simple {
 		return tag2str[tag>>5]
 	}
 

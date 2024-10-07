@@ -13,7 +13,7 @@ func TestTryCatch(tb *testing.T) {
 	testOne(tb, NewTry(ErrorText("some error"), Dot{}), b, Null, "some error")
 
 	e := errors.New("some err")
-	testError(tb, NewErrorExpr(NewErrorErr(e)), b, Null, e)
+	testError(tb, NewErrorExpr(NewHalt(e)), b, Null, e)
 
 	testIter(tb, NewErrorExpr(NewIter()), b, EmptyArray, []any{})
 

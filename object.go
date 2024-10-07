@@ -18,8 +18,6 @@ type (
 		Value Filter
 	}
 
-	ObjectCopyKey string
-
 	objectState struct {
 		next bool
 	}
@@ -46,18 +44,6 @@ func NewObject(kvs ...any) *Object {
 			key = Literal{b[st:]}
 		} else if k, ok := kvs[i].(Filter); ok {
 			key = k
-		} else if s, ok := kvs[i].(ObjectCopyKey); ok {
-			st := len(b)
-			b = e.AppendString(b, string(s))
-
-			key = Literal{b[st:]}
-
-			obj = append(obj, ObjectKey{
-				Key:   key,
-				Value: Key(s),
-			})
-
-			continue
 		} else {
 			panic(kvs[i])
 		}

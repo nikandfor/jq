@@ -169,12 +169,12 @@ type bufferIOWriter struct {
 	tag Tag
 }
 
-func (b BufferWriter) StringWriter(tag Tag) (Off, io.Writer) {
-	return b.Off(), bufferIOWriter{b, tag}
+func (b BufferWriter) StringWriter(tag Tag) io.Writer {
+	return bufferIOWriter{b, tag}
 }
 
-func (b BufferWriter) RawWriter() (Off, io.Writer) {
-	return b.Off(), bufferIOWriter{b, 0}
+func (b BufferWriter) RawWriter() io.Writer {
+	return bufferIOWriter{b, 0}
 }
 
 func (w bufferIOWriter) Write(p []byte) (int, error) {

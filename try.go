@@ -20,10 +20,6 @@ type (
 	ErrorExpr struct {
 		Expr Filter
 	}
-
-	ErrorErr struct {
-		Err error
-	}
 )
 
 func NewTry(expr, catch Filter) *Try { return &Try{Expr: expr, Catch: catch} }
@@ -86,12 +82,6 @@ func (f ErrorExpr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, e
 	return None, false, fmt.Errorf("not a string error: %+v", res)
 }
 
-func NewErrorErr(err error) ErrorErr { return ErrorErr{Err: err} }
-
-func (f ErrorErr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	return None, false, f.Err
-}
-
 func (f ErrorText) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	return None, false, errors.New(string(f))
 }
@@ -106,4 +96,3 @@ func (f Try) String() string {
 
 func (f ErrorText) String() string { return fmt.Sprintf(`error(%q)`, string(f)) }
 func (f ErrorExpr) String() string { return fmt.Sprintf(`error(%+v)`, f.Expr) }
-func (f ErrorErr) String() string  { return fmt.Sprintf(`error(%q)`, f.Err) }

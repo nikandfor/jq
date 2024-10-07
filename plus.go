@@ -167,5 +167,5 @@ func (f Plus) String() string {
 }
 
 func (e PlusError) Error() string {
-	return fmt.Sprintf("plus: unsupported types %v and %v", tagString(byte(e)), tagString(byte(e>>8)))
+	return fmt.Sprintf("plus: unsupported types %v and %v", tagString(Tag(e)), tagString(Tag(e>>8)))
 }

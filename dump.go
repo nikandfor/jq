@@ -19,7 +19,7 @@ type (
 	}
 )
 
-func DumpBytes(b []byte) string {
+func Dump(b []byte) string {
 	return (&Dumper{Base: -1}).DumpBytes(b)
 }
 

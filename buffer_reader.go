@@ -106,7 +106,7 @@ func (b BufferReader) IsSimple(off Off, specials ...Off) (ok bool) {
 }
 
 func (b BufferReader) BytesChecked(off Off) ([]byte, error) {
-	if err := b.Check2(off, cbor.String, cbor.Bytes); err != nil {
+	if err := b.check2(off, cbor.String, cbor.Bytes); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +123,7 @@ func (b BufferReader) Bytes(off Off) []byte {
 }
 
 func (b BufferReader) StringChecked(off Off) (string, error) {
-	if err := b.Check2(off, cbor.String, cbor.Bytes); err != nil {
+	if err := b.check2(off, cbor.String, cbor.Bytes); err != nil {
 		return "", err
 	}
 
@@ -168,7 +168,7 @@ func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
 }
 
 func (b BufferReader) IntChecked(off Off) (int, error) {
-	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+	if err := b.check2(off, cbor.Int, cbor.Neg); err != nil {
 		return 0, err
 	}
 
@@ -180,7 +180,7 @@ func (b BufferReader) Int(off Off) int {
 }
 
 func (b BufferReader) SignedChecked(off Off) (int64, error) {
-	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+	if err := b.check2(off, cbor.Int, cbor.Neg); err != nil {
 		return 0, err
 	}
 
@@ -200,7 +200,7 @@ func (b BufferReader) Signed(off Off) int64 {
 }
 
 func (b BufferReader) UnsignedChecked(off Off) (uint64, error) {
-	if err := b.Check2(off, cbor.Int, cbor.Neg); err != nil {
+	if err := b.check2(off, cbor.Int, cbor.Neg); err != nil {
 		return 0, err
 	}
 
@@ -219,7 +219,7 @@ func (b BufferReader) Unsigned(off Off) uint64 {
 	return v
 }
 
-func (b BufferReader) Check(off Off, want Tag) error {
+func (b BufferReader) check(off Off, want Tag) error {
 	tag := b.Tag(off)
 	if tag != want {
 		return NewTypeError(tag, want)
@@ -228,7 +228,7 @@ func (b BufferReader) Check(off Off, want Tag) error {
 	return nil
 }
 
-func (b BufferReader) Check2(off Off, want, want2 Tag) error {
+func (b BufferReader) check2(off Off, want, want2 Tag) error {
 	tag := b.Tag(off)
 	if tag != want {
 		return NewTypeError(tag, want, want2)

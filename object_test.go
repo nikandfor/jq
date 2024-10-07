@@ -66,16 +66,3 @@ func TestObjectIterMulti(tb *testing.T) {
 		obj{"a", "e", "e", "val2"},
 	})
 }
-
-func TestObjectCopyKeys(tb *testing.T) {
-	b := NewBuffer()
-	root := b.appendVal(obj{"a", 1, "b", 2})
-
-	f := NewObject(
-		ObjectCopyKey("a"),
-		ObjectCopyKey("b"),
-		ObjectCopyKey("c"),
-	)
-
-	testOne(tb, f, b, root, obj{"a", 1, "b", 2, "c", nil})
-}
