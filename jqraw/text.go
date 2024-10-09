@@ -1,4 +1,4 @@
-package jqtext
+package jqraw
 
 import (
 	"nikand.dev/go/cbor"
@@ -50,22 +50,22 @@ func (c *Codec) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err e
 }
 
 func (c *Codec) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
-	tag := b.Reader().Tag(off)
-	if tag != cbor.Bytes && tag != cbor.String {
-		return w, jq.NewTypeError(tag, cbor.Bytes, cbor.String)
-	}
-
 	if b.Equal(off, jq.Null) {
 		return w, nil
 	}
 
-	s := b.Reader().Bytes(off)
+	tag := b.Reader().Tag(off)
+	if tag != cbor.Bytes && tag != cbor.String {
+		return w, jq.NewTypeError(tag, cbor.Bytes, cbor.String)
+	}
 
 	if c.sep {
 		w = append(w, c.Separator...)
 	}
 
 	c.sep = true
+
+	s := b.Reader().Bytes(off)
 
 	return append(w, s...), nil
 }
