@@ -27,15 +27,15 @@ func NewPipe(fs ...Filter) *Pipe {
 }
 
 func (f *Pipe) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
-	return f.applyTo(b, off, base, next, true)
+	return f.applyTo(b, off, base, next, withPath)
 }
 
 func (f *Pipe) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, more, err = f.applyTo(b, off, nil, next, false)
+	res, _, more, err = f.applyTo(b, off, nil, next, withoutPath)
 	return
 }
 
-func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
+func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next bool, addpath addpath) (res Off, path NodePath, more bool, err error) {
 	if len(f.Filters) == 0 {
 		return off, base, false, nil
 	}

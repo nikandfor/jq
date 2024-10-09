@@ -120,6 +120,10 @@ func testIter(tb testing.TB, f Filter, b *Buffer, root Off, vals []any) {
 func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, paths []NodePath) {
 	tb.Logf("root %v   filter: %v", root, f)
 
+	if len(vals) != len(paths) {
+		panic("len(vals) != len(paths)")
+	}
+
 	defer func() {
 		p := recover()
 		if p == nil {
@@ -139,7 +143,7 @@ func testIterPath(tb testing.TB, f FilterPath, b *Buffer, root Off, vals []any, 
 		off, path, more, err := f.ApplyToGetPath(b, root, base, j != 0)
 		if assertNoError(tb, err, "j %d", j) {
 			assertEqualVal(tb, b, eoff, off, "j %d  value %v", j, elem)
-			assertDeepEqual(tb, paths[j], path, "wanted path %v", paths[j])
+			assertDeepEqual(tb, paths[j], path, "j %d  wanted path %v", j, paths[j])
 
 			assertTrue(tb, more == (j+1 < len(vals)), "wanted more: %v", j+1 < len(vals))
 		} else {

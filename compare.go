@@ -63,7 +63,7 @@ func (f *Binop) ApplyTo(b *Buffer, off Off, next bool, L, R Filter) (l, r Off, m
 		if !f.rnext {
 			f.lastl, f.lnext, err = L.ApplyTo(b, off, f.lnext)
 			if err != nil {
-				return off, off, false, err
+				return None, None, false, err
 			}
 
 			if f.lastl == None {
@@ -73,7 +73,7 @@ func (f *Binop) ApplyTo(b *Buffer, off Off, next bool, L, R Filter) (l, r Off, m
 
 		r, f.rnext, err = R.ApplyTo(b, off, f.rnext)
 		if err != nil {
-			return off, off, false, err
+			return None, None, false, err
 		}
 
 		if r == None {

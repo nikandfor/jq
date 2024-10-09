@@ -7,42 +7,51 @@ import (
 )
 
 type (
-	Index       int
-	IndexOrNull int
+	Index      int
+	IndexNoErr int
 
-	Key       string
-	KeyOrNull string
+	Key      string
+	KeyNoErr string
+
+	addpath bool
+)
+
+const (
+	withPath    addpath = true
+	withoutPath addpath = false
 )
 
 var (
 	_ FilterPath = Index(0)
-	_ FilterPath = IndexOrNull(0)
+	_ FilterPath = IndexNoErr(0)
 
 	_ FilterPath = Key("")
-	_ FilterPath = KeyOrNull("")
+	_ FilterPath = KeyNoErr("")
 )
 
 func (f Index) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
-	return indexApplyTo(int(f), b, off, base, next, true, false)
+	res, path, err = indexApplyTo(int(f), b, off, base, next, withPath, false)
+	return
 }
 
-func (f IndexOrNull) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
-	return indexApplyTo(int(f), b, off, base, next, true, true)
+func (f IndexNoErr) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
+	res, path, err = indexApplyTo(int(f), b, off, base, next, withPath, true)
+	return
 }
 
 func (f Index) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, more, err = indexApplyTo(int(f), b, off, nil, next, false, false)
+	res, _, err = indexApplyTo(int(f), b, off, nil, next, withoutPath, false)
 	return
 }
 
-func (f IndexOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, more, err = indexApplyTo(int(f), b, off, nil, next, false, true)
+func (f IndexNoErr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	res, _, err = indexApplyTo(int(f), b, off, nil, next, withoutPath, true)
 	return
 }
 
-func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next, addpath, null bool) (res Off, path NodePath, more bool, err error) {
+func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next bool, addpath addpath, noerr bool) (res Off, path NodePath, err error) {
 	if off == None || next {
-		return None, base, false, nil
+		return None, base, nil
 	}
 
 	path = base
@@ -52,18 +61,18 @@ func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next, addpath, null 
 	}
 
 	if b.Equal(off, Null) {
-		return Null, path, false, nil
+		return Null, path, nil
 	}
 
 	br := b.Reader()
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		if null {
-			return Null, path, false, nil
+		if noerr {
+			return None, path, nil
 		}
 
-		return off, path, false, NewTypeError(tag, cbor.Array, cbor.Map)
+		return off, path, NewTypeError(tag, cbor.Array, cbor.Map)
 	}
 
 	l := br.ArrayMapLen(off)
@@ -73,7 +82,7 @@ func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next, addpath, null 
 	}
 
 	if f < 0 || f >= l {
-		return Null, path, false, nil
+		return Null, path, nil
 	}
 
 	_, res = b.Reader().ArrayMapIndex(off, f)
@@ -82,36 +91,38 @@ func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next, addpath, null 
 		path[len(path)-1].Index = f
 	}
 
-	return res, path, false, nil
+	return res, path, nil
 }
 
 func (f Key) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
-	return keyApplyTo(string(f), b, off, base, next, true, false)
+	res, path, err = keyApplyTo(string(f), b, off, base, next, true, false, None)
+	return
 }
 
-func (f KeyOrNull) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
-	return keyApplyTo(string(f), b, off, base, next, true, true)
+func (f KeyNoErr) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
+	res, path, err = keyApplyTo(string(f), b, off, base, next, true, true, None)
+	return
 }
 
 func (f Key) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, more, err = keyApplyTo(string(f), b, off, nil, next, false, false)
+	res, _, err = keyApplyTo(string(f), b, off, nil, next, false, false, None)
 	return
 }
 
-func (f KeyOrNull) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
-	res, _, more, err = keyApplyTo(string(f), b, off, nil, next, false, true)
+func (f KeyNoErr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+	res, _, err = keyApplyTo(string(f), b, off, nil, next, false, true, None)
 	return
 }
 
-func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null bool) (res Off, path NodePath, more bool, err error) {
+func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next bool, addpath addpath, noerr bool, keyoff Off) (res Off, path NodePath, err error) {
 	if off == None || next {
-		return None, base, false, nil
+		return None, base, nil
 	}
 
 	path = base
 
 	if addpath {
-		path = append(base, NodePathSeg{Off: off, Index: -1, Key: None})
+		path = append(base, NodePathSeg{Off: off, Index: -1, Key: keyoff})
 	}
 
 	br := b.Reader()
@@ -120,11 +131,11 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null
 	if !b.Equal(off, Null) {
 		tag := br.Tag(off)
 		if tag != cbor.Map {
-			if null {
-				return Null, path, false, nil
+			if noerr {
+				return None, path[:len(base)], nil
 			}
 
-			return off, path, false, NewTypeError(tag, cbor.Map)
+			return None, path, NewTypeError(tag, cbor.Map)
 		}
 
 		l = br.ArrayMapLen(off)
@@ -142,14 +153,18 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next, addpath, null
 			path[last].Key = k
 		}
 
-		return v, path, false, nil
+		return v, path, nil
 	}
 
 	if addpath {
-		path[len(path)-1].Key = b.Writer().String(f)
+		if keyoff == None {
+			keyoff = b.Writer().String(f)
+		}
+
+		path[len(path)-1].Key = keyoff
 	}
 
-	return Null, path, false, nil
+	return Null, path, nil
 }
 
 func (f Index) String() string { return fmt.Sprintf(".[%d]", int(f)) }
