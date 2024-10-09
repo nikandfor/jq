@@ -13,6 +13,8 @@ type (
 		Decoder Decoder
 		Encoder Encoder
 
+		Vars []Variable
+
 		arr []Off
 	}
 

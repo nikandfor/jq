@@ -16,6 +16,7 @@ type (
 	pipeState struct {
 		off  Off
 		path int
+		vars int
 		next bool
 	}
 )
@@ -40,6 +41,8 @@ func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next bool, addpath add
 		return off, base, false, nil
 	}
 	if len(f.Filters) == 1 {
+		defer func(vars int) { b.Vars = b.Vars[:vars] }(len(b.Vars))
+
 		if addpath {
 			res, path, more, err = ApplyGetPath(f.Filters[0], b, off, base, next)
 		} else {
@@ -56,7 +59,7 @@ func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next bool, addpath add
 	defer bw.ResetIfErr(reset, &err)
 
 	if !next {
-		f.init(off, base)
+		f.init(b, off, base)
 	} else {
 		path = append(path, f.path...)
 	}
@@ -78,6 +81,8 @@ back:
 			st := f.stack[fi]
 			ff := f.Filters[fi]
 
+			b.Vars = b.Vars[:st.vars]
+
 			if addpath {
 				off, path, f.stack[fi].next, err = ApplyGetPath(ff, b, st.off, path[:st.path], st.next)
 			} else {
@@ -94,6 +99,7 @@ back:
 			f.stack[fi+1] = pipeState{
 				off:  off,
 				path: len(path),
+				vars: len(b.Vars),
 			}
 		}
 
@@ -106,15 +112,19 @@ back:
 
 	f.path = append(f.path[:0], path...)
 
+	if !more {
+		b.Vars = b.Vars[:f.stack[0].vars]
+	}
+
 	//	log.Printf("pipe %x %v  %v", off, more, f.stack)
 
 	return res, path, more, nil
 }
 
-func (f *Pipe) init(off Off, path NodePath) {
+func (f *Pipe) init(b *Buffer, off Off, path NodePath) {
 	f.stack = resize(f.stack, len(f.Filters)+1)
 
-	f.stack[0] = pipeState{off: off, path: len(path)}
+	f.stack[0] = pipeState{off: off, path: len(path), vars: len(b.Vars)}
 }
 
 func (f *Pipe) back(fi int) int {
