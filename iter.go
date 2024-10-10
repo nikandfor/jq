@@ -6,7 +6,7 @@ import (
 
 type (
 	Iter struct {
-		IgnoreTypeError bool
+		NoError bool
 
 		arr []Off
 		j   int
@@ -15,7 +15,8 @@ type (
 
 var _ FilterPath = (*Iter)(nil)
 
-func NewIter() *Iter { return &Iter{} }
+func NewIter() *Iter        { return &Iter{} }
+func NewIterNoError() *Iter { return &Iter{NoError: true} }
 func NewIterOf(f Filter) *Pipe {
 	return NewPipe(f, NewIter())
 }
@@ -34,7 +35,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (r
 
 	tag := br.Tag(off)
 	if tag != cbor.Array && tag != cbor.Map {
-		if f.IgnoreTypeError {
+		if f.NoError {
 			return None, base, false, nil
 		}
 

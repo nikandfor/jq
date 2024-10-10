@@ -31,8 +31,9 @@ func NewSandwich(d DataDecoder, e DataEncoder) *Sandwich {
 	}
 }
 
-func (s *Sandwich) Reset(d DataDecoder, e DataEncoder) {
-	s.Decoder, s.Encoder = d, e
+func (s *Sandwich) Reset() {
+	reset(s.Decoder)
+	reset(s.Encoder)
 	s.Buffer.Reset()
 }
 
@@ -87,7 +88,7 @@ func (s *Sandwich) ProcessOne(f Filter, w, r []byte) (_ []byte, err error) {
 		}
 	}
 
-	w, err = s.ApplyAll(f, w, off)
+	w, err = s.ApplyEncodeAll(f, w, off)
 	if err != nil {
 		return w, err
 	}
@@ -104,18 +105,16 @@ func (s *Sandwich) ProcessAll(f Filter, w, r []byte) (_ []byte, err error) {
 	for i < len(r) {
 		off := Null
 
-		if s.Decoder != nil {
-			off, i, err = s.Decoder.Decode(s.Buffer, r, i)
-			if err != nil {
-				return w, fmt.Errorf("decode: %w", err)
-			}
-
-			if off == None {
-				return w, nil
-			}
+		off, i, err = s.Decode(r, i)
+		if err != nil {
+			return w, fmt.Errorf("decode: %w", err)
 		}
 
-		w, err = s.ApplyAll(f, w, off)
+		if off == None {
+			return w, nil
+		}
+
+		w, err = s.ApplyEncodeAll(f, w, off)
 		if err != nil {
 			return w, err
 		}
@@ -124,45 +123,51 @@ func (s *Sandwich) ProcessAll(f Filter, w, r []byte) (_ []byte, err error) {
 	return w, nil
 }
 
-func (s *Sandwich) ApplyOne(f Filter, w []byte, off Off) (_ []byte, err error) {
-	f = csel(f != nil, f, (Filter)(Dot{}))
+func (s *Sandwich) DecodeApply(f Filter, r []byte, st int) (res Off, more bool, i int, err error) {
+	res, i, err = s.Decode(r, st)
+	if err != nil {
+		return None, false, i, fmt.Errorf("decode: %w", err)
+	}
 
-	res, _, err := f.ApplyTo(s.Buffer, off, false)
+	res, more, err = s.ApplyTo(f, res, false)
+	if err != nil {
+		return None, false, i, fmt.Errorf("apply: %w", err)
+	}
+
+	return
+}
+
+func (s *Sandwich) ApplyEncodeOne(f Filter, w []byte, off Off) (_ []byte, err error) {
+	res, _, err := s.ApplyTo(f, off, false)
 	if err != nil {
 		return w, fmt.Errorf("apply: %w", err)
 	}
 
 	//	log.Printf("apply %v: %v -> %v  %v", f, off, res, next)
 
-	if s.Encoder != nil && res != None {
-		w, err = s.Encoder.Encode(w, s.Buffer, res)
-		if err != nil {
-			return w, fmt.Errorf("encode: %w", err)
-		}
+	w, err = s.Encode(w, res)
+	if err != nil {
+		return w, fmt.Errorf("encode: %w", err)
 	}
 
 	return w, nil
 }
 
-func (s *Sandwich) ApplyAll(f Filter, w []byte, off Off) (_ []byte, err error) {
+func (s *Sandwich) ApplyEncodeAll(f Filter, w []byte, off Off) (_ []byte, err error) {
 	var res Off = None
 	next := false
 
-	f = csel(f != nil, f, (Filter)(Dot{}))
-
 	for {
-		res, next, err = f.ApplyTo(s.Buffer, off, next)
+		res, next, err = s.ApplyTo(f, off, next)
 		if err != nil {
 			return w, fmt.Errorf("apply: %w", err)
 		}
 
 		//	log.Printf("apply %v: %v -> %v  %v", f, off, res, next)
 
-		if s.Encoder != nil && res != None {
-			w, err = s.Encoder.Encode(w, s.Buffer, res)
-			if err != nil {
-				return w, fmt.Errorf("encode: %w", err)
-			}
+		w, err = s.Encode(w, res)
+		if err != nil {
+			return w, fmt.Errorf("encode: %w", err)
 		}
 
 		if !next {
@@ -190,7 +195,7 @@ func (s *Sandwich) Decode(r []byte, st int) (Off, int, error) {
 }
 
 func (s *Sandwich) Encode(w []byte, off Off) ([]byte, error) {
-	if s.Encoder == nil {
+	if s.Encoder == nil || off == None {
 		return w, nil
 	}
 

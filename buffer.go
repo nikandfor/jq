@@ -78,6 +78,7 @@ func MakeBufferFrom(buf []byte) Buffer {
 
 func (b *Buffer) Reset() {
 	b.B = b.B[:0]
+	b.Vars = b.Vars[:0]
 }
 
 func (b *Buffer) Reader() BufferReader { return BufferReader{b} }

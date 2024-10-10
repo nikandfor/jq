@@ -63,7 +63,7 @@ func TestQueryIgnoreTypeError(tb *testing.T) {
 
 	root2 := b.appendVal(arr{"a", "b"})
 
-	testIter(tb, NewQuery(KeyNoErr("a")), b, root2, []any{})
+	testIter(tb, NewQuery(KeyNoError("a")), b, root2, []any{})
 	testError(tb, NewQuery("a"), b, root2, NewTypeError(cbor.Array, cbor.Map))
 
 	if tb.Failed() {

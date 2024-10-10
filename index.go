@@ -7,11 +7,11 @@ import (
 )
 
 type (
-	Index      int
-	IndexNoErr int
+	Index        int
+	IndexNoError int
 
-	Key      string
-	KeyNoErr string
+	Key        string
+	KeyNoError string
 
 	addpath bool
 )
@@ -23,10 +23,10 @@ const (
 
 var (
 	_ FilterPath = Index(0)
-	_ FilterPath = IndexNoErr(0)
+	_ FilterPath = IndexNoError(0)
 
 	_ FilterPath = Key("")
-	_ FilterPath = KeyNoErr("")
+	_ FilterPath = KeyNoError("")
 )
 
 func (f Index) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
@@ -34,7 +34,7 @@ func (f Index) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res
 	return
 }
 
-func (f IndexNoErr) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
+func (f IndexNoError) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = indexApplyTo(int(f), b, off, base, next, withPath, true)
 	return
 }
@@ -44,7 +44,7 @@ func (f Index) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 	return
 }
 
-func (f IndexNoErr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+func (f IndexNoError) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = indexApplyTo(int(f), b, off, nil, next, withoutPath, true)
 	return
 }
@@ -99,7 +99,7 @@ func (f Key) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res O
 	return
 }
 
-func (f KeyNoErr) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
+func (f KeyNoError) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = keyApplyTo(string(f), b, off, base, next, true, true, None)
 	return
 }
@@ -109,7 +109,7 @@ func (f Key) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err err
 	return
 }
 
-func (f KeyNoErr) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+func (f KeyNoError) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = keyApplyTo(string(f), b, off, nil, next, false, true, None)
 	return
 }
