@@ -47,7 +47,7 @@ func (f *Comma) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (
 			res, f.next, err = ff.ApplyTo(b, off, f.next)
 		}
 		if err != nil {
-			return off, path, false, err
+			return off, path, false, fse(f, f.j, off, err)
 		}
 
 		if !f.next {
@@ -69,7 +69,7 @@ func (f Comma) String() string {
 
 	var b strings.Builder
 
-	_ = b.WriteByte('(')
+	//	_ = b.WriteByte('(')
 
 	for i, sub := range f.Filters {
 		if i != 0 {
@@ -79,7 +79,7 @@ func (f Comma) String() string {
 		_, _ = fmt.Fprintf(&b, "%v", sub)
 	}
 
-	_ = b.WriteByte(')')
+	//	_ = b.WriteByte(')')
 
 	return b.String()
 }

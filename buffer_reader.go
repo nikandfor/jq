@@ -230,7 +230,7 @@ func (b BufferReader) check(off Off, want Tag) error {
 
 func (b BufferReader) check2(off Off, want, want2 Tag) error {
 	tag := b.Tag(off)
-	if tag != want {
+	if tag != want && tag != want2 {
 		return NewTypeError(tag, want, want2)
 	}
 

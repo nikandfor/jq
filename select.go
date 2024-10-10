@@ -19,17 +19,14 @@ func (f *Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err
 		return None, false, nil
 	}
 
-	subf := f.Cond
-	if subf == nil {
-		subf = Dot{}
-	}
+	subf := or[Filter](f.Cond, Dot{})
 
 	next = false
 
 	for {
 		res, next, err = subf.ApplyTo(b, off, next)
 		if err != nil {
-			return off, false, err
+			return off, false, fe(f, off, err)
 		}
 
 		if IsTrue(b, res) {
@@ -54,9 +51,5 @@ func IsTrue(b *Buffer, off Off) bool {
 }
 
 func (f Select) String() string {
-	if f.Cond == nil {
-		return "select(.)"
-	}
-
-	return fmt.Sprintf("select(%v)", f.Cond)
+	return fmt.Sprintf("select(%v)", or[Filter](f.Cond, Dot{}))
 }

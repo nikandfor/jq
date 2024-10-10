@@ -31,21 +31,25 @@ var (
 
 func (f Index) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = indexApplyTo(int(f), b, off, base, next, withPath, false)
+	err = fe(f, off, err)
 	return
 }
 
 func (f IndexNoError) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = indexApplyTo(int(f), b, off, base, next, withPath, true)
+	err = fe(f, off, err)
 	return
 }
 
 func (f Index) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = indexApplyTo(int(f), b, off, nil, next, withoutPath, false)
+	err = fe(f, off, err)
 	return
 }
 
 func (f IndexNoError) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = indexApplyTo(int(f), b, off, nil, next, withoutPath, true)
+	err = fe(f, off, err)
 	return
 }
 
@@ -96,21 +100,25 @@ func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next bool, addpath a
 
 func (f Key) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = keyApplyTo(string(f), b, off, base, next, true, false, None)
+	err = fe(f, off, err)
 	return
 }
 
 func (f KeyNoError) ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	res, path, err = keyApplyTo(string(f), b, off, base, next, true, true, None)
+	err = fe(f, off, err)
 	return
 }
 
 func (f Key) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = keyApplyTo(string(f), b, off, nil, next, false, false, None)
+	err = fe(f, off, err)
 	return
 }
 
 func (f KeyNoError) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	res, _, err = keyApplyTo(string(f), b, off, nil, next, false, true, None)
+	err = fe(f, off, err)
 	return
 }
 
@@ -135,7 +143,7 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next bool, addpath 
 				return None, path[:len(base)], nil
 			}
 
-			return None, path, NewTypeError(tag, cbor.Map)
+			return off, path, NewTypeError(tag, cbor.Map)
 		}
 
 		l = br.ArrayMapLen(off)

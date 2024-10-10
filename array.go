@@ -29,7 +29,7 @@ func (f *Array) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 
 	f.arr, err = ApplyGetAll(f.Of, b, off, f.arr[:0])
 	if err != nil {
-		return off, false, err
+		return off, false, fe(f, off, err)
 	}
 
 	off = b.Writer().Array(f.arr)

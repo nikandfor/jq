@@ -22,7 +22,7 @@ func (f *Int) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Int && tag != cbor.Neg {
-		return None, false, NewTypeError(tag, cbor.Int, cbor.Neg)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Int, cbor.Neg))
 	}
 
 	*(*int)(f) = br.Int(off)
@@ -38,7 +38,7 @@ func (f *Int64) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Int && tag != cbor.Neg {
-		return None, false, NewTypeError(tag, cbor.Int, cbor.Neg)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Int, cbor.Neg))
 	}
 
 	*(*int64)(f) = br.Signed(off)
@@ -54,7 +54,7 @@ func (f *Uint64) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Int {
-		return None, false, NewTypeError(tag, cbor.Int)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Int))
 	}
 
 	*(*uint64)(f) = br.Unsigned(off)
@@ -70,7 +70,7 @@ func (f *Float64) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Int && tag != cbor.Neg {
-		return None, false, NewTypeError(tag, cbor.Int, cbor.Neg)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Int, cbor.Neg))
 	}
 
 	*(*float64)(f) = br.Float(off)
@@ -86,7 +86,7 @@ func (f *Bytes) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Bytes && tag != cbor.String {
-		return None, false, NewTypeError(tag, cbor.Bytes, cbor.String)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Bytes, cbor.String))
 	}
 
 	*(*[]byte)(f) = br.Bytes(off)
@@ -108,7 +108,7 @@ func (f *BytesAppend) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) 
 	br := b.Reader()
 	tag := br.Tag(off)
 	if tag != cbor.Bytes && tag != cbor.String {
-		return None, false, NewTypeError(tag, cbor.Bytes, cbor.String)
+		return None, false, fe(f, off, NewTypeError(tag, cbor.Bytes, cbor.String))
 	}
 
 	*f = append((*f), br.Bytes(off)...)

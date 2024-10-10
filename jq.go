@@ -130,12 +130,18 @@ func (f Literal) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 
 func (f Off) String() string { return fmt.Sprintf("%x", int(f)) }
 func (f Off) Format(s fmt.State, v rune) {
+	if v == 'v' && f < 0 {
+		_, _ = s.Write([]byte(neg2str[-f]))
+		return
+	}
+
 	if v == 'v' {
 		v = 'x'
 	}
-	plus := csel(s.Flag('+') || s.Flag('#'), "#", "")
 
-	_, _ = fmt.Fprintf(s, "%"+plus+string(v), int64(f))
+	bash := csel(s.Flag('#') || !s.Flag('+'), "#", "")
+
+	_, _ = fmt.Fprintf(s, "%"+bash+string(v), int64(f))
 }
 
 func (f Dot) String() string   { return "." }
@@ -352,4 +358,15 @@ var simp2str = []string{
 	cbor.Float16: "float16",
 	cbor.Float32: "float32",
 	cbor.Float64: "float64",
+}
+
+var neg2str = []string{
+	-None:        "None",
+	-Null:        "Null",
+	-True:        "True",
+	-False:       "False",
+	-Zero:        "Zero",
+	-One:         "One",
+	-EmptyString: "EmptyString",
+	-EmptyArray:  "EmptyArray",
 }

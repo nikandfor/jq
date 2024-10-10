@@ -114,7 +114,7 @@ back:
 			f.arr[fi], f.stack[fi].next, err = subf.ApplyTo(b, off, st.next)
 			//	log.Printf("obj iter %d: %3x %v => %3x  (bsize %3x)", fi, off, st.next, f.arr[fi], bw.Offset())
 			if err != nil {
-				return None, false, err
+				return None, false, fe(f, off, err)
 			}
 
 			if f.arr[fi] == None /*|| f.arr[fi] == Null && fi%2 == 0*/ {
@@ -125,11 +125,10 @@ back:
 		break
 	}
 
-	off = bw.Map(f.arr)
-
+	res = bw.Map(f.arr)
 	more = back(2*len(f.Keys)-1) >= 0
 
-	return off, more, nil
+	return res, more, nil
 }
 
 func (f *Object) init() bool {

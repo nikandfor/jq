@@ -48,6 +48,7 @@ func (f *Pipe) applyTo(b *Buffer, off Off, base NodePath, next bool, addpath add
 		} else {
 			res, more, err = f.Filters[0].ApplyTo(b, off, next)
 		}
+		err = fse(f, 0, off, err)
 
 		return
 	}
@@ -84,20 +85,20 @@ back:
 			b.Vars = b.Vars[:st.vars]
 
 			if addpath {
-				off, path, f.stack[fi].next, err = ApplyGetPath(ff, b, st.off, path[:st.path], st.next)
+				res, path, f.stack[fi].next, err = ApplyGetPath(ff, b, st.off, path[:st.path], st.next)
 			} else {
-				off, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
+				res, f.stack[fi].next, err = ff.ApplyTo(b, st.off, st.next)
 			}
-			//	log.Printf("pipe step %d  %v#%v -> %v#%v  (path %v)  (%v)", fi, path[:st.path], st.off, path, off, addpath, ff)
+			//	log.Printf("pipe step %d  %v#%v -> %v#%v  (path %v)  (%v)", fi, path[:st.path], st.off, path, res, addpath, ff)
 			if err != nil {
-				return None, path, false, err
+				return None, path, false, fse(f, fi, off, err)
 			}
-			if off == None {
+			if res == None {
 				continue back
 			}
 
 			f.stack[fi+1] = pipeState{
-				off:  off,
+				off:  res,
 				path: len(path),
 				vars: len(b.Vars),
 			}
@@ -198,4 +199,14 @@ func csel[T any](c bool, t, f T) T {
 	}
 
 	return f
+}
+
+func or[T comparable](x, y T) T {
+	var zero T
+
+	if x == zero {
+		return y
+	}
+
+	return x
 }
