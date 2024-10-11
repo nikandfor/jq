@@ -1,7 +1,7 @@
 package jqcsv
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 
 	"nikand.dev/go/cbor"
@@ -16,6 +16,8 @@ type (
 		Null    []byte
 		True    []byte
 		False   []byte
+
+		Marshaler jq.Filter
 
 		MapHeader   bool
 		ArrayHeader bool
@@ -101,7 +103,7 @@ func (e *Encoder) encodeLine(w []byte, b *jq.Buffer, off jq.Off, header bool) (_
 			w = append(w, comma)
 		}
 
-		w, err = e.encodeOne(w, b, e.arr[i+val+hdr])
+		w, err = e.encodeCell(w, b, e.arr[i+val+hdr])
 		if err != nil {
 			return w, err
 		}
@@ -112,9 +114,10 @@ func (e *Encoder) encodeLine(w []byte, b *jq.Buffer, off jq.Off, header bool) (_
 	return w, nil
 }
 
-func (e *Encoder) encodeOne(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
+func (e *Encoder) encodeCell(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
 	br := b.Reader()
-	tag := br.Tag(off)
+	raw := br.TagRaw(off)
+	tag := raw & cbor.TagMask
 
 out:
 	switch tag {
@@ -146,6 +149,10 @@ out:
 			val = csel(e.False != nil, e.False, []byte("false"))
 		case br.IsSimple(off, jq.True):
 			val = csel(e.True != nil, e.True, []byte("true"))
+		case cbor.IsFloat(raw):
+			v := br.Float(off)
+			w = strconv.AppendFloat(w, v, 'v', -1, 64)
+			return w, nil
 		default:
 			break out
 		}
@@ -153,7 +160,26 @@ out:
 		return append(w, val...), nil
 	}
 
-	return w, errors.New("unsupported type")
+	if e.Marshaler == nil {
+		err = jq.NewTypeError(raw, cbor.Simple|cbor.Float64, cbor.Simple|cbor.Null, cbor.Simple|cbor.True, cbor.Simple|cbor.False, cbor.Int, cbor.Neg, cbor.Bytes, cbor.String)
+		return w, jq.NewError(e, off, err)
+	}
+
+	reset := b.Writer().Off()
+	defer b.Writer().Reset(reset)
+
+	res, _, err := e.Marshaler.ApplyTo(b, off, false)
+	if err != nil {
+		return w, fmt.Errorf("marshal: %w", err)
+	}
+
+	tag = br.Tag(res)
+	if tag != cbor.Bytes && tag != cbor.String {
+		err = jq.NewTypeError(tag, cbor.Bytes, cbor.String)
+		return w, fmt.Errorf("marshal result: %w", err)
+	}
+
+	return e.encodeCell(w, b, res)
 }
 
 func (e *Encoder) appendQuote(w, s []byte) []byte {

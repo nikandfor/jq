@@ -3,11 +3,11 @@ package jqcsv
 import (
 	"bytes"
 	"log"
-	"strings"
 	"testing"
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
+	"nikand.dev/go/jq/jqjson"
 )
 
 func TestDecodeEncode(tb *testing.T) {
@@ -81,10 +81,26 @@ q,w,e,r
 	y, err := s.ProcessAll(dump, nil, []byte(x))
 	assertNoError(tb, err)
 
-	assertBytes(tb, []byte(strings.TrimPrefix(x, "\n")), y)
+	assertBytes(tb, []byte(x), y)
 
 	// tb.Logf("dump\n%s", y)
 	// tb.Logf("dump\n%s", buf.String())
+}
+
+func TestMarshaler(tb *testing.T) {
+	e := NewEncoder()
+	e.MapHeader = true
+	e.Marshaler = jqjson.NewEncoder()
+
+	s := jq.NewSandwich(nil, e)
+	off := s.Buffer.AppendValue(jq.Obj{"a", "string", "b", 123, "c", jq.Obj{"foo", 1, "bar", jq.Arr{2, 3, 4}}, "d", false})
+
+	y, err := s.ApplyEncodeAll(nil, nil, off)
+	assertNoError(tb, err)
+
+	assertBytes(tb, []byte(`a,b,c,d
+string,123,"{""foo"":1,""bar"":[2,3,4]}",false
+`), y)
 }
 
 func assertNoError(tb testing.TB, err error) {
