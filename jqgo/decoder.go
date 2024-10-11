@@ -29,6 +29,7 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 	return off, false, err
 }
 
+// Decode ignores r and marshals d.Value into b Buffer.
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err error) {
 	d.buf.Reset()
 

@@ -7,6 +7,9 @@ import (
 )
 
 type (
+	// Buffer stores internal state of decoded data.
+	// Filters manipulate data in the Buffer.
+	// There are BufferReader and BufferWriter types to separate methods related to reading from and writing to the buffer.
 	Buffer struct {
 		B []byte
 
@@ -18,6 +21,10 @@ type (
 		arr []Off
 	}
 
+	// BufferReader is a thin structure on top of Buffer to logically separate reading methods.
+	// Buffer is indended to store correct data which is generated shortly before that.
+	// So most of the methods don't check data type or validity.
+	// It's the callers responsibility to ensure they are correct.
 	BufferReader struct {
 		*Buffer
 	}

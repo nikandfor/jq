@@ -10,5 +10,5 @@ nikand.dev/go/cbor v0.0.0-20240927214417-98af9ca7872f h1:ni1YmHBWF8YI22c1TW7uTBG
 nikand.dev/go/cbor v0.0.0-20240927214417-98af9ca7872f/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
 nikand.dev/go/json v0.8.1-0.20241010232239-b0a0bc26a37c h1:tkn3oSY9oKIwVwxC/sRAs8kA0j1tGqxKUser9f9yYns=
 nikand.dev/go/json v0.8.1-0.20241010232239-b0a0bc26a37c/go.mod h1:/8k1AZBdWiVk+7HRNv3Dw045aX8mL4nNERp5N6MH42c=
-nikand.dev/go/skip v0.0.0-20241007224432-f66534f51d79 h1:DIXRpTyuUdENNRGKhdHK3jLJX5z6tGS3//S1zEC65js=
-nikand.dev/go/skip v0.0.0-20241007224432-f66534f51d79/go.mod h1:sxT9iqxrhIQGtoTQWbhSy7yhd5mmtenoHpG0buF6p1w=
+nikand.dev/go/skip v0.0.0-20241011141638-a03a00e577bf h1:2rRsIxaqV1tS6unZ3Pzxi47HDNWDfn9jVncZkSp1wQU=
+nikand.dev/go/skip v0.0.0-20241011141638-a03a00e577bf/go.mod h1:sxT9iqxrhIQGtoTQWbhSy7yhd5mmtenoHpG0buF6p1w=

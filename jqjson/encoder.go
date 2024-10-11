@@ -85,6 +85,10 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 
 	e.sep = true
 
+	return e.encode(w, b, off)
+}
+
+func (e *Encoder) encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
 	br := b.Reader()
 	tag := br.Tag(off)
 
@@ -121,7 +125,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 	case cbor.Labeled:
 		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
-		return e.Encode(w, b, jq.Off(i))
+		return e.encode(w, b, jq.Off(i))
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -170,7 +174,7 @@ func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off jq.Off, open ToOpe
 				return w, next, jq.NewTypeError(tag, cbor.String)
 			}
 
-			w, err = e.Encode(w, b, arr[j])
+			w, err = e.encode(w, b, arr[j])
 			if err != nil {
 				return w, next, err
 			}
@@ -180,7 +184,7 @@ func (e *Encoder) EncodeContainer(w []byte, b *jq.Buffer, off jq.Off, open ToOpe
 			w = append(w, ':')
 		}
 
-		w, err = e.Encode(w, b, arr[j])
+		w, err = e.encode(w, b, arr[j])
 		if err != nil {
 			return w, next, err
 		}

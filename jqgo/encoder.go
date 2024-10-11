@@ -32,6 +32,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 	return off, false, nil
 }
 
+// Encode ignores w and unmarshals data into e.Reference.
 func (e *Encoder) Encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err error) {
 	jse := jqjson.NewEncoder()
 

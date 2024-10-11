@@ -9,38 +9,105 @@ import (
 )
 
 type (
+	/*
+		Filter is the central concept of the package.
+		Filter works on a data stored in `b` Buffer.
+		`off` refers to an input value.
+		`res` is a returned value. Filter returns at most one value at a time.
+		if `res` == `None` it means there is no value returned that time.
+		`more` indicates if there are may be more result values.
+		If `more` == `true` the filter can be called again with the same `off` and `next` == `true`.
+		If `res` == `None` this time and `more` == `true` there could be more values.
+		If `more` == `true` doesn't guarantee there will be more non-None results.
+
+		The basic usage pattern is
+
+			f := ...      // filter
+			b := ...      // buffer
+			off := ...    // input value
+			next := false // start with next = false (!next -> first value)
+
+			for {
+				res, next, err = f.ApplyTo(b, off, next)
+				if err != nil {
+					return err
+				}
+
+				if res != jq.None {
+					// use the value
+				}
+
+				if !next {
+					break
+				}
+			}
+	*/
 	Filter interface {
+		// ApplyTo applies filter to the value and returns the results.
 		ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error)
 	}
 
+	// FilterFunc turns a function to a Filter.
 	FilterFunc func(b *Buffer, off Off, next bool) (Off, bool, error)
 
+	/*
+		FilterPath is a Filter that also maintains node path to the `res` value from `off`.
+		For example path to `"x"` starting from the value `{"a": [{"b": "x"}]}` is `"a"/0/"b"`.
+		`off` is the input value and `base` is a path to `off`. `base` doesn't include `off`.
+		The same with returned values. `res` is the output value and `path` is a path to `res` not including it.
+
+		It only makes sense to maintain path for read-only filters.
+		Typical filter follows the pattern:
+
+			path = append(base, off, ...)
+
+		Basic static object key filter `Key("key")` does exactly that: `path = append(base, off)`.
+	*/
 	FilterPath interface {
 		ApplyToGetPath(b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error)
 	}
 
+	// NodePath is a path to a value.
 	NodePath []NodePathSeg
 
 	NodePathSeg struct {
-		Off   Off
-		Index int
-		Key   Off
+		Off   Off // container value
+		Index int // index in the array or map
+		Key   Off // key for a map
 	}
 
-	Tag   = cbor.Tag
-	Off   int
-	Dot   struct{}
+	// Tag is a encoding value type.
+	Tag = cbor.Tag
+
+	// Off is an offset (kinda pointer) to the value in a Buffer.
+	// It should be short-lived.
+	// It doesn't make sense without an associated Buffer or if Buffer was Reset.
+	//
+	// It's also a basic filter in the sense that the same value can be reused in different places of the same program.
+	// It always returns itself.
+	Off int
+
+	// Dot is a simplest filter that returns the same single value as it was called with.
+	Dot struct{}
+
+	// Empty returns None value.
 	Empty struct{}
-	Halt  struct {
+
+	// Halt stops the execution and returns Err error.
+	Halt struct {
 		Err error
 	}
+
+	// Literal returns static literal value.
 	Literal struct {
 		Raw []byte
 	}
 
+	// TypeError is an error when expected and actual types don't match.
 	TypeError int64
 )
 
+// Frequently used values that are embedded in the Off itself.
 const (
 	_ Off = -iota
 	None
@@ -55,8 +122,11 @@ const (
 	offReserve = iota
 )
 
+// ErrHalt is a defailt error returned by Halt filter.
 var ErrHalt = errors.New("halted")
 
+// ApplyGetPath executes f Filter and preserves path if the filter supports it.
+// Otherwise it returns the base path unchanged assuming filter stays in the same node.
 func ApplyGetPath(f Filter, b *Buffer, off Off, base NodePath, next bool) (res Off, path NodePath, more bool, err error) {
 	fp, ok := f.(FilterPath)
 	if ok {

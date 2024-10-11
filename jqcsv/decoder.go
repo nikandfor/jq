@@ -11,7 +11,7 @@ import (
 
 type (
 	Decoder struct {
-		Tag    jq.Tag
+		Tag    jq.Tag // store each row as Array or Map
 		Header bool
 		Flags  skip.Str
 
