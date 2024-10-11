@@ -89,7 +89,7 @@ Code is from [examples](examples_test.go).
 140,RefqWet,"James Bond Jr.","https://page-url.com/profile/140",1030
 `
 
-    // This is equivalent to jq program:
+	// This is equivalent to jq program:
 	// {query: "query"} + .
 	f := jq.NewPlus(jq.NewObject("query", jq.NewLiteral(query)), jq.Dot{})
 
@@ -107,7 +107,7 @@ Code is from [examples](examples_test.go).
 	res, err := s.ProcessAll(f, nil, buf)
 	_ = err // if err != nil ...
 
-    _ = res // res is a new line separated list of json objects with `"query": "james bond"` added to each object
+	_ = res // res is a new line separated list of json objects with `"query": "james bond"` added to each object
 ```
 
 ### Extracting Data From the Hell
