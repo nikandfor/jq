@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"nikand.dev/go/cbor"
+	"nikand.dev/go/skip"
 )
 
 func (b BufferWriter) Off() Off {
@@ -34,8 +35,14 @@ func (b BufferWriter) Raw(raw []byte) Off {
 		}
 	}
 
+	if off := b.GetStatic(raw); off != None {
+		return off
+	}
+
 	off := b.Off()
 	b.B = append(b.B, raw...)
+
+	b.AddStatic(off)
 
 	return off
 }
@@ -73,12 +80,28 @@ func (b BufferWriter) String(v string) Off {
 
 	off := b.Off()
 	b.B = b.Encoder.AppendString(b.B, v)
+
+	if static := b.GetStatic(b.B[off:]); static != None {
+		b.Reset(off)
+		return static
+	}
+
+	b.AddStatic(off)
+
 	return off
 }
 
 func (b BufferWriter) Bytes(v []byte) Off {
 	off := b.Off()
 	b.B = b.Encoder.AppendBytes(b.B, v)
+
+	if static := b.GetStatic(b.B[off:]); static != None {
+		b.Reset(off)
+		return static
+	}
+
+	b.AddStatic(off)
+
 	return off
 }
 
@@ -89,6 +112,14 @@ func (b BufferWriter) TagString(tag Tag, v string) Off {
 
 	off := b.Off()
 	b.B = b.Encoder.AppendTagString(b.B, tag, v)
+
+	if static := b.GetStatic(b.B[off:]); static != None {
+		b.Reset(off)
+		return static
+	}
+
+	b.AddStatic(off)
+
 	return off
 }
 
@@ -99,6 +130,14 @@ func (b BufferWriter) TagBytes(tag Tag, v []byte) Off {
 
 	off := b.Off()
 	b.B = b.Encoder.AppendTagBytes(b.B, tag, v)
+
+	if static := b.GetStatic(b.B[off:]); static != None {
+		b.Reset(off)
+		return static
+	}
+
+	b.AddStatic(off)
+
 	return off
 }
 
@@ -185,4 +224,36 @@ func (w bufferIOWriter) Write(p []byte) (int, error) {
 	}
 
 	return len(p), nil
+}
+
+func (b BufferWriter) GetStatic(raw []byte) Off {
+	if !b.Flags.Is(BufferStatic) {
+		return None
+	}
+
+	if len(raw) <= 2 {
+		return None
+	}
+
+	for _, off := range b.Static {
+		if len(raw) <= 4 && b.Off()-off >= 0x10000-offReserve {
+			continue
+		}
+
+		if !skip.Prefix(b.B[off:], raw) {
+			continue
+		}
+
+		return off
+	}
+
+	return None
+}
+
+func (b BufferWriter) AddStatic(off Off) {
+	if !b.Flags.Is(BufferStatic) {
+		return
+	}
+
+	b.Static = append(b.Static, off)
 }

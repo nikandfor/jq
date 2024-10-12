@@ -162,17 +162,6 @@ func (f Empty) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return None, false, nil
 }
 
-func NewHalt(err error) Halt { return Halt{Err: err} }
-
-func (f Halt) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
-	err := f.Err
-	if err == nil {
-		err = ErrHalt
-	}
-
-	return off, false, err
-}
-
 func NewLiteral(x any) Literal {
 	var e Encoder
 
@@ -196,6 +185,17 @@ func (f Literal) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	}
 
 	return b.Writer().Raw(f.Raw), false, nil
+}
+
+func NewHalt(err error) Halt { return Halt{Err: err} }
+
+func (f Halt) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
+	err := f.Err
+	if err == nil {
+		err = ErrHalt
+	}
+
+	return off, false, err
 }
 
 func (f Off) String() string { return fmt.Sprintf("%x", int(f)) }

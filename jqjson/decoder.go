@@ -168,6 +168,13 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 			return off, st, err
 		}
 
+		if static := bw.GetStatic(b.B[off:]); static != jq.None {
+			bw.Reset(off)
+			off = static
+		} else {
+			bw.AddStatic(off)
+		}
+
 		return off, i, nil
 	}
 

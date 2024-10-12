@@ -43,6 +43,7 @@ func TestDecoderEncoder(tb *testing.T) {
 		"a=b&a=c&a=d",
 	} {
 		b.Reset()
+		tb.Logf("test case: (%s)", x)
 
 		off, i, err := d.Decode(b, []byte(x), 0)
 		assertNoError(tb, err)

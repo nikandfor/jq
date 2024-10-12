@@ -64,17 +64,6 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 		}
 
 		key := bw.TagBytes(cbor.String, d.b[br:])
-
-		for j := 0; j < len(d.arr); j += 2 {
-			if !b.Equal(d.arr[j], key) {
-				continue
-			}
-
-			bw.Reset(key)
-			key = d.arr[j]
-			break
-		}
-
 		val := jq.Null
 		br = len(d.b)
 
@@ -100,45 +89,27 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 		return bw.Map(d.arr), i, nil
 	}
 
-	dups := func(arr []jq.Off, j int) []jq.Off {
-		for k := j; k < len(arr); k += 2 {
-			if arr[k] == arr[j] {
-				arr = append(arr, arr[k+1])
-			}
-		}
+	for j := 0; j < len(d.arr); j += 2 {
+		l := len(d.arr)
+		d.arr = append(d.arr, d.arr[j+1])
 
-		return arr
-	}
-
-	move := func(arr []jq.Off, j int) []jq.Off {
 		w := j + 2
-		r := j + 2
 
-		for ; r < len(arr); r += 2 {
-			if arr[r] == arr[j] {
+		for r := w; r < l; r += 2 {
+			if d.arr[r] == d.arr[j] {
+				d.arr = append(d.arr, d.arr[r+1])
 				continue
 			}
 
-			arr[w], arr[w+1] = arr[r], arr[r+1]
+			d.arr[w], d.arr[w+1] = d.arr[r], d.arr[r+1]
 			w += 2
 		}
 
-		return arr[:w]
-	}
-
-	for j := 0; j < len(d.arr)-2; j += 2 {
-		l := len(d.arr)
-
-		d.arr = dups(d.arr, j)
-
-		if len(d.arr) == l+1 {
-			d.arr = d.arr[:l]
-			continue
+		if w != l {
+			d.arr[j+1] = bw.Array(d.arr[l:])
 		}
 
-		d.arr[j+1] = bw.Array(d.arr[l:])
-
-		d.arr = move(d.arr[:l], j)
+		d.arr = d.arr[:w]
 	}
 
 	return bw.Map(d.arr), i, nil

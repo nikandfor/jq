@@ -18,7 +18,10 @@ type (
 
 		Vars []Variable
 
-		arr []Off
+		Static []Off
+		arr    []Off
+
+		Flags BufferFlags
 	}
 
 	// BufferReader is a thin structure on top of Buffer to logically separate reading methods.
@@ -31,6 +34,14 @@ type (
 	BufferWriter struct {
 		*Buffer
 	}
+
+	BufferFlags int
+)
+
+const (
+	BufferStatic BufferFlags = 1 << iota
+
+	BufferDefault = BufferStatic
 )
 
 var (
@@ -72,20 +83,23 @@ func MakeBuffer() Buffer {
 	return Buffer{
 		Encoder: MakeEncoder(),
 		Decoder: MakeDecoder(),
+		Flags:   BufferDefault,
 	}
 }
 
 func MakeBufferFrom(buf []byte) Buffer {
 	return Buffer{
+		B:       buf[:0],
 		Encoder: MakeEncoder(),
 		Decoder: MakeDecoder(),
-		B:       buf[:0],
+		Flags:   BufferDefault,
 	}
 }
 
 func (b *Buffer) Reset() {
 	b.B = b.B[:0]
 	b.Vars = b.Vars[:0]
+	b.Static = b.Static[:0]
 }
 
 func (b *Buffer) Reader() BufferReader { return BufferReader{b} }
@@ -153,4 +167,16 @@ func (b *Buffer) Unwrap() []byte {
 
 func (b *Buffer) Dump() string {
 	return NewDumper(nil).Dump(b)
+}
+
+func (f BufferFlags) Is(x BufferFlags) bool {
+	return f&x == x
+}
+
+func (f *BufferFlags) Set(x BufferFlags) {
+	*f |= x
+}
+
+func (f *BufferFlags) Unset(x BufferFlags) {
+	*f &^= x
 }
