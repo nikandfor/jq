@@ -18,7 +18,7 @@ type (
 
 		Vars []Variable
 
-		Static []Off
+		static []Off
 		arr    []Off
 
 		Flags BufferFlags
@@ -41,7 +41,7 @@ type (
 const (
 	BufferStatic BufferFlags = 1 << iota
 
-	BufferDefault = BufferStatic
+	BufferDefault = 0
 )
 
 var (
@@ -99,7 +99,7 @@ func MakeBufferFrom(buf []byte) Buffer {
 func (b *Buffer) Reset() {
 	b.B = b.B[:0]
 	b.Vars = b.Vars[:0]
-	b.Static = b.Static[:0]
+	b.static = b.static[:0]
 }
 
 func (b *Buffer) Reader() BufferReader { return BufferReader{b} }

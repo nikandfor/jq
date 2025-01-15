@@ -235,7 +235,7 @@ func (b BufferWriter) GetStatic(raw []byte) Off {
 		return None
 	}
 
-	for _, off := range b.Static {
+	for _, off := range b.static {
 		if len(raw) <= 4 && b.Off()-off >= 0x10000-offReserve {
 			continue
 		}
@@ -255,5 +255,5 @@ func (b BufferWriter) AddStatic(off Off) {
 		return
 	}
 
-	b.Static = append(b.Static, off)
+	b.static = append(b.static, off)
 }

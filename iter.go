@@ -43,7 +43,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (r
 				return None, base, false, nil
 			}
 
-			err = NewTypeError(tag, cbor.Array, cbor.Map)
+			err = NewTypeError(br.TagRaw(off), cbor.Array, cbor.Map)
 			return None, base, false, fe(f, off, err)
 		}
 
