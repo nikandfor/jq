@@ -20,7 +20,7 @@ func (b BufferReader) TagRaw(off Off) Tag {
 	return Tag(buf[st])
 }
 
-func (b BufferReader) UnderLabelsTag(off Off) Tag {
+func (b BufferReader) UnderAllLabelsTag(off Off) Tag {
 	if off < 0 {
 		return shortToCBOR[-off] & cbor.TagMask
 	}
@@ -29,10 +29,18 @@ func (b BufferReader) UnderLabelsTag(off Off) Tag {
 }
 
 func (b BufferReader) UnderLabel(off Off) Off {
+	if off < 0 {
+		return off
+	}
+
 	return Off(b.Decoder.SkipLabel(b.Buf(off)))
 }
 
 func (b BufferReader) UnderAllLabels(off Off) Off {
+	if off < 0 {
+		return off
+	}
+
 	return Off(b.Decoder.SkipAllLabels(b.Buf(off)))
 }
 

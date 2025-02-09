@@ -15,9 +15,20 @@ func TestSelect(tb *testing.T) {
 		"a",
 		obj{},
 		arr{},
+		lab{lab: 10, val: 1},
+		0,
 	})
 
-	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(nil))), b, root, arr{true, 0, 1, "a", obj{}, arr{}})
+	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(nil))), b, root, arr{
+		true,
+		0,
+		1,
+		"a",
+		obj{},
+		arr{},
+		lab{lab: 10, val: 1},
+		0,
+	})
 
 	b.Reset()
 	root = b.appendVal(arr{
@@ -29,6 +40,7 @@ func TestSelect(tb *testing.T) {
 		obj{"a", "a"},
 		obj{"a", obj{}},
 		obj{"a", arr{}},
+		obj{"a", lab{lab: 10, val: 1}},
 	})
 
 	testOne(tb, NewArray(NewPipe(NewIter(), NewSelect(NewQuery("a")))), b, root, arr{
@@ -38,6 +50,7 @@ func TestSelect(tb *testing.T) {
 		obj{"a", "a"},
 		obj{"a", obj{}},
 		obj{"a", arr{}},
+		obj{"a", lab{lab: 10, val: 1}},
 	})
 }
 

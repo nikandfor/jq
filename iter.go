@@ -32,6 +32,8 @@ func (f *Iter) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 
 func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (res Off, path NodePath, more bool, err error) {
 	br := b.Reader()
+	pathOff := off
+	off = br.UnderAllLabels(off)
 	tag := br.Tag(off)
 
 	path = base
@@ -63,7 +65,7 @@ func (f *Iter) applyTo(b *Buffer, off Off, base NodePath, next, addpath bool) (r
 	more = (f.j + 1 + val) < len(f.arr)
 
 	if addpath {
-		path = append(path, NodePathSeg{Off: off, Index: f.j / (1 + val), Key: None})
+		path = append(path, NodePathSeg{Off: pathOff, Index: f.j / (1 + val), Key: None})
 	}
 
 	return f.arr[f.j+val], path, more, nil

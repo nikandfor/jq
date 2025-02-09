@@ -64,6 +64,8 @@ func indexApplyTo(f int, b *Buffer, off Off, base NodePath, next bool, addpath a
 		path = append(base, NodePathSeg{Off: off, Index: f, Key: None})
 	}
 
+	off = b.Reader().UnderAllLabels(off)
+
 	if b.Equal(off, Null) {
 		return Null, path, nil
 	}
@@ -132,6 +134,8 @@ func keyApplyTo(f string, b *Buffer, off Off, base NodePath, next bool, addpath 
 	if addpath {
 		path = append(base, NodePathSeg{Off: off, Index: -1, Key: keyoff})
 	}
+
+	off = b.Reader().UnderAllLabels(off)
 
 	br := b.Reader()
 	var l int

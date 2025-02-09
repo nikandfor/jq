@@ -26,8 +26,7 @@ func (b *Buffer) AppendValue(v any) (off Off) {
 }
 
 func (b *Buffer) appendVal(v any) (off Off) {
-	e := b.Encoder.CBOR
-	var a []Off
+	e := b.Encoder
 	var tag Tag
 	var lst []any
 
@@ -68,7 +67,39 @@ func (b *Buffer) appendVal(v any) (off Off) {
 		return off
 	case lab:
 		b.B = e.AppendLabel(b.B, v.lab)
-		return b.appendVal(v.val)
+
+		vst := Off(len(b.B))
+		diff := vst - off
+
+		val := b.appendVal(v.val)
+		tag := b.Reader().Tag(val)
+
+		if val < 0 {
+			b.B = append(b.B, byte(shortToCBOR[-val]))
+			return off
+		}
+
+		if !arrOrMap(tag) {
+			return off
+		}
+
+		a := b.Reader().ArrayMap(val, nil)
+
+		copy(b.B[off:], b.B[vst:])
+		val -= diff
+		b.B = b.B[:val]
+
+		for i := range a {
+			if a[i] >= off {
+				a[i] -= diff
+			}
+		}
+
+		off = Off(len(b.B))
+		b.B = e.AppendLabel(b.B, v.lab)
+		b.B = b.Encoder.AppendArrayMap(b.B, tag, Off(len(b.B)), a)
+
+		return off
 	case arr:
 		tag = cbor.Array
 		lst = []any(v)
@@ -78,6 +109,8 @@ func (b *Buffer) appendVal(v any) (off Off) {
 	default:
 		panic(v)
 	}
+
+	var a []Off
 
 	for _, v := range lst {
 		off = b.appendVal(v)
