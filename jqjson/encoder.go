@@ -122,7 +122,7 @@ func (e *Encoder) encode(w []byte, b *jq.Buffer, off jq.Off) (_ []byte, err erro
 		}
 
 		panic(sub)
-	case cbor.Labeled:
+	case cbor.Label:
 		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
 
 		return e.encode(w, b, jq.Off(i))

@@ -67,7 +67,7 @@ func (b *Buffer) appendVal(v any) (off Off) {
 		b.B = e.AppendFloat(b.B, v)
 		return off
 	case lab:
-		b.B = e.AppendLabeled(b.B, v.lab)
+		b.B = e.AppendLabel(b.B, v.lab)
 		return b.appendVal(v.val)
 	case arr:
 		tag = cbor.Array

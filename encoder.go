@@ -109,6 +109,8 @@ func (e Encoder) AppendIntX(b []byte, x, v int) []byte {
 	}
 }
 
+func (e Encoder) AppendLabel(b []byte, lab int) []byte { return e.CBOR.AppendLabel(b, lab) }
+
 func (e Encoder) AppendRaw(b, raw []byte) []byte           { return append(b, raw...) }
 func (e Encoder) AppendInt(b []byte, v int) []byte         { return e.CBOR.AppendInt(b, v) }
 func (e Encoder) AppendInt64(b []byte, v int64) []byte     { return e.CBOR.AppendInt64(b, v) }

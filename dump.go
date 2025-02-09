@@ -130,10 +130,11 @@ func (d *Dumper) dump(b []byte, depth int) {
 			i = d.Decoder.Skip(b, i)
 
 			d.b = fmt.Appendf(d.b, "% 02x\n", b[st:i])
-		case cbor.Labeled:
-			_, _, i = d.Decoder.CBOR.Tag(b, i)
+		case cbor.Label:
+			var lab int
+			lab, i = d.Decoder.Label(b, i)
 
-			d.b = fmt.Appendf(d.b, "% 02x\n", b[st:i])
+			d.b = fmt.Appendf(d.b, "% 02x  %d\n", b[st:i], lab)
 			depth += 4
 			continue
 		case cbor.Array, cbor.Map:

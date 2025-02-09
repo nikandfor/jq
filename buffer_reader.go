@@ -7,8 +7,7 @@ func (b BufferReader) Tag(off Off) Tag {
 		return shortToCBOR[-off] & cbor.TagMask
 	}
 
-	tag, _, _, _, _ := b.Decoder.Tag(b.Buf(off))
-	return tag
+	return b.Decoder.TagOnly(b.Buf(off))
 }
 
 func (b BufferReader) TagRaw(off Off) Tag {
@@ -19,6 +18,22 @@ func (b BufferReader) TagRaw(off Off) Tag {
 	buf, st := b.Buf(off)
 
 	return Tag(buf[st])
+}
+
+func (b BufferReader) UnderLabelsTag(off Off) Tag {
+	if off < 0 {
+		return shortToCBOR[-off] & cbor.TagMask
+	}
+
+	return b.Decoder.UnderAllLabelsTagOnly(b.Buf(off))
+}
+
+func (b BufferReader) UnderLabel(off Off) Off {
+	return Off(b.Decoder.SkipLabel(b.Buf(off)))
+}
+
+func (b BufferReader) UnderAllLabels(off Off) Off {
+	return Off(b.Decoder.SkipAllLabels(b.Buf(off)))
 }
 
 func (b BufferReader) Raw(off Off) []byte {
@@ -217,6 +232,11 @@ func (b BufferReader) Unsigned(off Off) uint64 {
 
 	v, _ := b.Decoder.Unsigned(b.Buf(off))
 	return v
+}
+
+func (b BufferReader) Label(off Off) int {
+	lab, _ := b.Decoder.Label(b.Buf(off))
+	return lab
 }
 
 func (b BufferReader) check(off Off, want Tag) error {

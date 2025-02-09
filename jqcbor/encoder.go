@@ -58,10 +58,15 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 		raw := br.Raw(off)
 
 		return append(w, raw...), nil
-	case cbor.Labeled:
-		_, _, i := br.Decoder.CBOR.Tag(b.Buf(off))
+	case cbor.Label:
+		lab := br.Label(off)
+		if lab < jq.LabeledOffset {
+			panic(lab)
+		}
 
-		return e.Encode(w, b, Off(i))
+		w = e.CBOR.AppendLabel(w, lab-jq.LabeledOffset)
+
+		return e.Encode(w, b, br.UnderLabel(off))
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)
@@ -72,7 +77,7 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 
 	e.arr = br.ArrayMap(off, e.arr)
 
-	l := len(e.arr)
+	l := len(e.arr[arrbase:])
 	if tag == cbor.Map {
 		l /= 2
 	}

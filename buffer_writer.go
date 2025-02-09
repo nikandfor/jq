@@ -203,6 +203,12 @@ func (b BufferWriter) Float32(v float32) Off {
 	return off
 }
 
+func (b BufferWriter) Label(lab int) Off {
+	off := b.Off()
+	b.B = b.Encoder.AppendLabel(b.B, lab)
+	return off
+}
+
 type bufferIOWriter struct {
 	b   BufferWriter
 	tag Tag

@@ -40,6 +40,7 @@ type (
 
 const (
 	BufferStatic BufferFlags = 1 << iota
+	BufferStaticKeys
 
 	BufferDefault = 0
 )
@@ -123,11 +124,18 @@ func (b *Buffer) Equal(loff, roff Off) (res bool) {
 	}
 
 	switch tag {
-	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple, cbor.Labeled:
+	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple:
 		lraw := br.Raw(loff)
 		rraw := br.Raw(roff)
 
 		return bytes.Equal(lraw, rraw)
+	case cbor.Label:
+		llab, rlab := br.Label(loff), br.Label(roff)
+		if llab != rlab {
+			return false
+		}
+
+		return b.Equal(br.UnderLabel(loff), br.UnderLabel(roff))
 	case cbor.Array, cbor.Map:
 	default:
 		panic(tag)

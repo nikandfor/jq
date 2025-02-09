@@ -137,6 +137,47 @@ func TestFilter(tb *testing.T) {
 	}
 }
 
+func TestLabeled(tb *testing.T) {
+	data := func() []byte {
+		// {"a":"b","c":"d"}
+
+		var e cbor.Encoder
+
+		var b []byte
+
+		b = e.AppendMap(b, 2)
+
+		b = e.AppendString(b, "a")
+		b = e.AppendLabel(b, 10)
+		b = e.AppendString(b, "b")
+
+		b = e.AppendString(b, "c")
+		b = e.AppendLabel(b, 100)
+		b = e.AppendArray(b, 2)
+		b = e.AppendString(b, "d")
+		b = e.AppendString(b, "e")
+
+		return b
+	}()
+
+	b := jq.NewBuffer()
+
+	var d Decoder
+
+	off, i, err := d.Decode(b, data, 0)
+	assertNoError(tb, err)
+	assertEqual(tb, len(data), i)
+
+	var e Encoder
+
+	enc, err := e.Encode(nil, b, off)
+	assertNoError(tb, err)
+
+	if !bytes.Equal(data, enc) {
+		tb.Errorf("wanted % x, got % x\n%s", data, enc, b.Dump())
+	}
+}
+
 func assertNoError(tb testing.TB, err error) {
 	tb.Helper()
 

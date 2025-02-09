@@ -122,6 +122,8 @@ const (
 	offReserve = iota
 )
 
+const LabeledOffset = 8
+
 // ErrHalt is a defailt error returned by Halt filter.
 var ErrHalt = errors.New("halted")
 
@@ -406,14 +408,14 @@ func tagString(tag Tag) string {
 }
 
 var tag2str = []string{
-	cbor.Int >> 5:     "Int",
-	cbor.Neg >> 5:     "Neg",
-	cbor.Bytes >> 5:   "Bytes",
-	cbor.String >> 5:  "String",
-	cbor.Array >> 5:   "Array",
-	cbor.Map >> 5:     "Map",
-	cbor.Simple >> 5:  "Simple",
-	cbor.Labeled >> 5: "Labeled",
+	cbor.Int >> 5:    "Int",
+	cbor.Neg >> 5:    "Neg",
+	cbor.Bytes >> 5:  "Bytes",
+	cbor.String >> 5: "String",
+	cbor.Array >> 5:  "Array",
+	cbor.Map >> 5:    "Map",
+	cbor.Simple >> 5: "Simple",
+	cbor.Label >> 5:  "Label",
 }
 
 var simp2str = []string{

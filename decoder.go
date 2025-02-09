@@ -10,20 +10,32 @@ type (
 
 func MakeDecoder() Decoder { return Decoder{CBOR: cbor.MakeDecoder()} }
 
-func (d Decoder) TagOnly(b []byte, off int) (tag Tag) {
-	return Tag(b[off]) & cbor.TagMask
+func (d Decoder) TagOnly(b []byte, st int) (tag Tag) {
+	return Tag(b[st]) & cbor.TagMask
 }
 
-func (d Decoder) Tag(b []byte, off int) (tag Tag, sub int64, l, s, i int) {
-	tag = Tag(b[off]) & cbor.TagMask
+func (d Decoder) Tag(b []byte, st int) (tag Tag, sub int64, l, s, i int) {
+	tag = Tag(b[st]) & cbor.TagMask
 
-	if tag&0b1100_0000 == 0b1000_0000 {
-		tag, l, s, i = d.TagArrayMap(b, off)
+	if arrOrMap(tag) {
+		tag, l, s, i = d.TagArrayMap(b, st)
 	} else {
-		tag, sub, i = d.CBOR.Tag(b, off)
+		tag, sub, i = d.CBOR.Tag(b, st)
 	}
 
 	return
+}
+
+func (d Decoder) UnderAllLabelsTagOnly(b []byte, st int) (tag Tag) {
+	i := d.SkipAllLabels(b, st)
+
+	return d.TagOnly(b, i)
+}
+
+func (d Decoder) UnderAllLabelsTag(b []byte, st int) (tag Tag, sub int64, l, s, i int) {
+	i = d.SkipAllLabels(b, st)
+
+	return d.Tag(b, i)
 }
 
 func (d Decoder) TagArrayMap(b []byte, st int) (tag Tag, l, s, i int) {
@@ -187,30 +199,54 @@ func (d Decoder) IntX(b []byte, i, x int) int {
 	}
 }
 
-func (d Decoder) Skip(b []byte, st int) int {
-	tag := b[st] & cbor.TagMask
+func (d Decoder) SkipLabel(b []byte, st int) int {
+	tag := d.TagOnly(b, st)
+	if tag != cbor.Label {
+		return st
+	}
 
-	if tag&0b1100_0000 == 0b1000_0000 {
-		_, l, s, i := d.TagArrayMap(b, st)
+	_, i := d.Label(b, st)
+	return i
+}
+
+func (d Decoder) SkipAllLabels(b []byte, st int) int {
+	i := st
+
+	for {
+		tag := d.TagOnly(b, i)
+		if tag != cbor.Label {
+			return i
+		}
+
+		_, i = d.Label(b, i)
+	}
+}
+
+func (d Decoder) Skip(b []byte, st int) int {
+	i := d.SkipAllLabels(b, st)
+	tag := d.TagOnly(b, i)
+
+	if arrOrMap(tag) {
+		_, l, s, i := d.TagArrayMap(b, i)
 		return i + l*s
 	}
 
-	return d.CBOR.Skip(b, st)
+	return d.CBOR.Skip(b, i)
 }
 
 func (d Decoder) Raw(b []byte, st int) ([]byte, int) {
-	tag := b[st] & cbor.TagMask
+	i := d.Skip(b, st)
 
-	if tag&0b1100_0000 == 0b1000_0000 {
-		_, l, s, i := d.TagArrayMap(b, st)
-		i += l * s
-		return b[st:i], i
-	}
-
-	return d.CBOR.Raw(b, st)
+	return b[st:i], i
 }
+
+func (d Decoder) Label(b []byte, st int) (int, int)       { return d.CBOR.Label(b, st) }
 func (d Decoder) Signed(b []byte, st int) (int64, int)    { return d.CBOR.Signed(b, st) }
 func (d Decoder) Unsigned(b []byte, st int) (uint64, int) { return d.CBOR.Unsigned(b, st) }
 func (d Decoder) Bytes(b []byte, st int) ([]byte, int)    { return d.CBOR.Bytes(b, st) }
 func (d Decoder) Float(b []byte, st int) (float64, int)   { return d.CBOR.Float(b, st) }
 func (d Decoder) Float32(b []byte, st int) (float32, int) { return d.CBOR.Float32(b, st) }
+
+func arrOrMap(tag Tag) bool {
+	return tag&0b1100_0000 == 0b1000_0000
+}

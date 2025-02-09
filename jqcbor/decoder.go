@@ -40,36 +40,43 @@ func (d *Decoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 }
 
 func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err error) {
+	switch cbor.Tag(r[st]) {
+	case cbor.Int | 0:
+		return jq.Zero, st + 1, nil
+	case cbor.Int | 1:
+		return jq.One, st + 1, nil
+	case cbor.Simple | cbor.Null:
+		return jq.Null, st + 1, nil
+	case cbor.Simple | cbor.True:
+		return jq.True, st + 1, nil
+	case cbor.Simple | cbor.False:
+		return jq.False, st + 1, nil
+	}
+
 	bw := b.Writer()
 
 	reset := bw.Off()
 	defer bw.ResetIfErr(reset, &err)
 
-	tag, sub, i := d.CBOR.Tag(r, st)
+	i = st
+
+	off, i = d.decodeLabels(b, r, i)
+	labels := i != st
+
+	tag, sub, end := d.CBOR.Tag(r, i)
 
 	switch tag {
 	case cbor.Int, cbor.Neg, cbor.Bytes, cbor.String, cbor.Simple:
-		switch cbor.Tag(r[st]) {
-		case cbor.Int | 0:
-			return jq.Zero, i, nil
-		case cbor.Int | 1:
-			return jq.One, i, nil
-		case cbor.Simple | cbor.Null:
-			return jq.Null, i, nil
-		case cbor.Simple | cbor.True:
-			return jq.True, i, nil
-		case cbor.Simple | cbor.False:
-			return jq.False, i, nil
-		}
-
 		if tag == cbor.Bytes || tag == cbor.String {
-			i += int(sub)
+			end += int(sub)
 		}
 
-		off = bw.Raw(r[st:i])
+		_ = bw.Raw(r[i:end])
 
-		return off, i, nil
+		return reset, end, nil
 	case cbor.Array, cbor.Map:
+		i = end
+		bw.Reset(reset)
 	default:
 		panic(tag)
 	}
@@ -93,9 +100,31 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err er
 		}
 	}
 
-	off = bw.ArrayMap(tag, d.arr[arrbase:])
+	if len(d.arr[arrbase:]) == 0 && !labels {
+		return jq.EmptyArray, i, nil
+	}
+
+	off, _ = d.decodeLabels(b, r, st)
+	_ = bw.ArrayMap(tag, d.arr[arrbase:])
 
 	return off, i, nil
+}
+
+func (d *Decoder) decodeLabels(b *jq.Buffer, r []byte, i int) (Off, int) {
+	bw := b.Writer()
+	off := bw.Off()
+
+	for {
+		tag, sub, end := d.CBOR.Tag(r, i)
+		if tag != cbor.Label {
+			break
+		}
+
+		bw.Label(jq.LabeledOffset + int(sub))
+		i = end
+	}
+
+	return off, i
 }
 
 func (d *Decoder) String() string { return "@cbord" }
