@@ -60,11 +60,11 @@ func (e *Encoder) Encode(w []byte, b *jq.Buffer, off Off) (_ []byte, err error) 
 		return append(w, raw...), nil
 	case cbor.Label:
 		lab := br.Label(off)
-		if lab < jq.LabeledOffset {
+		if lab < jq.LabelOffset {
 			panic(lab)
 		}
 
-		w = e.CBOR.AppendLabel(w, lab-jq.LabeledOffset)
+		w = e.CBOR.AppendLabel(w, lab-jq.LabelOffset)
 
 		return e.Encode(w, b, br.UnderLabel(off))
 	case cbor.Array, cbor.Map:

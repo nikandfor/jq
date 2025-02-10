@@ -66,7 +66,7 @@ func (b *Buffer) appendVal(v any) (off Off) {
 		b.B = e.AppendFloat(b.B, v)
 		return off
 	case lab:
-		b.B = e.AppendLabel(b.B, v.lab)
+		b.B = e.AppendLabel(b.B, LabelOffset+v.lab)
 
 		vst := Off(len(b.B))
 		diff := vst - off

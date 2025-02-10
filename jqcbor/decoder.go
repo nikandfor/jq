@@ -120,7 +120,7 @@ func (d *Decoder) decodeLabels(b *jq.Buffer, r []byte, i int) (Off, int) {
 			break
 		}
 
-		bw.Label(jq.LabeledOffset + int(sub))
+		bw.Label(jq.LabelOffset + int(sub))
 		i = end
 	}
 

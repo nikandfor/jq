@@ -122,7 +122,7 @@ const (
 	offReserve = iota
 )
 
-const LabeledOffset = 8
+const LabelOffset = 8
 
 // ErrHalt is a defailt error returned by Halt filter.
 var ErrHalt = errors.New("halted")
