@@ -14,6 +14,7 @@ type (
 		Tag    jq.Tag // store each row as Array or Map
 		Header bool
 		Flags  skip.Str
+		Comma  byte
 
 		header bool
 
@@ -24,13 +25,15 @@ type (
 func NewDecoder() *Decoder {
 	return &Decoder{
 		Tag:   cbor.Array,
-		Flags: skip.CSV | skip.Raw | skip.Quo | skip.Sqt | ',',
+		Flags: skip.Raw | skip.Quo | skip.Sqt,
+		Comma: ',',
 	}
 }
 
 func (d *Decoder) Reset() {
 	if d.Flags == 0 {
-		d.Flags = skip.CSV | skip.Raw | skip.Quo | skip.Sqt | ','
+		d.Flags = skip.Raw | skip.Quo | skip.Sqt
+		d.Comma = ','
 	}
 
 	d.header = false
@@ -85,6 +88,11 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 			d.arr[col+val-hdr] = off
 			col += 1 + val
 
+			if i < len(r) && r[i] == d.Comma {
+				i++
+				continue
+			}
+
 			if i < len(r) && r[i] == '\r' {
 				i++
 			}
@@ -122,7 +130,7 @@ func (d *Decoder) decodeCell(b *jq.Buffer, r []byte, st int) (off jq.Off, i int,
 
 	var s skip.Str
 
-	s, b.B, _, i = skip.DecodeString(r, st, d.Flags, b.B)
+	s, b.B, _, i = skip.DecodeCSV(r, st, d.Flags, d.Comma, b.B)
 	if s.Err() {
 		return jq.None, i, s
 	}

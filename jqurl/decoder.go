@@ -58,7 +58,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 
 		//	log.Printf("skip url %v %v %q", i, len(r), r[i])
 
-		s, d.b, _, i = skip.DecodeString(r, i, skip.URL, d.b)
+		s, d.b, _, i = skip.DecodeURLQuery(r, i, 0, d.b)
 		if s.Err() {
 			return jq.None, i, s
 		}
@@ -70,7 +70,7 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off jq.Off, i int, err
 		if i < len(r) && r[i] == '=' {
 			i++
 
-			s, d.b, _, i = skip.DecodeString(r, i, skip.URL, d.b)
+			s, d.b, _, i = skip.DecodeURLQuery(r, i, skip.URLValue, d.b)
 			if s.Err() {
 				return jq.None, i, s
 			}
