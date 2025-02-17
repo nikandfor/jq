@@ -13,7 +13,7 @@ func TestDecodeEncode(tb *testing.T) {
 	data := func() []byte {
 		// `{"a":[{"q":"w","c":[1,2,3]},{"c":[4],"d":44}],"b":[{"c":[]},{"c":[5,6]}]}`
 
-		var e cbor.Encoder
+		var e cbor.Emitter
 
 		var b []byte
 
@@ -92,7 +92,7 @@ func TestFilter(tb *testing.T) {
 	data := func() []byte {
 		// {"a":"b","c":"d"}
 
-		var e cbor.Encoder
+		var e cbor.Emitter
 
 		var b []byte
 
@@ -141,7 +141,7 @@ func TestLabeled(tb *testing.T) {
 	data := func() []byte {
 		// {"a":"b","c":"d"}
 
-		var e cbor.Encoder
+		var e cbor.Emitter
 
 		var b []byte
 

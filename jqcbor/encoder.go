@@ -7,7 +7,7 @@ import (
 
 type (
 	Encoder struct {
-		CBOR cbor.Encoder
+		CBOR cbor.Emitter
 
 		Tag jq.Tag
 
@@ -17,7 +17,7 @@ type (
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		CBOR: cbor.Encoder{Flags: cbor.FtDefault},
+		CBOR: cbor.Emitter{Flags: cbor.FtDefault},
 		Tag:  cbor.String,
 	}
 }
@@ -32,7 +32,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off Off, next bool) (Off, bool, error) {
 		tag = cbor.String
 	}
 
-	var ce cbor.Encoder
+	var ce cbor.Emitter
 
 	expl := 100
 	b.B = ce.AppendTag(b.B, tag, 100)

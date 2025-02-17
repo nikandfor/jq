@@ -32,7 +32,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 		tag = cbor.String
 	}
 
-	var ce cbor.Encoder
+	var ce cbor.Emitter
 
 	expl := 100
 	b.B = ce.AppendTag(b.B, tag, expl)

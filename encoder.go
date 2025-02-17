@@ -4,7 +4,7 @@ import "nikand.dev/go/cbor"
 
 type (
 	Encoder struct {
-		CBOR cbor.Encoder
+		CBOR cbor.Emitter
 	}
 )
 
@@ -16,7 +16,7 @@ const (
 	arrEmbedMask = 0b0001_0000
 )
 
-func MakeEncoder() Encoder { return Encoder{CBOR: cbor.MakeEncoder()} }
+func MakeEncoder() Encoder { return Encoder{CBOR: cbor.MakeEmitter()} }
 
 func (e Encoder) AppendArray(b []byte, off Off, items []Off) []byte {
 	return e.AppendArrayMap(b, cbor.Array, off, items)

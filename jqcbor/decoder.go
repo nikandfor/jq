@@ -9,7 +9,7 @@ type (
 	Off = jq.Off
 
 	Decoder struct {
-		CBOR cbor.Decoder
+		CBOR cbor.Iterator
 
 		arr []Off
 	}
@@ -17,7 +17,7 @@ type (
 
 func NewDecoder() *Decoder {
 	return &Decoder{
-		CBOR: cbor.Decoder{Flags: cbor.FtDefault},
+		CBOR: cbor.Iterator{Flags: cbor.FtDefault},
 	}
 }
 

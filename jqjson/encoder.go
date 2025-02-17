@@ -56,7 +56,7 @@ func (e *Encoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, er
 		tag = cbor.String
 	}
 
-	var ce cbor.Encoder
+	var ce cbor.Emitter
 
 	expl := 100
 	b.B = ce.AppendTag(b.B, tag, expl)
@@ -213,7 +213,7 @@ func (e *Encoder) encodeString(w []byte, b *jq.Buffer, off jq.Off) ([]byte, erro
 	return w, nil
 }
 
-func (e *Encoder) encStr(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
+func (e *Encoder) encStr(w, r []byte, i int, d *cbor.Iterator) ([]byte, int) {
 	tag, sub, i := d.Tag(r, i)
 	l := int(sub)
 	if tag != cbor.Bytes && tag != cbor.String {
@@ -251,7 +251,7 @@ func (e *Encoder) encodeBytes(w []byte, b *jq.Buffer, off jq.Off) ([]byte, error
 	return w, nil
 }
 
-func (e *Encoder) encBytes(w, r []byte, i int, d *cbor.Decoder) ([]byte, int) {
+func (e *Encoder) encBytes(w, r []byte, i int, d *cbor.Iterator) ([]byte, int) {
 	tag, sub, i := d.Tag(r, i)
 	l := int(sub)
 	if tag != cbor.Bytes && tag != cbor.String {

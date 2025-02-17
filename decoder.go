@@ -4,11 +4,11 @@ import "nikand.dev/go/cbor"
 
 type (
 	Decoder struct {
-		CBOR cbor.Decoder
+		CBOR cbor.Iterator
 	}
 )
 
-func MakeDecoder() Decoder { return Decoder{CBOR: cbor.MakeDecoder()} }
+func MakeDecoder() Decoder { return Decoder{CBOR: cbor.MakeIterator()} }
 
 func (d Decoder) TagOnly(b []byte, st int) (tag Tag) {
 	return Tag(b[st]) & cbor.TagMask

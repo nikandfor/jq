@@ -6,8 +6,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-nikand.dev/go/cbor v0.0.0-20250209114510-2072ad4734c5 h1:VDdlYMcX+0+Ly6e1u6wmPHeG232sMtVuEltbNZJabqQ=
-nikand.dev/go/cbor v0.0.0-20250209114510-2072ad4734c5/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
+nikand.dev/go/cbor v0.0.0-20250217185914-a319e53bb3df h1:VwrpIfkj/Q1xD2lzxfzf6HA1NqfBcDFu/jGiLOesWvQ=
+nikand.dev/go/cbor v0.0.0-20250217185914-a319e53bb3df/go.mod h1:KU6mV3VAVKdPXXlzE9BtpUaVtV+Z/N/jFEeC5jXMkDg=
 nikand.dev/go/json2 v0.0.0-20250217191402-8fce65ff92d5 h1:JhlYC5H2yV1fRDsWpxGSR2zv2xZTi+vDC2hJ3aI5Qow=
 nikand.dev/go/json2 v0.0.0-20250217191402-8fce65ff92d5/go.mod h1:F+cmFcTgUI3I49Nv7jVD+w9JpRGt05VeF0fMuJsctn8=
 nikand.dev/go/skip v0.0.0-20250217173028-8d90e9462ea0 h1:43EA9GfJ5FIp9lQaEes/iIjU4J2KQZvzU+HSljCGTWc=
