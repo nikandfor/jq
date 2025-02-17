@@ -6,12 +6,12 @@ import (
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
-	"nikand.dev/go/json"
+	"nikand.dev/go/json2"
 )
 
 type (
 	Decoder struct {
-		JSON json.Decoder
+		JSON json2.Iterator
 
 		arr []jq.Off
 	}
@@ -107,7 +107,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 	}
 
 	switch tp {
-	case json.Null, json.Bool:
+	case json2.Null, json2.Bool:
 		c := r[i]
 
 		i, err = d.JSON.Skip(r, i)
@@ -125,7 +125,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 		}
 
 		panic(c)
-	case json.Number:
+	case json2.Number:
 		raw, i, err := d.JSON.Raw(r, i)
 		if err != nil {
 			return off, st, err
@@ -157,7 +157,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 		off = bw.Float(f)
 
 		return off, i, nil
-	case json.String:
+	case json2.String:
 		off = bw.Off()
 
 		n, _, _, err := d.JSON.DecodedStringLength(r, i)
@@ -182,7 +182,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 	defer func() { d.arr = d.arr[:arrbase] }()
 
 	tag := cbor.Array
-	if tp == json.Object {
+	if tp == json2.Object {
 		tag = cbor.Map
 	}
 
@@ -192,7 +192,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 	}
 
 	for d.JSON.ForMore(r, &i, tp, &err) {
-		if tp == json.Object {
+		if tp == json2.Object {
 			off, i, err = d.decode(b, r, i, true)
 			if err != nil {
 				return off, i, err

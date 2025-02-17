@@ -6,12 +6,12 @@ import (
 
 	"nikand.dev/go/cbor"
 	"nikand.dev/go/jq"
-	"nikand.dev/go/json"
+	"nikand.dev/go/json2"
 )
 
 type (
 	Encoder struct {
-		JSON   json.Encoder
+		JSON   json2.Emitter
 		Base64 *base64.Encoding
 
 		Tag       jq.Tag
