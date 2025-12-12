@@ -163,6 +163,16 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 		return l, i
 	}
 
+	stack := lvl == levelPipe || lvl == levelComma
+	var stackop Kind
+
+	reset := len(p.tmp)
+	if stack {
+		defer func() { p.tmp = p.tmp[:reset] }()
+
+		p.tmp = append(p.tmp, l)
+	}
+
 	for {
 		i = p.skipSpaces(t, i)
 		if i == len(t) {
@@ -182,11 +192,27 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 			return r, j
 		}
 
-		l = p.newNode(op, l, r)
+		if stack {
+			p.tmp = append(p.tmp, r)
+			stackop = op
+		} else {
+			l = p.newNodeArg(op, 2, l, r)
+		}
+
 		i = j
 	}
 
-	return l, i
+	ll := len(p.tmp[reset:])
+
+	if !stack || ll == 1 {
+		return l, i
+	}
+
+	if ll > 256 {
+		return p.newErr("pipe overflow", i)
+	}
+
+	return p.newNodeArg(stackop, ll, p.tmp[reset:]...), i
 }
 
 func (p *Parser) parseUnOp(t string, st int) (node, int) {
@@ -282,55 +308,119 @@ func (p *Parser) skipComment(t string, i int) int {
 }
 
 func (p *Parser) parseDot(t string, st int) (n node, i int) {
-	i = st + 1 // skip '.'
-
 	//	defer func() { fmt.Printf("parseDot %v -> %v %v  from %v\n", st, n, i, from(1)) }()
 
-	if i == len(t) || spaces.Is(t[i]) {
-		return p.newNode(Dot), i
-	}
-
-	if skip.Decimals.Is(t[i]) {
+	if st+1 < len(t) && skip.Decimals.Is(t[st+1]) {
 		return p.parseNum(t, st)
 	}
 
-	if skip.WordSymbols.Is(t[i]) {
-		return p.parseName(t, i, Prop)
+	reset := len(p.tmp)
+	defer func() { p.tmp = p.tmp[:reset] }()
+
+	// .qwe[][].asd.zxc
+	// .[][].qwe[]
+
+	const (
+		dot = 1 << iota
+		prop
+		str
+		brack
+		end
+		init
+	)
+
+	i = st
+	exp := dot | init
+
+	var x node
+
+loop:
+	for i < len(t) {
+		x = 0
+
+		switch {
+		case exp&dot != 0 && t[i] == '.':
+			i++
+			exp = prop | str | brack | exp&init
+		case exp&prop != 0 && skip.IDFirst.Is(t[i]):
+			x, i = p.parseName(t, i, Prop)
+			exp = dot | brack | end
+		case exp&str != 0 && (t[i] == '"' || t[i] == '\''):
+			x, i = p.parseString(t, i)
+			if !x.Err() {
+				x = p.newNode(Index, x)
+			}
+			exp = dot | brack | end
+		case exp&brack != 0 && t[i] == '[':
+			x, i = p.parseIndex(t, i)
+			exp = dot | brack | end
+		case exp&end != 0 || exp&init != 0:
+			break loop
+		default:
+			return p.newErr(sym, i)
+		}
+		if x.Err() {
+			return x, i
+		}
+
+		if x != 0 {
+			p.tmp = append(p.tmp, x)
+		}
 	}
 
-	if t[i] != '[' {
-		return p.newErr(sym, i)
+	l := len(p.tmp[reset:])
+	if l == 0 {
+		return p.newNode(Dot), i
 	}
-	i = p.skipSpaces(t, i+1)
+	if l == 1 {
+		return p.tmp[reset], i
+	}
+	if l > 256 {
+		return p.newErr("pipe overflow", st)
+	}
 
-	if i < len(t) && t[i] == ']' {
+	return p.newNodeArg(Pipe, l, p.tmp[reset:]...), i
+}
+
+func (p *Parser) parseIndex(t string, st int) (n node, i int) {
+	i = p.skipSpaces(t, st+1)
+	if i == len(t) {
+		return p.newErr(eof, i)
+	}
+
+	if t[i] == ']' {
 		i++
 		return p.newNode(Iter), i
 	}
 
 	var lo, hi node
+	var slice bool
 
-	if i < len(t) && t[i] != ':' {
+	if t[i] != ':' {
 		lo, i = p.parseBinOp(t, i, 0, false)
 		if lo.Err() {
 			return lo, i
 		}
+		if i == len(t) {
+			return p.newErr(eof, i)
+		}
 	}
 
-	slice := i < len(t) && t[i] == ':'
-	if slice {
-		i = p.skipSpaces(t, i+1)
+	if t[i] == ':' {
+		i++
+		slice = true
 	}
 
-	if slice && i < len(t) && t[i] != ']' {
+	if slice && t[i] != ']' {
 		hi, i = p.parseBinOp(t, i, 0, false)
 		if hi.Err() {
 			return hi, i
 		}
+		if i == len(t) {
+			return p.newErr(eof, i)
+		}
 	}
-	if i == len(t) {
-		return p.newErr(eof, i)
-	}
+
 	if t[i] != ']' {
 		return p.newErr(sym, i)
 	}
@@ -693,13 +783,23 @@ func binOpLevel(op Kind) level {
 	}
 
 	return []level{
-		Pipe:  levelPipe,
-		Comma: levelComma,
-		Add:   levelAdd,
-		Sub:   levelAdd,
-		Mul:   levelMul,
-		Div:   levelMul,
-		Mod:   levelMul,
+		Pipe:       levelPipe,
+		Comma:      levelComma,
+		Assign:     levelAssign,
+		PipeAssign: levelAssign,
+		Or:         levelOr,
+		And:        levelAnd,
+		Equal:      levelCmp,
+		NotEqual:   levelCmp,
+		Less:       levelCmp,
+		LessEq:     levelCmp,
+		Greater:    levelCmp,
+		GreaterEq:  levelCmp,
+		Add:        levelAdd,
+		Sub:        levelAdd,
+		Mul:        levelMul,
+		Div:        levelMul,
+		Mod:        levelMul,
 	}[op]
 }
 

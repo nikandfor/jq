@@ -15,32 +15,43 @@ func (p *Parser) Format(n Node) string {
 }
 
 func (p *Parser) AppendFormat(b []byte, n Node) []byte {
-	return p.appendFormat(b, n.node, -1)
+	return p.appendFormat(b, n.node, -1, false)
 }
 
-func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
-	op := func(n node, op string, level level) []byte {
+func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []byte {
+	op := func(n node, op string, oplevel level) []byte {
 		x := n.Index()
+		a := n.Arg()
 
-		if lvl > level {
+		if parlevel > oplevel {
 			b = append(b, '(')
 		}
 
-		b = p.appendFormat(b, p.buf[x], level)
-		b = append(b, op...)
+		b = p.appendFormat(b, p.buf[x], oplevel, false)
 
-		rlevel := binOpLevel(p.buf[x+1].Kind())
-		if rlevel == level {
-			b = append(b, '(')
+		for i := 1; i < a; i++ {
+			r := p.buf[x+i]
+
+			if k := r.Kind(); oplevel == levelPipe && (k == Prop || k == Iter || k == Index || k == Slice) {
+				b = p.appendFormat(b, r, oplevel, true)
+				continue
+			}
+
+			b = append(b, op...)
+
+			rlevel := binOpLevel(r.Kind())
+			if rlevel == oplevel {
+				b = append(b, '(')
+			}
+
+			b = p.appendFormat(b, r, oplevel, false)
+
+			if rlevel == oplevel {
+				b = append(b, ')')
+			}
 		}
 
-		b = p.appendFormat(b, p.buf[x+1], level)
-
-		if rlevel == level {
-			b = append(b, ')')
-		}
-
-		if lvl > level {
+		if parlevel > oplevel {
 			b = append(b, ')')
 		}
 
@@ -103,15 +114,15 @@ func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
 	case Pos:
 		x := n.Index()
 		b = append(b, '+')
-		return p.appendFormat(b, p.buf[x], levelUnary)
+		return p.appendFormat(b, p.buf[x], levelUnary, false)
 	case Neg:
 		x := n.Index()
 		b = append(b, '-')
-		return p.appendFormat(b, p.buf[x], levelUnary)
+		return p.appendFormat(b, p.buf[x], levelUnary, false)
 	case Arr:
 		x := n.Index()
 		b = append(b, '[')
-		b = p.appendFormat(b, p.buf[x], -1)
+		b = p.appendFormat(b, p.buf[x], -1, false)
 		b = append(b, ']')
 		return b
 	case Obj:
@@ -132,7 +143,7 @@ func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
 			if !q {
 				b = append(b, '(')
 			}
-			b = p.appendFormat(b, k, -1)
+			b = p.appendFormat(b, k, -1, false)
 			if !q {
 				b = append(b, ')')
 			}
@@ -142,29 +153,41 @@ func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
 			}
 
 			b = append(b, ':', ' ')
-			b = p.appendFormat(b, v, -1)
+			b = p.appendFormat(b, v, -1, false)
 		}
 		b = append(b, '}')
 		return b
 	case Iter:
-		return append(b, ".[]"...)
+		if !train {
+			b = append(b, '.')
+		}
+
+		return append(b, "[]"...)
 	case Index:
+		if !train {
+			b = append(b, '.')
+		}
+
 		x := n.Index()
-		b = append(b, '.', '[')
-		b = p.appendFormat(b, p.buf[x], -1)
+		b = append(b, '[')
+		b = p.appendFormat(b, p.buf[x], -1, false)
 		return append(b, ']')
 	case Slice:
+		if !train {
+			b = append(b, '.')
+		}
+
 		x := n.Index()
-		b = append(b, '.', '[')
+		b = append(b, '[')
 
 		if p.buf[x] != 0 {
-			b = p.appendFormat(b, p.buf[x], -1)
+			b = p.appendFormat(b, p.buf[x], -1, false)
 		}
 
 		b = append(b, ':')
 
 		if p.buf[x+1] != 0 {
-			b = p.appendFormat(b, p.buf[x+1], -1)
+			b = p.appendFormat(b, p.buf[x+1], -1, false)
 		}
 
 		return append(b, ']')
@@ -201,7 +224,7 @@ func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
 				b = append(b, '(')
 			}
 
-			b = p.appendFormat(b, a, -1)
+			b = p.appendFormat(b, a, -1, false)
 
 			if par {
 				b = append(b, ')')
@@ -223,18 +246,18 @@ func (p *Parser) appendFormat(b []byte, n node, lvl level) []byte {
 				b = append(b, " elif "...)
 			}
 
-			b = p.appendFormat(b, p.buf[x+i], -1)
+			b = p.appendFormat(b, p.buf[x+i], -1, false)
 
 			b = append(b, " then "...)
 
-			b = p.appendFormat(b, p.buf[x+i+1], -1)
+			b = p.appendFormat(b, p.buf[x+i+1], -1, false)
 
 			i += 2
 		}
 
 		if i < l {
 			b = append(b, " else "...)
-			b = p.appendFormat(b, p.buf[x+i], -1)
+			b = p.appendFormat(b, p.buf[x+i], -1, false)
 		}
 
 		b = append(b, " end"...)
@@ -268,7 +291,7 @@ func (p *Parser) Where(err error) string {
 
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "@%s@  (line %d, off %d, col %d)\n", p.text[linest:end], line, linest, i-linest)
+	fmt.Fprintf(&b, "@%s@  (line %d, col %d)\n", p.text[linest:end], line, i-linest)
 
 	return b.String()
 }

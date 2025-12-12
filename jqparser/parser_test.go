@@ -20,6 +20,7 @@ func TestParser(t *testing.T) {
 	testParser(t, `.[1:]`, &p)
 	testParser(t, `.[:]`, &p)
 	testParser(t, `.[]`, &p)
+	testParser(t, `.[].qwe[][1]`, &p)
 	testParser(t, `1 | 2`, &p)
 	testParser(t, `1, 2`, &p)
 	testParser(t, `1, 2 | 3, 4`, &p)
@@ -79,7 +80,7 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 
 	back := p.Format(n)
 
-	t.Logf("%-26v -> %-26v  %v", text, back, n.Kind())
+	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), n.node.Arg())
 
 	if back != exp {
 		t.Errorf("root %v\n%#v", n.node, p)
