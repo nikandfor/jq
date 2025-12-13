@@ -19,7 +19,7 @@ func (p *Parser) Text(n Node) string {
 
 func (p *Parser) astext(n node) string {
 	switch k := n.Kind(); k {
-	case num, str, name, prop, vark, label, brk, fun:
+	case num, str, name, prop, vark, label, brk:
 		x := n.Index()
 		l := n.Arg()
 
@@ -127,11 +127,11 @@ func (p *Parser) If(n Node) []Node {
 	return *(*[]Node)(unsafe.Pointer(&args))
 }
 
-func (p *Parser) Func(n Node) (string, []Node) {
+func (p *Parser) FuncCall(n Node) (Node, []Node) {
 	base := n.node.Index()
-	l := p.argInt(n.node, 1)
+	l := n.node.Arg()
 
-	args := p.buf[base+2 : base+2+l]
+	args := p.buf[base+1 : base+1+l]
 
-	return p.Text(n), *(*[]Node)(unsafe.Pointer(&args))
+	return p.argNode(n, 0), *(*[]Node)(unsafe.Pointer(&args))
 }

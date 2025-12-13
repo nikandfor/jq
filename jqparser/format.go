@@ -223,11 +223,11 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 		}
 
 		return append(b, ']')
-	case fun:
-		x := n.Index()
-		l := p.argInt(n, 1)
+	case call:
+		b = p.appendFormat(b, p.arg(n, 0), -1, false)
 
-		b = append(b, p.astext(n)...)
+		base := n.Index() + 1
+		l := n.Arg()
 
 		if l == 0 {
 			return b
@@ -240,7 +240,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, ',', ' ')
 			}
 
-			a := p.buf[x+2+i]
+			a := p.buf[base+i]
 			k := a.Kind()
 			par := k == pipe || k == comma
 
@@ -394,7 +394,7 @@ func (k Kind) String() string {
 		return "try"
 	case Def:
 		return "def"
-	case Func:
+	case FuncCall:
 		return "func"
 	default:
 		return fmt.Sprintf("0x%x", int(k))

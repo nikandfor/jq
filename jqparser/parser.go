@@ -87,7 +87,7 @@ const (
 	Def = Kind(def)
 	//	Let = Kind(let)
 
-	Func = Kind(fun)
+	FuncCall = Kind(call)
 )
 
 // kond0
@@ -97,7 +97,7 @@ const (
 	comma
 	_
 
-	fun
+	call
 	ifop
 	arr
 	obj
@@ -318,7 +318,7 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 }
 
 func (p *Parser) parseAs(t string, st int) (node, int) {
-	arg, i := p.parseArg(t, st)
+	arg, i := p.parseFuncCall(t, st)
 	if arg.Err() {
 		return arg, i
 	}
@@ -356,10 +356,80 @@ func (p *Parser) parseBinding(t string, st int) (n node, i int) {
 
 	switch t[i] {
 	case '$':
-		return p.parseVar(t, i)
+		return p.parseName(t, i+1, vark)
 	default:
 		return p.newErr("unsupported binding", i)
 	}
+}
+
+func (p *Parser) parseFuncCall(t string, st int) (n node, i int) {
+	arg, i := p.parseArg(t, st)
+	if arg.Err() {
+		return arg, i
+	}
+
+	i = p.skipSpaces(t, i)
+	if i == len(t) || t[i] != '(' {
+		return arg, i
+	}
+
+	var callable func(n node) bool
+	callable = func(n node) bool {
+		switch n.Kind() {
+		case name, prop, vark, index, dot:
+			return true
+		case pipe:
+			l := n.Arg()
+			return callable(p.buf[n.Index()+l-1])
+		default:
+			p.err = fmt.Sprintf("%v is not callable", Node{n}.Kind())
+			return false
+		}
+	}
+
+	if !callable(arg) {
+		return errk, st
+	}
+
+	return p.parseFuncArgs(t, i, arg)
+}
+
+func (p *Parser) parseFuncArgs(t string, i int, callee node) (node, int) {
+	reset := len(p.tmp)
+	defer func() { p.tmp = p.tmp[:reset] }()
+
+	var arg node
+	i++
+
+	for {
+		i = p.skipSpaces(t, i)
+
+		if i == len(t) {
+			return p.newErr(eof, i)
+		}
+		if t[i] == ')' {
+			i++
+			break
+		}
+
+		arg, i = p.parseBinOp(t, i, 0, true)
+		if arg.Err() {
+			return arg, i
+		}
+
+		p.tmp = append(p.tmp, arg)
+
+		if i < len(t) && (t[i] == ',' || t[i] == ';') {
+			i++
+		}
+	}
+
+	x := p.newNodeArg0(call, len(p.tmp[reset:]))
+
+	p.buf = append(p.buf, callee)
+	p.buf = append(p.buf, p.tmp[reset:]...)
+
+	return x, i
 }
 
 func (p *Parser) parseArg(t string, st int) (n node, i int) {
@@ -367,7 +437,7 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 	i = p.skipSpaces(t, st)
 
 	switch {
-	case t[i] == '.':
+	case t[i] == '.', t[i] == '$':
 		return p.parseDot(t, i)
 	case t[i] == '(':
 		return p.parseParen(t, i)
@@ -387,8 +457,6 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 		return p.newNodeArg0(arr, 1, x), i
 	case t[i] == '{':
 		return p.parseObj(t, i)
-	case t[i] == '$':
-		return p.parseVar(t, i)
 	case t[i] == '"' || t[i] == '\'':
 		return p.parseString(t, i)
 	case skip.Decimals.Is(t[i]):
@@ -417,6 +485,7 @@ func (p *Parser) parseDot(t string, st int) (n node, i int) {
 
 	const (
 		expdot exptyp = 1 << iota
+		expvar
 		expprop
 		str
 		brack
@@ -425,7 +494,7 @@ func (p *Parser) parseDot(t string, st int) (n node, i int) {
 	)
 
 	i = st
-	exp := expdot | init
+	exp := expdot | expvar | init
 
 	var x node
 
@@ -437,6 +506,9 @@ loop:
 		case exp&expdot != 0 && t[i] == '.':
 			i++
 			exp = expprop | str | brack | exp&init
+		case exp&expvar != 0 && t[i] == '$':
+			x, i = p.parseName(t, i+1, vark)
+			exp = expdot | brack | end
 		case exp&expprop != 0 && skip.IDFirst.Is(t[i]):
 			x, i = p.parseName(t, i, prop)
 			exp = expdot | brack | end
@@ -589,7 +661,7 @@ func (p *Parser) parseObjKey(t string, st int) (node, int) {
 	}
 
 	if t[i] == '$' {
-		return p.parseVar(t, i)
+		return p.parseName(t, i+1, vark)
 	}
 
 	if t[i] == '(' {
@@ -618,52 +690,14 @@ func (p *Parser) parseWord(t string, st int) (node, int) {
 		return p.newNodeNoArgs(boolk, 0), end
 	case "if":
 		return p.parseIf(t, st)
-	}
-
-	reset := len(p.tmp)
-	defer func() { p.tmp = p.tmp[:reset] }()
-
-	i := p.skipSpaces(t, end)
-	if i < len(t) && t[i] == '(' {
-		var arg node
-		i++
-
-		for {
-			i = p.skipSpaces(t, i)
-
-			if i == len(t) {
-				return p.newErr(eof, i)
-			}
-			if t[i] == ')' {
-				i++
-				break
-			}
-
-			arg, i = p.parseBinOp(t, i, 0, true)
-			if arg.Err() {
-				return arg, i
-			}
-
-			p.tmp = append(p.tmp, arg)
-
-			if i < len(t) && (t[i] == ',' || t[i] == ';') {
-				i++
-			}
+	default:
+		l := end - st
+		if l > maxArg0 {
+			return p.newErr("too long name", st)
 		}
+
+		return p.newNodeArg0(name, l, node(st)), end
 	}
-
-	//	l := len(p.tmp[reset:])
-	l := end - st
-	if l > maxArg0 {
-		return p.newErr("function name overflow", i)
-	}
-
-	x := p.newNodeArg0(fun, l)
-
-	p.buf = append(p.buf, node(st), node(len(p.tmp[reset:])))
-	p.buf = append(p.buf, p.tmp[reset:]...)
-
-	return x, i
 }
 
 func (p *Parser) parseIf(t string, st int) (node, int) {
@@ -773,20 +807,6 @@ func (p *Parser) parseString(t string, st int) (node, int) {
 	}
 
 	return p.newNodeArg0(str, l, node(st)), j
-}
-
-func (p *Parser) parseVar(t string, st int) (node, int) {
-	s, j := skip.Identifier([]byte(t), st, skip.IDPrefix|'$')
-	if s.Err() {
-		return p.newErr("bad variable name", st)
-	}
-
-	l := j - st - 1
-	if l > maxArg0 {
-		return p.newErr("too long variable name", st)
-	}
-
-	return p.newNodeArg0(vark, l, node(st+1)), j
 }
 
 func (p *Parser) parseName(t string, st int, kind node) (node, int) {

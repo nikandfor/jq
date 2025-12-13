@@ -34,6 +34,10 @@ func TestParser(t *testing.T) {
 	testParser(t, `{a: "b", "c": 4, d, $e, (.f): .f}`, &p)
 	testParser(t, `empty`, &p)
 	testParser(t, `select(. > 3)`, &p)
+	testParser(t, `.a.b.c("d")`, &p)
+	testParser(t, `.("d")`, &p)
+	testParser(t, `$a("d")`, &p)
+	testParser(t, `$a.b.c("d")`, &p)
 	testParser(t, `qwe(. > 1, . < 2)`, &p)
 	testParser(t, `qwe((. > 1, . < 2))`, &p)
 	testParser(t, `if true then 1 end`, &p)
@@ -92,9 +96,6 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 
 		back = p.Format(n)
 		arg = n.node.Arg()
-		if n.node.Kind() == fun {
-			arg = p.argInt(n.node, 1)
-		}
 	}()
 
 	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), arg)
