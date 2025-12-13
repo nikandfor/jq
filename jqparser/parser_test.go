@@ -79,8 +79,12 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 	}
 
 	back := p.Format(n)
+	arg := n.node.Arg()
+	if n.node.Kind() == fun {
+		arg = p.ArgInt(n.node, 1)
+	}
 
-	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), n.node.Arg())
+	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), arg)
 
 	if back != exp {
 		t.Errorf("root %v\n%#v", n.node, p)

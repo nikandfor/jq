@@ -24,10 +24,8 @@ type (
 	// index | arg | kind1 | kind0
 	node uint32
 
-	BinOpKind int8
+	BinOpKind int16
 	UnOpKind  int8
-
-	level int8
 
 	Node struct {
 		node node
@@ -95,12 +93,12 @@ const (
 // kond0
 const (
 	kind1 node = iota
-	fun
-	ifop
-	_
-
 	pipe
 	comma
+	_
+
+	fun
+	ifop
 	arr
 	obj
 
@@ -139,117 +137,44 @@ const (
 )
 
 const (
-	Alt BinOpKind = iota
-
+	opPipe BinOpKind = iota << levelSh
+	opComma
+	Alt
+	Assign
 	Or
 	And
-
 	Equal
-	NotEqual
+	Add
+	Mul
+	unary
+
+	assreset   = iota
+	PipeAssign = Assign + iota - assreset
+	AddAssign
+	SubAssign
+	MulAssign
+	DivAssign
+	ModAssign
+	AltAssign
+
+	eqreset  = iota
+	NotEqual = Equal + iota - eqreset
 	Less
 	LessEq
 	Greater
 	GreaterEq
 
-	Add
-	Sub
+	Sub = Add + 1
 
-	Mul
-	Div
-	Mod
+	Div = Mul + 1
+	Mod = Mul + 2
 
-	Assign BinOpKind = 1 << 4
-
-	opPipe  = pipeToOp | BinOpKind(pipe)
-	opComma = pipeToOp | BinOpKind(comma)
-
-	pipeToOp = 1 << 6
+	levelSh = 3
 )
 
 const (
 	Neg UnOpKind = iota
 	Pos
-)
-
-/*
-
-const (
-	indexBits = 16
-	kindBits  = 6
-	argShift  = indexBits + kindBits
-	argBits   = 32 - argShift
-
-	indexMask = 1<<indexBits - 1
-	kindMask  = 1<<kindBits - 1
-	argMask   = 1<<argBits - 1
-)
-
-const (
-	_ Kind = iota
-
-	Dot
-	Null
-	Bool
-	Num
-	Str
-
-	Pipe
-	Comma
-
-	Assign
-	PipeAssign
-
-	Or
-	And
-
-	Equal
-	NotEqual
-	Less
-	LessEq
-	Greater
-	GreaterEq
-
-	Add
-	Sub
-
-	Mul
-	Div
-	Mod
-
-	Neg
-	Pos
-
-	Arr
-	Obj
-	Iter
-	Index
-	Slice
-
-	Var
-	Name
-	Prop
-	Func
-
-	If
-	Def
-
-	end      = iota
-	Err Kind = 1<<kindBits - (iota - end)
-	Comment
-)
-*/
-
-const (
-	levelPipe level = iota
-	levelComma
-	levelAlt
-	levelAssign
-	levelOr
-	levelAnd
-	levelCmp
-	levelAdd
-	levelMul
-	levelUnary
 )
 
 const (
@@ -300,9 +225,9 @@ func (p *Parser) parseExpr(t string, st int, stopcomma bool) (node, int) {
 	return x, i
 }
 
-func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, int) {
+func (p *Parser) parseBinOp(t string, st int, lvl int, stopcomma bool) (node, int) {
 	//	fmt.Printf("parseBinOp %v\n", st)
-	if lvl == levelUnary {
+	if lvl == unary.Level() {
 		return p.parseUnOp(t, st)
 	}
 
@@ -311,8 +236,7 @@ func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, 
 		return l, i
 	}
 
-	chain := lvl == levelPipe || lvl == levelComma
-	var chainop BinOpKind
+	chain := lvl == opPipe.Level() || lvl == opComma.Level()
 
 	reset := len(p.tmp)
 	if chain {
@@ -327,11 +251,11 @@ func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, 
 			break
 		}
 
-		op, oplvl, j := p.parseOpBin(t, i)
-		if oplvl == -1 || stopcomma && op == opComma {
+		op, j := p.parseOpBin(t, i)
+		if op == -1 || stopcomma && op == opComma {
 			break
 		}
-		if oplvl < lvl {
+		if op.Level() < lvl {
 			break
 		}
 
@@ -342,7 +266,6 @@ func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, 
 
 		if chain {
 			p.tmp = append(p.tmp, r)
-			chainop = op
 		} else {
 			l = p.newBinOp(op, l, r)
 		}
@@ -360,7 +283,7 @@ func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, 
 		return p.newErr("chain overflow", i)
 	}
 
-	kind := node(chainop) & 0x7
+	kind := []node{pipe, comma}[lvl]
 
 	return p.newNodeArg0(kind, ll, p.tmp[reset:]...), i
 }
@@ -849,96 +772,68 @@ func (p *Parser) parseNum(t string, st int) (node, int) {
 	return p.newNodeArg0(num, l, node(st)), j
 }
 
-func (p *Parser) parseOpBin(t string, st int) (op BinOpKind, lvl level, i int) {
+func (p *Parser) parseOpBin(t string, st int) (op BinOpKind, i int) {
 	i = st + 1
 
 	switch t[st] {
 	case '|':
 		if i < len(t) && t[i] == '|' {
-			return Or, levelOr, i + 1
+			return Or, i + 1
 		}
-		return opPipe, levelPipe, i
+		return opPipe, i
 	case ',':
-		return opComma, levelComma, i
+		return opComma, i
 	case '+':
-		return Add, levelAdd, i
+		return Add, i
 	case '-':
-		return Sub, levelAdd, i
+		return Sub, i
 	case '*':
-		return Mul, levelMul, i
+		return Mul, i
 	case '/':
 		if i < len(t) && t[i] == '/' {
-			return Alt, levelAlt, i + 1
+			return Alt, i + 1
 		}
-		return Div, levelMul, i
+		return Div, i
 	case '%':
-		return Mod, levelMul, i
+		return Mod, i
 	case '=':
 		if i < len(t) && t[i] == '=' {
-			return Equal, levelCmp, i + 1
+			return Equal, i + 1
 		}
-		return Assign, levelAssign, i
+		return Assign, i
 	case '!':
 		if i < len(t) && t[i] == '=' {
-			return NotEqual, levelCmp, i + 1
+			return NotEqual, i + 1
 		}
 	case '>':
 		if i < len(t) && t[i] == '=' {
-			return GreaterEq, levelCmp, i + 1
+			return GreaterEq, i + 1
 		}
-		return Greater, levelCmp, i
+		return Greater, i
 	case '<':
 		if i < len(t) && t[i] == '=' {
-			return LessEq, levelCmp, i + 1
+			return LessEq, i + 1
 		}
-		return Less, levelCmp, i
+		return Less, i
 	case '&':
 		if i < len(t) && t[i] == '&' {
-			return And, levelAnd, i + 1
+			return And, i + 1
 		}
 	case 'a':
 		if i+1 < len(t) && t[i] == 'n' && t[i+1] == 'd' && (i+2 == len(t) || !skip.IDRest.Is(t[i+2])) {
-			return And, levelAnd, i + 2
+			return And, i + 2
 		}
 	case 'o':
 		if i < len(t) && t[i] == 'r' && (i+1 == len(t) || !skip.IDRest.Is(t[i+1])) {
-			return Or, levelOr, i + 1
+			return Or, i + 1
 		}
 	}
 
-	return 0, -1, st
+	return -1, st
 }
 
-func binOpLevel(op BinOpKind) level {
-	if op == opPipe {
-		return levelPipe
-	}
-	if op == opComma {
-		return levelComma
-	}
-	if op < 0 || op > Mod {
-		return -1
-	}
-	if op&Assign != 0 {
-		return levelAssign
-	}
-
-	return []level{
-		Alt:       levelAlt,
-		Or:        levelOr,
-		And:       levelAnd,
-		Equal:     levelCmp,
-		NotEqual:  levelCmp,
-		Less:      levelCmp,
-		LessEq:    levelCmp,
-		Greater:   levelCmp,
-		GreaterEq: levelCmp,
-		Add:       levelAdd,
-		Sub:       levelAdd,
-		Mul:       levelMul,
-		Div:       levelMul,
-		Mod:       levelMul,
-	}[op]
+func (op BinOpKind) Level() int {
+	return int(op >> levelSh)
 }
 
 func (p *Parser) skipSpaces(t string, i int) int {
@@ -1037,6 +932,17 @@ func (n node) Arg() int {
 	return int(n & argPreMask >> arg0Sh)
 }
 
+func (n node) toOp() BinOpKind {
+	switch n.Kind() {
+	case pipe:
+		return opPipe
+	case comma:
+		return opComma
+	default:
+		panic(n)
+	}
+}
+
 func (p *Parser) Arg(n node, i int) node   { return p.buf[n.Index()+i] }
 func (p *Parser) ArgInt(n node, i int) int { return int(p.Arg(n, i)) }
 
@@ -1045,12 +951,7 @@ func (n node) GoString() string {
 }
 
 func (n node) String() string {
-	return n.GoString()
-	if n.Arg() == 0 {
-		return fmt.Sprintf("%v#%x", n.Kind(), n.Index())
-	}
-
-	return fmt.Sprintf("%v#%x(%x)", n.Kind(), n.Index(), n.Arg())
+	return fmt.Sprintf("%v#%x(%x)", Node{n}.Kind(), n.Index(), n.Arg())
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%v at index %v", e.text, e.index) }

@@ -23,35 +23,42 @@ func (p *Parser) AppendFormat(b []byte, n Node) []byte {
 	return p.appendFormat(b, n.node, -1, false)
 }
 
-func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []byte {
+func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte {
 	chain := func(n node) []byte {
-		x := n.Index()
-		oplevel := levelPipe
-		sign := " | "
-		if n.Kind() == comma {
-			oplevel = levelComma
-			sign = ", "
+		base := n.Index()
+		op := n.toOp()
+		oplevel := op.Level()
+		opsign := " | "
+		if op == opComma {
+			opsign = ", "
+		}
+
+		cnt := n.Arg()
+		if cnt < 2 {
+			panic(n)
 		}
 
 		if parlevel > oplevel {
 			b = append(b, '(')
 		}
 
-		b = p.appendFormat(b, p.buf[x], oplevel, false)
-
-		cnt := n.Arg()
+		b = p.appendFormat(b, p.buf[base], oplevel, false)
 
 		for i := 1; i < cnt; i++ {
-			r := p.buf[x+i]
+			r := p.buf[base+i]
 
-			if k := r.Kind(); oplevel == levelPipe && (k == prop || k == iter || k == index || k == slice) {
+			if k := r.Kind(); op == opPipe && (k == prop || k == iter || k == index || k == slice) {
 				b = p.appendFormat(b, r, oplevel, true)
 				continue
 			}
 
-			b = append(b, sign...)
+			b = append(b, opsign...)
 
-			rlevel := binOpLevel(BinOpKind(r.Arg()))
+			rlevel := unary.Level()
+			if r.Kind() == binop {
+				rlevel = BinOpKind(r.Arg()).Level()
+			}
+
 			if rlevel == oplevel {
 				b = append(b, '(')
 			}
@@ -74,7 +81,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		l, r := p.Arg(n, 0), p.Arg(n, 1)
 		op := BinOpKind(n.Arg())
 		sign := op.String()
-		oplevel := binOpLevel(op)
+		oplevel := op.Level()
 
 		if parlevel > oplevel {
 			b = append(b, '(')
@@ -86,7 +93,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		b = append(b, sign...)
 		b = append(b, ' ')
 
-		rlevel := binOpLevel(BinOpKind(r.Arg()))
+		rlevel := BinOpKind(r.Arg()).Level()
 		if rlevel == oplevel {
 			b = append(b, '(')
 		}
@@ -136,11 +143,11 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		case Pos:
 			x := n.Index()
 			b = append(b, '+')
-			return p.appendFormat(b, p.buf[x], levelUnary, false)
+			return p.appendFormat(b, p.buf[x], unary.Level(), false)
 		case Neg:
 			x := n.Index()
 			b = append(b, '-')
-			return p.appendFormat(b, p.buf[x], levelUnary, false)
+			return p.appendFormat(b, p.buf[x], unary.Level(), false)
 		default:
 			panic(op)
 		}
@@ -326,12 +333,14 @@ func (k Kind) String() string {
 		return "null"
 	case Bool:
 		return "bool"
-	case Name:
-		return "name"
 	case Num:
 		return "num"
 	case Str:
 		return "str"
+	case Name:
+		return "name"
+	case Prop:
+		return "prop"
 	case Bind:
 		return "bind"
 	case Var:
@@ -371,27 +380,57 @@ func (k Kind) String() string {
 	}
 }
 
-func (p BinOpKind) String() string {
-	opsign := []string{
-		Alt:       "//",
-		Or:        "or",
-		And:       "and",
-		Equal:     "==",
-		NotEqual:  "!=",
-		Less:      "<",
-		LessEq:    "<=",
-		Greater:   ">",
-		GreaterEq: ">=",
-		Add:       "+",
-		Sub:       "-",
-		Mul:       "*",
-		Div:       "/",
-		Mod:       "%",
-	}[p&0xf]
-
-	if p&Assign != 0 {
-		return opsign + "="
+func (op BinOpKind) String() string {
+	switch op {
+	case opPipe:
+		return "|"
+	case opComma:
+		return ","
+	case Alt:
+		return "//"
+	case Assign:
+		return "="
+	case PipeAssign:
+		return "|="
+	case AddAssign:
+		return "+="
+	case SubAssign:
+		return "-="
+	case MulAssign:
+		return "*="
+	case DivAssign:
+		return "/="
+	case ModAssign:
+		return "%="
+	case AltAssign:
+		return "//="
+	case Or:
+		return "or"
+	case And:
+		return "and"
+	case Equal:
+		return "=="
+	case NotEqual:
+		return "!="
+	case Less:
+		return "<"
+	case LessEq:
+		return "<="
+	case Greater:
+		return ">"
+	case GreaterEq:
+		return ">="
+	case Add:
+		return "+"
+	case Sub:
+		return "-"
+	case Mul:
+		return "*"
+	case Div:
+		return "/"
+	case Mod:
+		return "%"
+	default:
+		panic(op)
 	}
-
-	return opsign
 }
