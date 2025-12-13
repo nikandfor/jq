@@ -93,7 +93,7 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 		back = p.Format(n)
 		arg = n.node.Arg()
 		if n.node.Kind() == fun {
-			arg = p.ArgInt(n.node, 1)
+			arg = p.argInt(n.node, 1)
 		}
 	}()
 

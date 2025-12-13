@@ -65,11 +65,11 @@ const (
 	Str   = Kind(str)
 	Name  = Kind(name)
 	Prop  = Kind(prop)
-	Bind  = Kind(bind)
 	Var   = Kind(vark)
 	Label = Kind(label)
 	Break = Kind(brk)
 
+	Bind  = Kind(bind)
 	Pipe  = Kind(pipe)
 	Comma = Kind(comma)
 
@@ -956,10 +956,6 @@ func (p *Parser) newNodeArgShifted(kind node, arg int, args ...node) node {
 	return x
 }
 
-func (n Node) Kind() Kind {
-	return Kind(n.node.Kind())
-}
-
 func (n node) Kind0() node   { return n & kind0Mask }
 func (n node) Kind1() node   { return n & kind1Mask }
 func (n node) IsKind1() bool { return n.Kind0() == kind1 }
@@ -990,8 +986,9 @@ func (n node) toOp() BinOpKind {
 	}
 }
 
-func (p *Parser) Arg(n node, i int) node   { return p.buf[n.Index()+i] }
-func (p *Parser) ArgInt(n node, i int) int { return int(p.Arg(n, i)) }
+func (p *Parser) argNode(n Node, i int) Node { return Node{p.buf[n.node.Index()+i]} }
+func (p *Parser) arg(n node, i int) node     { return p.buf[n.Index()+i] }
+func (p *Parser) argInt(n node, i int) int   { return int(p.arg(n, i)) }
 
 func (n node) GoString() string {
 	return fmt.Sprintf("0x%x_%x_%x", n.Index(), n.Arg(), int(n.Kind()))

@@ -1,5 +1,18 @@
 package jqparser
 
+import (
+	"strconv"
+	"unsafe"
+)
+
+func (n Node) Kind() Kind {
+	return Kind(n.node.Kind())
+}
+
+func (n Node) Bool() bool {
+	return n.node.Arg() != 0
+}
+
 func (p *Parser) Text(n Node) string {
 	return p.astext(n.node)
 }
@@ -16,4 +29,109 @@ func (p *Parser) astext(n node) string {
 	default:
 		panic(k)
 	}
+}
+
+func (p *Parser) Int(n Node) (int, error) {
+	x, err := p.Int64(n)
+	return int(x), err
+}
+
+func (p *Parser) Int64(n Node) (int64, error) {
+	return strconv.ParseInt(p.Text(n), 10, 64)
+}
+
+func (p *Parser) Uint64(n Node) (uint64, error) {
+	return strconv.ParseUint(p.Text(n), 10, 64)
+}
+
+func (p *Parser) Float64(n Node) (float64, error) {
+	return strconv.ParseFloat(p.Text(n), 64)
+}
+
+func (p *Parser) Str(n Node) (string, error) {
+	switch k := n.node.Kind(); k {
+	case name, prop, vark, label, brk:
+		return p.Text(n), nil
+	case str:
+		return strconv.Unquote(p.Text(n))
+	default:
+		panic(n)
+	}
+}
+
+func (p *Parser) Pipe(n Node) []Node {
+	base := n.node.Index()
+	l := n.node.Arg()
+
+	args := p.buf[base : base+l]
+
+	return *(*[]Node)(unsafe.Pointer(&args))
+}
+
+func (p *Parser) Comma(n Node) []Node {
+	base := n.node.Index()
+	l := n.node.Arg()
+
+	args := p.buf[base : base+l]
+
+	return *(*[]Node)(unsafe.Pointer(&args))
+}
+
+func (p *Parser) Bind(n Node) (val, expr Node, bindings []Node) {
+	base := n.node.Index()
+	l := n.node.Arg()
+
+	args := p.buf[base+2 : base+2+l]
+	bindings = *(*[]Node)(unsafe.Pointer(&args))
+
+	return p.argNode(n, 0), p.argNode(n, 1), bindings
+}
+
+func (p *Parser) BinOp(n Node) (op BinOpKind, l, r Node) {
+	op = BinOpKind(n.node.Arg())
+
+	return op, p.argNode(n, 0), p.argNode(n, 1)
+}
+
+func (p *Parser) UnOp(n Node) (op UnOpKind, x Node) {
+	return UnOpKind(n.node.Arg()), p.argNode(n, 0)
+}
+
+func (p *Parser) Arr(n Node) Node {
+	return p.argNode(n, 0)
+}
+
+func (p *Parser) Obj(n Node) []Node {
+	base := n.node.Index()
+	l := n.node.Arg()
+
+	args := p.buf[base : base+2*l]
+
+	return *(*[]Node)(unsafe.Pointer(&args))
+}
+
+func (p *Parser) Index(n Node) Node {
+	return p.argNode(n, 0)
+}
+
+func (p *Parser) Slice(n Node) (lo, hi Node) {
+	return p.argNode(n, 0), p.argNode(n, 1)
+}
+
+func (p *Parser) If(n Node) []Node {
+	base := n.node.Index()
+	l := n.node.Arg()
+
+	args := p.buf[base : base+l]
+
+	return *(*[]Node)(unsafe.Pointer(&args))
+}
+
+func (p *Parser) Func(n Node) (string, []Node) {
+	base := n.node.Index()
+	l := p.argInt(n.node, 1)
+
+	args := p.buf[base+2 : base+2+l]
+
+	return p.Text(n), *(*[]Node)(unsafe.Pointer(&args))
 }

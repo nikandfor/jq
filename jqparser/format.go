@@ -78,7 +78,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 	}
 
 	op := func(n node) []byte {
-		l, r := p.Arg(n, 0), p.Arg(n, 1)
+		l, r := p.arg(n, 0), p.arg(n, 1)
 		op := BinOpKind(n.Arg())
 		sign := op.String()
 		oplevel := op.Level()
@@ -225,7 +225,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 		return append(b, ']')
 	case fun:
 		x := n.Index()
-		l := p.ArgInt(n, 1)
+		l := p.argInt(n, 1)
 
 		b = append(b, p.astext(n)...)
 
@@ -288,7 +288,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 
 		return b
 	case bind:
-		arg := p.Arg(n, 0)
+		arg := p.arg(n, 0)
 		b = p.appendFormat(b, arg, -1, false)
 
 		l := n.Arg()
@@ -300,13 +300,13 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, " ?// "...)
 			}
 
-			bd := p.Arg(n, 2+i)
+			bd := p.arg(n, 2+i)
 			b = p.appendFormat(b, bd, -1, false)
 		}
 
 		b = append(b, " | "...)
 
-		expr := p.Arg(n, 1)
+		expr := p.arg(n, 1)
 		return p.appendFormat(b, expr, -1, false)
 	default:
 		panic(n)
@@ -342,7 +342,7 @@ func (p *Parser) Where(err error) string {
 }
 
 func (n Node) String() string   { return fmt.Sprintf("%v#%d", n.Kind().String(), n.node.Index()) }
-func (n Node) GoString() string { return fmt.Sprintf("0x%x", int(n.node)) }
+func (n Node) GoString() string { return n.node.GoString() }
 
 func (k Kind) String() string {
 	switch k {
