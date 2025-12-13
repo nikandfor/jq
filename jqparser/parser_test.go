@@ -14,6 +14,7 @@ func TestParser(t *testing.T) {
 	testParser(t, `'a'`, &p)
 	testParser(t, `.a`, &p)
 	testParser(t, `$a`, &p)
+	testParser(t, `1 as $a | $a`, &p)
 	testParser(t, `.[4]`, &p)
 	testParser(t, `.[1:2]`, &p)
 	testParser(t, `.[:2]`, &p)
@@ -78,11 +79,23 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 		t.Logf("%s\n", p.Where(err))
 	}
 
-	back := p.Format(n)
-	arg := n.node.Arg()
-	if n.node.Kind() == fun {
-		arg = p.ArgInt(n.node, 1)
-	}
+	var back string
+	var arg int
+
+	func() {
+		//	defer func() {
+		//		p := recover()
+		//		if p != nil {
+		//			t.Errorf("panic: %v", p)
+		//		}
+		//	}()
+
+		back = p.Format(n)
+		arg = n.node.Arg()
+		if n.node.Kind() == fun {
+			arg = p.ArgInt(n.node, 1)
+		}
+	}()
 
 	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), arg)
 

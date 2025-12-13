@@ -306,7 +306,7 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 	}
 
 	if n == 0 {
-		return p.parseArg(t, i)
+		return p.parseAs(t, i)
 	}
 
 	x, i := p.parseUnOp(t, i)
@@ -315,6 +315,51 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 	}
 
 	return p.newNodeArgShifted(n, 0, x), i
+}
+
+func (p *Parser) parseAs(t string, st int) (node, int) {
+	arg, i := p.parseArg(t, st)
+	if arg.Err() {
+		return arg, i
+	}
+
+	i = p.skipSpaces(t, i)
+	if !(i+2 < len(t) && t[i] == 'a' && t[i+1] == 's' && !skip.IDRest.Is(t[i+2])) {
+		return arg, i
+	}
+	i += 2
+
+	bd, i := p.parseBinding(t, i)
+	if bd.Err() {
+		return bd, i
+	}
+
+	i = p.skipSpaces(t, i)
+	if i == len(t) || t[i] != '|' {
+		return p.newErr("expected '|' for binding expression", i)
+	}
+	i++
+
+	expr, i := p.parseBinOp(t, i, 0, true)
+	if expr.Err() {
+		return expr, i
+	}
+
+	return p.newNodeArg0(bind, 1, arg, expr, bd), i
+}
+
+func (p *Parser) parseBinding(t string, st int) (n node, i int) {
+	i = p.skipSpaces(t, st)
+
+	//	reset := len(p.tmp)
+	//	defer func() { p.tmp = p.tmp[:reset] }()
+
+	switch t[i] {
+	case '$':
+		return p.parseVar(t, i)
+	default:
+		return p.newErr("unsupported binding", i)
+	}
 }
 
 func (p *Parser) parseArg(t string, st int) (n node, i int) {
@@ -902,6 +947,8 @@ func (p *Parser) newNodeArgShifted(kind node, arg int, args ...node) node {
 		panic("index overflow")
 	}
 
+	//	fmt.Printf("newNode  %#v  %v  %v  from %v %v\n", kind, arg, args, from(2), from(3))
+
 	x := node(id)<<indexSh | node(arg) | kind
 
 	p.buf = append(p.buf, args...)
@@ -950,9 +997,9 @@ func (n node) GoString() string {
 	return fmt.Sprintf("0x%x_%x_%x", n.Index(), n.Arg(), int(n.Kind()))
 }
 
-func (n node) String() string {
-	return fmt.Sprintf("%v#%x(%x)", Node{n}.Kind(), n.Index(), n.Arg())
-}
+//func (n node) String() string {
+//	return fmt.Sprintf("%v#%x(%x)", Node{n}.Kind(), n.Index(), n.Arg())
+//}
 
 func (e *Error) Error() string { return fmt.Sprintf("%v at index %v", e.text, e.index) }
 

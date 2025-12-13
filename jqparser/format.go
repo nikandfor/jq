@@ -287,6 +287,27 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 		b = append(b, " end"...)
 
 		return b
+	case bind:
+		arg := p.Arg(n, 0)
+		b = p.appendFormat(b, arg, -1, false)
+
+		l := n.Arg()
+
+		for i := range l {
+			if i == 0 {
+				b = append(b, " as "...)
+			} else {
+				b = append(b, " ?// "...)
+			}
+
+			bd := p.Arg(n, 2+i)
+			b = p.appendFormat(b, bd, -1, false)
+		}
+
+		b = append(b, " | "...)
+
+		expr := p.Arg(n, 1)
+		return p.appendFormat(b, expr, -1, false)
 	default:
 		panic(n)
 	}
@@ -320,7 +341,7 @@ func (p *Parser) Where(err error) string {
 	return b.String()
 }
 
-func (n Node) String() string   { return fmt.Sprintf("%v#%d", n.node.Kind().String(), n.node.Index()) }
+func (n Node) String() string   { return fmt.Sprintf("%v#%d", n.Kind().String(), n.node.Index()) }
 func (n Node) GoString() string { return fmt.Sprintf("0x%x", int(n.node)) }
 
 func (k Kind) String() string {
