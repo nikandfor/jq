@@ -114,7 +114,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 	switch n.Kind() {
 	case none:
 		return append(b, "<nil>"...)
-	case errk:
+	case errnode:
 		return append(b, "<error>"...)
 	case dot:
 		return append(b, '.')

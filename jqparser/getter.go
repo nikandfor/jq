@@ -3,6 +3,8 @@ package jqparser
 import (
 	"strconv"
 	"unsafe"
+
+	"nikand.dev/go/skip"
 )
 
 func (n Node) Kind() Kind {
@@ -11,6 +13,10 @@ func (n Node) Kind() Kind {
 
 func (n Node) Bool() bool {
 	return n.node.Arg() != 0
+}
+
+func (p *Parser) Bool(n Node) bool {
+	return n.Bool()
 }
 
 func (p *Parser) Text(n Node) string {
@@ -31,29 +37,53 @@ func (p *Parser) astext(n node) string {
 	}
 }
 
-func (p *Parser) Int(n Node) (int, error) {
-	x, err := p.Int64(n)
-	return int(x), err
+func (p *Parser) NumFlags(n Node) skip.Num {
+	f, _ := skip.Number([]byte(p.Text(n)), 0, 0)
+	return f
 }
 
-func (p *Parser) Int64(n Node) (int64, error) {
-	return strconv.ParseInt(p.Text(n), 10, 64)
+func (p *Parser) Int(n Node) int {
+	return int(p.Int64(n))
 }
 
-func (p *Parser) Uint64(n Node) (uint64, error) {
-	return strconv.ParseUint(p.Text(n), 10, 64)
+func (p *Parser) Int64(n Node) int64 {
+	x, err := strconv.ParseInt(p.Text(n), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return x
 }
 
-func (p *Parser) Float64(n Node) (float64, error) {
-	return strconv.ParseFloat(p.Text(n), 64)
+func (p *Parser) Uint64(n Node) uint64 {
+	x, err := strconv.ParseUint(p.Text(n), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return x
 }
 
-func (p *Parser) Str(n Node) (string, error) {
+func (p *Parser) Float64(n Node) float64 {
+	x, err := strconv.ParseFloat(p.Text(n), 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return x
+}
+
+func (p *Parser) Str(n Node) string {
 	switch k := n.node.Kind(); k {
 	case name, prop, vark, label, brk:
-		return p.Text(n), nil
+		return p.Text(n)
 	case str:
-		return strconv.Unquote(p.Text(n))
+		s, buf, _, _ := skip.DecodeString([]byte(p.Text(n)), 0, skip.Sqt|skip.Dqt, nil)
+		if s.Err() {
+			panic(s)
+		}
+
+		return unsafe.String(&buf[0], len(buf))
 	default:
 		panic(n)
 	}

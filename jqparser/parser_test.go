@@ -38,6 +38,7 @@ func TestParser(t *testing.T) {
 	testParser(t, `.("d")`, &p)
 	testParser(t, `$a("d")`, &p)
 	testParser(t, `$a.b.c("d")`, &p)
+	testParser(t, `a("b").c(4)("d")`, &p)
 	testParser(t, `qwe(. > 1, . < 2)`, &p)
 	testParser(t, `qwe((. > 1, . < 2))`, &p)
 	testParser(t, `if true then 1 end`, &p)
