@@ -5,22 +5,15 @@ func (p *Parser) Text(n Node) string {
 }
 
 func (p *Parser) astext(n node) string {
-	x := n.Index()
+	switch k := n.Kind(); k {
+	case num, str, name, prop, vark, bind, label, brk, fun:
+		x := n.Index()
+		l := n.Arg()
 
-	switch n.Kind() {
-	case Num, Str, Name, Prop, Var:
-	case Func:
 		st := int(p.buf[x])
-		end := int(p.buf[x+1])
 
-		return p.text[st:end]
+		return p.text[st : st+l]
 	default:
-		panic(n.Kind())
+		panic(k)
 	}
-
-	l := n.Arg()
-
-	st := int(p.buf[x])
-
-	return p.text[st : st+l]
 }

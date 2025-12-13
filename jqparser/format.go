@@ -9,6 +9,11 @@ import (
 )
 
 func (p *Parser) Format(n Node) string {
+	switch n.node.Kind() {
+	case num, str:
+		return p.astext(n.node)
+	}
+
 	b := p.AppendFormat(nil, n)
 
 	return unsafe.String(unsafe.SliceData(b), len(b))
@@ -19,9 +24,14 @@ func (p *Parser) AppendFormat(b []byte, n Node) []byte {
 }
 
 func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []byte {
-	op := func(n node, op string, oplevel level) []byte {
+	chain := func(n node) []byte {
 		x := n.Index()
-		a := n.Arg()
+		oplevel := levelPipe
+		sign := " | "
+		if n.Kind() == comma {
+			oplevel = levelComma
+			sign = ", "
+		}
 
 		if parlevel > oplevel {
 			b = append(b, '(')
@@ -29,17 +39,19 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 
 		b = p.appendFormat(b, p.buf[x], oplevel, false)
 
-		for i := 1; i < a; i++ {
+		cnt := n.Arg()
+
+		for i := 1; i < cnt; i++ {
 			r := p.buf[x+i]
 
-			if k := r.Kind(); oplevel == levelPipe && (k == Prop || k == Iter || k == Index || k == Slice) {
+			if k := r.Kind(); oplevel == levelPipe && (k == prop || k == iter || k == index || k == slice) {
 				b = p.appendFormat(b, r, oplevel, true)
 				continue
 			}
 
-			b = append(b, op...)
+			b = append(b, sign...)
 
-			rlevel := binOpLevel(r.Kind())
+			rlevel := binOpLevel(BinOpKind(r.Arg()))
 			if rlevel == oplevel {
 				b = append(b, '(')
 			}
@@ -58,74 +70,87 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		return b
 	}
 
+	op := func(n node) []byte {
+		l, r := p.Arg(n, 0), p.Arg(n, 1)
+		op := BinOpKind(n.Arg())
+		sign := op.String()
+		oplevel := binOpLevel(op)
+
+		if parlevel > oplevel {
+			b = append(b, '(')
+		}
+
+		b = p.appendFormat(b, l, oplevel, false)
+
+		b = append(b, ' ')
+		b = append(b, sign...)
+		b = append(b, ' ')
+
+		rlevel := binOpLevel(BinOpKind(r.Arg()))
+		if rlevel == oplevel {
+			b = append(b, '(')
+		}
+
+		b = p.appendFormat(b, r, oplevel, false)
+
+		if rlevel == oplevel {
+			b = append(b, ')')
+		}
+
+		if parlevel > oplevel {
+			b = append(b, ')')
+		}
+
+		return b
+	}
+
 	switch n.Kind() {
-	case 0:
+	case none:
 		return append(b, "<nil>"...)
-	case Err:
+	case errk:
 		return append(b, "<error>"...)
-	case Dot:
+	case dot:
 		return append(b, '.')
-	case Null:
+	case null:
 		return append(b, "null"...)
-	case Bool:
+	case boolk:
 		if n.Arg() != 0 {
 			return append(b, "true"...)
 		}
 
 		return append(b, "false"...)
-	case Num:
+	case num, str, name:
 		return append(b, p.astext(n)...)
-	case Str:
+	case vark:
+		b = append(b, '$')
 		return append(b, p.astext(n)...)
-	case Pipe:
-		return op(n, " | ", levelPipe)
-	case Comma:
-		return op(n, ", ", levelComma)
-	case Assign:
-		return op(n, " = ", levelAssign)
-	case PipeAssign:
-		return op(n, " |= ", levelAssign)
-	case Or:
-		return op(n, " or ", levelOr)
-	case And:
-		return op(n, " and ", levelAnd)
-	case Equal:
-		return op(n, " == ", levelCmp)
-	case NotEqual:
-		return op(n, " != ", levelCmp)
-	case Less:
-		return op(n, " < ", levelCmp)
-	case LessEq:
-		return op(n, " <= ", levelCmp)
-	case Greater:
-		return op(n, " > ", levelCmp)
-	case GreaterEq:
-		return op(n, " >= ", levelCmp)
-	case Add:
-		return op(n, " + ", levelAdd)
-	case Sub:
-		return op(n, " - ", levelAdd)
-	case Mul:
-		return op(n, " * ", levelMul)
-	case Div:
-		return op(n, " / ", levelMul)
-	case Mod:
-		return op(n, " % ", levelMul)
-	case Pos:
-		x := n.Index()
-		b = append(b, '+')
-		return p.appendFormat(b, p.buf[x], levelUnary, false)
-	case Neg:
-		x := n.Index()
-		b = append(b, '-')
-		return p.appendFormat(b, p.buf[x], levelUnary, false)
-	case Arr:
+	case prop:
+		b = append(b, '.')
+		return append(b, p.astext(n)...)
+	case pipe, comma:
+		return chain(n)
+	case binop:
+		return op(n)
+	case unop:
+		switch op := UnOpKind(n.Arg()); op {
+		case Pos:
+			x := n.Index()
+			b = append(b, '+')
+			return p.appendFormat(b, p.buf[x], levelUnary, false)
+		case Neg:
+			x := n.Index()
+			b = append(b, '-')
+			return p.appendFormat(b, p.buf[x], levelUnary, false)
+		default:
+			panic(op)
+		}
+	case arr:
 		x := n.Index()
 		b = append(b, '[')
 		b = p.appendFormat(b, p.buf[x], -1, false)
 		b = append(b, ']')
 		return b
-	case Obj:
+	case obj:
 		x := n.Index()
 		l := n.Arg()
 		b = append(b, '{')
@@ -137,14 +162,14 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 			k := p.buf[x+2*i]
 			v := p.buf[x+2*i+1]
 
-			kind := k.Kind()
-			q := kind == Name || kind == Var || kind == Str
+			kk := k.Kind()
+			par := !(kk == name || kk == vark || kk == str)
 
-			if !q {
+			if par {
 				b = append(b, '(')
 			}
 			b = p.appendFormat(b, k, -1, false)
-			if !q {
+			if par {
 				b = append(b, ')')
 			}
 
@@ -157,13 +182,13 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		}
 		b = append(b, '}')
 		return b
-	case Iter:
+	case iter:
 		if !train {
 			b = append(b, '.')
 		}
 
 		return append(b, "[]"...)
-	case Index:
+	case index:
 		if !train {
 			b = append(b, '.')
 		}
@@ -172,7 +197,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		b = append(b, '[')
 		b = p.appendFormat(b, p.buf[x], -1, false)
 		return append(b, ']')
-	case Slice:
+	case slice:
 		if !train {
 			b = append(b, '.')
 		}
@@ -191,17 +216,9 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		}
 
 		return append(b, ']')
-	case Var:
-		b = append(b, '$')
-		return append(b, p.astext(n)...)
-	case Name:
-		return append(b, p.astext(n)...)
-	case Prop:
-		b = append(b, '.')
-		return append(b, p.astext(n)...)
-	case Func:
+	case fun:
 		x := n.Index()
-		l := n.Arg()
+		l := p.ArgInt(n, 1)
 
 		b = append(b, p.astext(n)...)
 
@@ -218,7 +235,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 
 			a := p.buf[x+2+i]
 			k := a.Kind()
-			par := k == Pipe || k == Comma
+			par := k == pipe || k == comma
 
 			if par {
 				b = append(b, '(')
@@ -234,7 +251,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel level, train bool) []by
 		b = append(b, ')')
 
 		return b
-	case If:
+	case ifop:
 		x := n.Index()
 		l := n.Arg()
 		i := 0
@@ -296,87 +313,85 @@ func (p *Parser) Where(err error) string {
 	return b.String()
 }
 
-func (n Node) Kind() Kind       { return n.node.Kind() }
 func (n Node) String() string   { return fmt.Sprintf("%v#%d", n.node.Kind().String(), n.node.Index()) }
 func (n Node) GoString() string { return fmt.Sprintf("0x%x", int(n.node)) }
 
 func (k Kind) String() string {
 	switch k {
-	case 0:
+	case None:
 		return "none"
-	case Err:
-		return "error"
 	case Dot:
 		return "dot"
 	case Null:
 		return "null"
 	case Bool:
 		return "bool"
+	case Name:
+		return "name"
 	case Num:
 		return "num"
 	case Str:
 		return "str"
+	case Bind:
+		return "bind"
+	case Var:
+		return "var"
+	case Label:
+		return "label"
+	case Break:
+		return "break"
 	case Pipe:
 		return "pipe"
 	case Comma:
 		return "comma"
-	case Assign:
-		return "assign"
-	case PipeAssign:
-		return "pipe_assign"
-	case Or:
-		return "or"
-	case And:
-		return "and"
-	case Equal:
-		return "equal"
-	case NotEqual:
-		return "not_equal"
-	case Less:
-		return "less"
-	case LessEq:
-		return "less_eq"
-	case Greater:
-		return "greater"
-	case GreaterEq:
-		return "greater_eq"
-	case Add:
-		return "add"
-	case Sub:
-		return "sub"
-	case Mul:
-		return "mul"
-	case Div:
-		return "div"
-	case Mod:
-		return "mod"
-	case Neg:
-		return "neg"
-	case Pos:
-		return "pos"
+	case BinOp:
+		return "binop"
+	case UnOp:
+		return "unop"
 	case Arr:
 		return "arr"
 	case Obj:
 		return "obj"
 	case Iter:
 		return "iter"
-	case Var:
-		return "var"
-	case Name:
-		return "name"
-	case Prop:
-		return "prop"
 	case Index:
 		return "index"
 	case Slice:
 		return "slice"
-	case Func:
-		return "func"
 	case If:
 		return "if"
+	case Try:
+		return "try"
 	case Def:
 		return "def"
+	case Func:
+		return "func"
 	default:
 		return fmt.Sprintf("0x%x", int(k))
 	}
+}
+
+func (p BinOpKind) String() string {
+	opsign := []string{
+		Alt:       "//",
+		Or:        "or",
+		And:       "and",
+		Equal:     "==",
+		NotEqual:  "!=",
+		Less:      "<",
+		LessEq:    "<=",
+		Greater:   ">",
+		GreaterEq: ">=",
+		Add:       "+",
+		Sub:       "-",
+		Mul:       "*",
+		Div:       "/",
+		Mod:       "%",
+	}[p&0xf]
+
+	if p&Assign != 0 {
+		return opsign + "="
+	}
+
+	return opsign
 }

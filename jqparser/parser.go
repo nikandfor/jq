@@ -19,22 +19,159 @@ type (
 		err string
 	}
 
-	Kind uint8
+	Kind uint32
+
+	// index | arg | kind1 | kind0
+	node uint32
+
+	BinOpKind int8
+	UnOpKind  int8
+
+	level int8
 
 	Node struct {
 		node node
 	}
-
-	// arg | kind | index
-	node uint32
-
-	level int8
 
 	Error struct {
 		text  string
 		index int
 	}
 )
+
+const (
+	kind0Bits = 4
+	kind1Bits = 4
+
+	arg0Sh  = kind0Bits
+	arg1Sh  = kind0Bits + kind1Bits
+	indexSh = 16
+
+	kind0Mask = 1<<kind0Bits - 1
+	kind1Mask = 1<<(kind0Bits+kind1Bits) - 1
+
+	argPreMask = 1<<indexSh - 1
+
+	maxID   = 1 << (32 - indexSh - 1)
+	maxArg0 = argPreMask >> arg0Sh
+	maxArg1 = argPreMask >> arg1Sh
+)
+
+const (
+	None = Kind(none)
+	Dot  = Kind(dot)
+	Null = Kind(null)
+	Bool = Kind(boolk)
+
+	Num   = Kind(num)
+	Str   = Kind(str)
+	Name  = Kind(name)
+	Prop  = Kind(prop)
+	Bind  = Kind(bind)
+	Var   = Kind(vark)
+	Label = Kind(label)
+	Break = Kind(brk)
+
+	Pipe  = Kind(pipe)
+	Comma = Kind(comma)
+
+	BinOp = Kind(binop)
+	UnOp  = Kind(unop)
+
+	Arr   = Kind(arr)
+	Obj   = Kind(obj)
+	Iter  = Kind(iter)
+	Index = Kind(index)
+	Slice = Kind(slice)
+
+	If  = Kind(ifop)
+	Try = Kind(try)
+	Def = Kind(def)
+	//	Let = Kind(let)
+
+	Func = Kind(fun)
+)
+
+// kond0
+const (
+	kind1 node = iota
+	fun
+	ifop
+	_
+
+	pipe
+	comma
+	arr
+	obj
+
+	num
+	str
+	name
+	prop
+
+	bind
+	vark
+	label
+	brk
+)
+
+// kind1
+const (
+	none = iota<<kind0Bits | kind1
+	errk
+	dot
+	null
+
+	boolk
+	binop
+	unop
+	noerr
+
+	iter
+	index
+	slice
+	recurse
+
+	try
+	def
+	_
+	_
+)
+
+const (
+	Alt BinOpKind = iota
+
+	Or
+	And
+
+	Equal
+	NotEqual
+	Less
+	LessEq
+	Greater
+	GreaterEq
+
+	Add
+	Sub
+
+	Mul
+	Div
+	Mod
+
+	Assign BinOpKind = 1 << 4
+
+	opPipe  = pipeToOp | BinOpKind(pipe)
+	opComma = pipeToOp | BinOpKind(comma)
+
+	pipeToOp = 1 << 6
+)
+
+const (
+	Neg UnOpKind = iota
+	Pos
+)
+
+/*
 
 const (
 	indexBits = 16
@@ -100,10 +237,12 @@ const (
 	Err Kind = 1<<kindBits - (iota - end)
 	Comment
 )
+*/
 
 const (
-	levelPipe = iota
+	levelPipe level = iota
 	levelComma
+	levelAlt
 	levelAssign
 	levelOr
 	levelAnd
@@ -152,7 +291,16 @@ func (p *Parser) Root() Node {
 	return Node{p.root}
 }
 
-func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
+func (p *Parser) parseExpr(t string, st int, stopcomma bool) (node, int) {
+	x, i := p.parseBinOp(t, st, 0, stopcomma)
+	if x.Err() {
+		return x, i
+	}
+
+	return x, i
+}
+
+func (p *Parser) parseBinOp(t string, st int, lvl level, stopcomma bool) (node, int) {
 	//	fmt.Printf("parseBinOp %v\n", st)
 	if lvl == levelUnary {
 		return p.parseUnOp(t, st)
@@ -163,11 +311,11 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 		return l, i
 	}
 
-	stack := lvl == levelPipe || lvl == levelComma
-	var stackop Kind
+	chain := lvl == levelPipe || lvl == levelComma
+	var chainop BinOpKind
 
 	reset := len(p.tmp)
-	if stack {
+	if chain {
 		defer func() { p.tmp = p.tmp[:reset] }()
 
 		p.tmp = append(p.tmp, l)
@@ -180,7 +328,7 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 		}
 
 		op, oplvl, j := p.parseOpBin(t, i)
-		if op == Err || stopcomma && op == Comma {
+		if oplvl == -1 || stopcomma && op == opComma {
 			break
 		}
 		if oplvl < lvl {
@@ -192,11 +340,11 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 			return r, j
 		}
 
-		if stack {
+		if chain {
 			p.tmp = append(p.tmp, r)
-			stackop = op
+			chainop = op
 		} else {
-			l = p.newNodeArg(op, 2, l, r)
+			l = p.newBinOp(op, l, r)
 		}
 
 		i = j
@@ -204,15 +352,17 @@ func (p *Parser) parseBinOp(t string, st, lvl int, stopcomma bool) (node, int) {
 
 	ll := len(p.tmp[reset:])
 
-	if !stack || ll == 1 {
+	if !chain || ll == 1 {
 		return l, i
 	}
 
-	if ll > 256 {
-		return p.newErr("pipe overflow", i)
+	if ll > maxArg0 {
+		return p.newErr("chain overflow", i)
 	}
 
-	return p.newNodeArg(stackop, ll, p.tmp[reset:]...), i
+	kind := node(chainop) & 0x7
+
+	return p.newNodeArg0(kind, ll, p.tmp[reset:]...), i
 }
 
 func (p *Parser) parseUnOp(t string, st int) (node, int) {
@@ -221,18 +371,18 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 		return p.newErr(eof, i)
 	}
 
-	var k Kind
+	var n node
 
 	switch t[i] {
 	case '+':
-		k = Pos
+		n = node(Pos)<<arg1Sh | unop
 		i++
 	case '-':
-		k = Neg
+		n = node(Neg)<<arg1Sh | unop
 		i++
 	}
 
-	if k == 0 {
+	if n == 0 {
 		return p.parseArg(t, i)
 	}
 
@@ -241,20 +391,7 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 		return x, i
 	}
 
-	return p.newNode(k, x), i
-}
-
-func (p *Parser) skipSpaces(t string, i int) int {
-	for {
-		i = spaces.Skip([]byte(t), i)
-		if i == len(t) || t[i] != '#' {
-			break
-		}
-
-		i = p.skipComment(t, i)
-	}
-
-	return i
+	return p.newNodeArgShifted(n, 0, x), i
 }
 
 func (p *Parser) parseArg(t string, st int) (n node, i int) {
@@ -279,7 +416,7 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 		}
 		i++
 
-		return p.newNode(Arr, x), i
+		return p.newNodeArg0(arr, 1, x), i
 	case t[i] == '{':
 		return p.parseObj(t, i)
 	case t[i] == '$':
@@ -295,18 +432,6 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 	}
 }
 
-func (p *Parser) skipComment(t string, i int) int {
-	for i < len(t) && t[i] != '\n' {
-		if t[i] == '\\' {
-			i++
-		}
-
-		i++
-	}
-
-	return i
-}
-
 func (p *Parser) parseDot(t string, st int) (n node, i int) {
 	//	defer func() { fmt.Printf("parseDot %v -> %v %v  from %v\n", st, n, i, from(1)) }()
 
@@ -320,9 +445,11 @@ func (p *Parser) parseDot(t string, st int) (n node, i int) {
 	// .qwe[][].asd.zxc
 	// .[][].qwe[]
 
+	type exptyp int
+
 	const (
-		dot = 1 << iota
-		prop
+		expdot exptyp = 1 << iota
+		expprop
 		str
 		brack
 		end
@@ -330,7 +457,7 @@ func (p *Parser) parseDot(t string, st int) (n node, i int) {
 	)
 
 	i = st
-	exp := dot | init
+	exp := expdot | init
 
 	var x node
 
@@ -339,21 +466,21 @@ loop:
 		x = 0
 
 		switch {
-		case exp&dot != 0 && t[i] == '.':
+		case exp&expdot != 0 && t[i] == '.':
 			i++
-			exp = prop | str | brack | exp&init
-		case exp&prop != 0 && skip.IDFirst.Is(t[i]):
-			x, i = p.parseName(t, i, Prop)
-			exp = dot | brack | end
+			exp = expprop | str | brack | exp&init
+		case exp&expprop != 0 && skip.IDFirst.Is(t[i]):
+			x, i = p.parseName(t, i, prop)
+			exp = expdot | brack | end
 		case exp&str != 0 && (t[i] == '"' || t[i] == '\''):
 			x, i = p.parseString(t, i)
 			if !x.Err() {
-				x = p.newNode(Index, x)
+				x = p.newNodeArg1(index, 0, x)
 			}
-			exp = dot | brack | end
+			exp = expdot | brack | end
 		case exp&brack != 0 && t[i] == '[':
 			x, i = p.parseIndex(t, i)
-			exp = dot | brack | end
+			exp = expdot | brack | end
 		case exp&end != 0 || exp&init != 0:
 			break loop
 		default:
@@ -370,16 +497,16 @@ loop:
 
 	l := len(p.tmp[reset:])
 	if l == 0 {
-		return p.newNode(Dot), i
+		return p.newNodeNoArgs(dot, 0), i
 	}
 	if l == 1 {
 		return p.tmp[reset], i
 	}
-	if l > 256 {
+	if l > maxArg0 {
 		return p.newErr("pipe overflow", st)
 	}
 
-	return p.newNodeArg(Pipe, l, p.tmp[reset:]...), i
+	return p.newNodeArg0(pipe, l, p.tmp[reset:]...), i
 }
 
 func (p *Parser) parseIndex(t string, st int) (n node, i int) {
@@ -390,11 +517,11 @@ func (p *Parser) parseIndex(t string, st int) (n node, i int) {
 
 	if t[i] == ']' {
 		i++
-		return p.newNode(Iter), i
+		return p.newNodeNoArgs(iter, 0), i
 	}
 
 	var lo, hi node
-	var slice bool
+	var isslice bool
 
 	if t[i] != ':' {
 		lo, i = p.parseBinOp(t, i, 0, false)
@@ -408,10 +535,10 @@ func (p *Parser) parseIndex(t string, st int) (n node, i int) {
 
 	if t[i] == ':' {
 		i++
-		slice = true
+		isslice = true
 	}
 
-	if slice && t[i] != ']' {
+	if isslice && t[i] != ']' {
 		hi, i = p.parseBinOp(t, i, 0, false)
 		if hi.Err() {
 			return hi, i
@@ -426,11 +553,11 @@ func (p *Parser) parseIndex(t string, st int) (n node, i int) {
 	}
 	i++
 
-	if !slice {
-		return p.newNode(Index, lo), i
+	if !isslice {
+		return p.newNodeArg1(index, 0, lo), i
 	}
 
-	return p.newNode(Slice, lo, hi), i
+	return p.newNodeArg1(slice, 0, lo, hi), i
 }
 
 func (p *Parser) parseObj(t string, st int) (node, int) {
@@ -476,11 +603,11 @@ func (p *Parser) parseObj(t string, st int) (node, int) {
 
 	l := len(p.tmp[reset:]) / 2
 
-	if l > argMask {
+	if l > maxArg0 {
 		return p.newErr("object key-value pairs overflow", i)
 	}
 
-	return p.newNodeArg(Obj, l, p.tmp[reset:]...), i
+	return p.newNodeArg0(obj, l, p.tmp[reset:]...), i
 }
 
 func (p *Parser) parseObjKey(t string, st int) (node, int) {
@@ -490,7 +617,7 @@ func (p *Parser) parseObjKey(t string, st int) (node, int) {
 	}
 
 	if c := t[i]; c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_' {
-		return p.parseName(t, i, Name)
+		return p.parseName(t, i, name)
 	}
 
 	if t[i] == '$' {
@@ -516,11 +643,11 @@ func (p *Parser) parseWord(t string, st int) (node, int) {
 
 	switch t[st:end] {
 	case "null":
-		return p.newNode(Null), end
+		return p.newNodeNoArgs(null, 0), end
 	case "true":
-		return p.newNodeArg(Bool, 1), end
+		return p.newNodeNoArgs(boolk, 1), end
 	case "false":
-		return p.newNodeArg(Bool, 0), end
+		return p.newNodeNoArgs(boolk, 0), end
 	case "if":
 		return p.parseIf(t, st)
 	}
@@ -557,13 +684,15 @@ func (p *Parser) parseWord(t string, st int) (node, int) {
 		}
 	}
 
-	l := len(p.tmp[reset:])
-	if l > 128 {
-		return p.newErr("function arguments overflow", i)
+	//	l := len(p.tmp[reset:])
+	l := end - st
+	if l > maxArg0 {
+		return p.newErr("function name overflow", i)
 	}
 
-	x := p.newNodeHeader(Func, l)
-	p.buf = append(p.buf, node(st), node(end))
+	x := p.newNodeArg0(fun, l)
+
+	p.buf = append(p.buf, node(st), node(len(p.tmp[reset:])))
 	p.buf = append(p.buf, p.tmp[reset:]...)
 
 	return x, i
@@ -641,11 +770,11 @@ func (p *Parser) parseIf(t string, st int) (node, int) {
 	}
 
 	l := len(p.tmp[reset:])
-	if l > argMask {
+	if l > maxArg0 {
 		return p.newErr("too big if statement", st)
 	}
 
-	return p.newNodeArg(If, l, p.tmp[reset:]...), i
+	return p.newNodeArg0(ifop, l, p.tmp[reset:]...), i
 }
 
 func (p *Parser) parseParen(t string, st int) (node, int) {
@@ -671,11 +800,11 @@ func (p *Parser) parseString(t string, st int) (node, int) {
 	}
 
 	l := j - st
-	if l > argMask {
+	if l > maxArg0 {
 		return p.newErr("too long string", st)
 	}
 
-	return p.newNodeArg(Str, l, node(st)), j
+	return p.newNodeArg0(str, l, node(st)), j
 }
 
 func (p *Parser) parseVar(t string, st int) (node, int) {
@@ -685,25 +814,25 @@ func (p *Parser) parseVar(t string, st int) (node, int) {
 	}
 
 	l := j - st - 1
-	if l > 128 {
+	if l > maxArg0 {
 		return p.newErr("too long variable name", st)
 	}
 
-	return p.newNodeArg(Var, l, node(st+1)), j
+	return p.newNodeArg0(vark, l, node(st+1)), j
 }
 
-func (p *Parser) parseName(t string, st int, kind Kind) (node, int) {
+func (p *Parser) parseName(t string, st int, kind node) (node, int) {
 	s, j := skip.Identifier([]byte(t), st, skip.IDUnicode)
 	if s.Err() {
 		return p.newErr("bad name", st)
 	}
 
 	l := j - st
-	if l > argMask {
+	if l > maxArg0 {
 		return p.newErr("too long name", st)
 	}
 
-	return p.newNodeArg(kind, l, node(st)), j
+	return p.newNodeArg0(kind, l, node(st)), j
 }
 
 func (p *Parser) parseNum(t string, st int) (node, int) {
@@ -713,14 +842,14 @@ func (p *Parser) parseNum(t string, st int) (node, int) {
 	}
 
 	l := j - st
-	if l > argMask {
+	if l > maxArg0 {
 		return p.newErr("too long number", st)
 	}
 
-	return p.newNodeArg(Num, l, node(st)), j
+	return p.newNodeArg0(num, l, node(st)), j
 }
 
-func (p *Parser) parseOpBin(t string, st int) (k Kind, lvl, i int) {
+func (p *Parser) parseOpBin(t string, st int) (op BinOpKind, lvl level, i int) {
 	i = st + 1
 
 	switch t[st] {
@@ -728,9 +857,9 @@ func (p *Parser) parseOpBin(t string, st int) (k Kind, lvl, i int) {
 		if i < len(t) && t[i] == '|' {
 			return Or, levelOr, i + 1
 		}
-		return Pipe, levelPipe, i
+		return opPipe, levelPipe, i
 	case ',':
-		return Comma, levelComma, i
+		return opComma, levelComma, i
 	case '+':
 		return Add, levelAdd, i
 	case '-':
@@ -738,6 +867,9 @@ func (p *Parser) parseOpBin(t string, st int) (k Kind, lvl, i int) {
 	case '*':
 		return Mul, levelMul, i
 	case '/':
+		if i < len(t) && t[i] == '/' {
+			return Alt, levelAlt, i + 1
+		}
 		return Div, levelMul, i
 	case '%':
 		return Mod, levelMul, i
@@ -774,74 +906,146 @@ func (p *Parser) parseOpBin(t string, st int) (k Kind, lvl, i int) {
 		}
 	}
 
-	return Err, 0, st
+	return 0, -1, st
 }
 
-func binOpLevel(op Kind) level {
-	if op < Pipe || op > Mod {
+func binOpLevel(op BinOpKind) level {
+	if op == opPipe {
+		return levelPipe
+	}
+	if op == opComma {
+		return levelComma
+	}
+	if op < 0 || op > Mod {
 		return -1
+	}
+	if op&Assign != 0 {
+		return levelAssign
 	}
 
 	return []level{
-		Pipe:       levelPipe,
-		Comma:      levelComma,
-		Assign:     levelAssign,
-		PipeAssign: levelAssign,
-		Or:         levelOr,
-		And:        levelAnd,
-		Equal:      levelCmp,
-		NotEqual:   levelCmp,
-		Less:       levelCmp,
-		LessEq:     levelCmp,
-		Greater:    levelCmp,
-		GreaterEq:  levelCmp,
-		Add:        levelAdd,
-		Sub:        levelAdd,
-		Mul:        levelMul,
-		Div:        levelMul,
-		Mod:        levelMul,
+		Alt:       levelAlt,
+		Or:        levelOr,
+		And:       levelAnd,
+		Equal:     levelCmp,
+		NotEqual:  levelCmp,
+		Less:      levelCmp,
+		LessEq:    levelCmp,
+		Greater:   levelCmp,
+		GreaterEq: levelCmp,
+		Add:       levelAdd,
+		Sub:       levelAdd,
+		Mul:       levelMul,
+		Div:       levelMul,
+		Mod:       levelMul,
 	}[op]
+}
+
+func (p *Parser) skipSpaces(t string, i int) int {
+	for {
+		i = spaces.Skip([]byte(t), i)
+		if i == len(t) || t[i] != '#' {
+			break
+		}
+
+		i = p.skipComment(t, i)
+	}
+
+	return i
+}
+
+func (p *Parser) skipComment(t string, i int) int {
+	for i < len(t) && t[i] != '\n' {
+		if t[i] == '\\' {
+			i++
+		}
+
+		i++
+	}
+
+	return i
 }
 
 func (p *Parser) newErr(t string, i int) (node, int) {
 	fmt.Printf("newErr %q %v  from %v\n", t, i, from(1))
 	p.err = t
 
-	return p.newNode(Err), i
+	return errk, i
 }
 
-func (p *Parser) newNode(kind Kind, args ...node) node {
-	return p.newNodeArg(kind, 0, args...)
+func (p *Parser) newBinOp(op BinOpKind, l, r node) node {
+	return p.newNodeArg1(binop, int(op), l, r)
 }
 
-func (p *Parser) newNodeArg(kind Kind, arg int, args ...node) node {
-	x := p.newNodeHeader(kind, arg)
+func (p *Parser) newNodeArg0(kind node, arg0 int, args ...node) node {
+	if arg0 > maxArg0 {
+		panic(arg0)
+	}
+
+	return p.newNodeArgShifted(kind, arg0<<arg0Sh, args...)
+}
+
+func (p *Parser) newNodeArg1(kind node, arg1 int, args ...node) node {
+	if arg1 > maxArg1 {
+		panic(arg1)
+	}
+
+	return p.newNodeArgShifted(kind, arg1<<arg1Sh, args...)
+}
+
+func (p *Parser) newNodeNoArgs(kind node, arg1 int) node {
+	if arg1 > maxArg1 {
+		panic(arg1)
+	}
+
+	return node(arg1)<<arg1Sh | kind
+}
+
+func (p *Parser) newNodeArgShifted(kind node, arg int, args ...node) node {
+	id := len(p.buf)
+	if id > maxID {
+		panic("index overflow")
+	}
+
+	x := node(id)<<indexSh | node(arg) | kind
+
 	p.buf = append(p.buf, args...)
+
 	return x
 }
 
-func (p *Parser) newNodeHeader(kind Kind, arg int) node {
-	id := len(p.buf)
-	if id > indexMask {
-		panic("index overflow")
-	}
-	if kind&^kindMask != 0 {
-		panic(kind)
-	}
-	if arg&^(1<<(32-argShift)-1) != 0 {
-		panic(arg)
-	}
-
-	return node(arg)<<argShift | node(kind)<<indexBits | node(id)
+func (n Node) Kind() Kind {
+	return Kind(n.node.Kind())
 }
 
-func (n node) Index() int { return int(n & indexMask) }
-func (n node) Kind() Kind { return Kind(n >> indexBits & kindMask) }
-func (n node) Err() bool  { return n.Kind() == Err }
-func (n node) Arg() int   { return int(n >> argShift) }
+func (n node) Kind0() node   { return n & kind0Mask }
+func (n node) Kind1() node   { return n & kind1Mask }
+func (n node) IsKind1() bool { return n.Kind0() == kind1 }
+func (n node) Kind() node {
+	if n.IsKind1() {
+		return n & kind1Mask
+	}
+	return n & kind0Mask
+}
+func (n node) Index() int { return int(n >> indexSh) }
+func (n node) Err() bool  { return n == errk }
+func (n node) Arg() int {
+	if n.IsKind1() {
+		return int(n & argPreMask >> arg1Sh)
+	}
 
-func (n node) GoString() string { return fmt.Sprintf("0x%x", uint(n)) }
+	return int(n & argPreMask >> arg0Sh)
+}
+
+func (p *Parser) Arg(n node, i int) node   { return p.buf[n.Index()+i] }
+func (p *Parser) ArgInt(n node, i int) int { return int(p.Arg(n, i)) }
+
+func (n node) GoString() string {
+	return fmt.Sprintf("0x%x_%x_%x", n.Index(), n.Arg(), int(n.Kind()))
+}
+
 func (n node) String() string {
+	return n.GoString()
 	if n.Arg() == 0 {
 		return fmt.Sprintf("%v#%x", n.Kind(), n.Index())
 	}
