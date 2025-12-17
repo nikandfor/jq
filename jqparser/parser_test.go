@@ -81,7 +81,7 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 	n, err := p.Parse(text)
 	if err != nil {
 		t.Errorf("prog: %s\n\troot %v, err: %v", text, n, err)
-		t.Logf("%s\n", p.Where(err))
+		t.Logf("%s\n", err.(Error).Where())
 	}
 
 	var back string
@@ -102,6 +102,83 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), arg)
 
 	if back != exp {
-		t.Errorf("root %v\n%#v", n.node, p)
+		t.Errorf("root %#v\n%#v", n.node, p)
+	}
+}
+
+func BenchmarkParserNew(b *testing.B) {
+	b.ReportAllocs()
+
+	text := `
+	# \
+		Showing worst case scenario \
+
+	trim("contains escapes \n\"\\ \U0001F600 and non ASCII ñ") as $value |
+	len($value) == 0x2A
+	# let's introduce an error too \
+	whatever
+`
+
+	var err error
+
+	for range b.N {
+		var p Parser
+
+		_, err = p.Parse(text)
+	}
+
+	if err != nil {
+		b.Errorf("error: %v", err)
+	}
+}
+
+func BenchmarkParserNewErr(b *testing.B) {
+	b.ReportAllocs()
+
+	text := `
+	# \
+		Showing worst case scenario \
+
+	trim("contains escapes \n\"\\ \U0001F600 and non ASCII ñ") as $value |
+	len($value) == 0x2A
+	# let's introduce an error too
+	whatever
+`
+
+	var err error
+
+	for range b.N {
+		var p Parser
+
+		_, err = p.Parse(text)
+	}
+
+	if err != nil {
+		//	b.Errorf("error: %v", err)
+	}
+}
+
+func BenchmarkParserReset(b *testing.B) {
+	b.ReportAllocs()
+
+	text := `
+	# \
+		Showing worst case scenario \
+
+	trim("contains escapes \n\"\\ \U0001F600 and non ASCII ñ") as $value |
+	len($value) == 0x2A
+	# let's introduce an error too \
+	whatever
+`
+
+	var err error
+	var p Parser
+
+	for range b.N {
+		_, err = p.Parse(text)
+	}
+
+	if err != nil {
+		b.Errorf("error: %v", err)
 	}
 }

@@ -29,7 +29,7 @@ func (p *Parser) astext(n node) string {
 		x := n.Index()
 		l := n.Arg()
 
-		st := int(p.buf[x])
+		st := int(p.nodes[x])
 
 		return p.text[st : st+l]
 	default:
@@ -93,7 +93,7 @@ func (p *Parser) Pipe(n Node) []Node {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base : base+l]
+	args := p.nodes[base : base+l]
 
 	return *(*[]Node)(unsafe.Pointer(&args))
 }
@@ -102,7 +102,7 @@ func (p *Parser) Comma(n Node) []Node {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base : base+l]
+	args := p.nodes[base : base+l]
 
 	return *(*[]Node)(unsafe.Pointer(&args))
 }
@@ -111,7 +111,7 @@ func (p *Parser) Bind(n Node) (val, expr Node, bindings []Node) {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base+2 : base+2+l]
+	args := p.nodes[base+2 : base+2+l]
 	bindings = *(*[]Node)(unsafe.Pointer(&args))
 
 	return p.argNode(n, 0), p.argNode(n, 1), bindings
@@ -135,7 +135,7 @@ func (p *Parser) Obj(n Node) []Node {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base : base+2*l]
+	args := p.nodes[base : base+2*l]
 
 	return *(*[]Node)(unsafe.Pointer(&args))
 }
@@ -152,7 +152,7 @@ func (p *Parser) If(n Node) []Node {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base : base+l]
+	args := p.nodes[base : base+l]
 
 	return *(*[]Node)(unsafe.Pointer(&args))
 }
@@ -161,7 +161,7 @@ func (p *Parser) FuncCall(n Node) (Node, []Node) {
 	base := n.node.Index()
 	l := n.node.Arg()
 
-	args := p.buf[base+1 : base+1+l]
+	args := p.nodes[base+1 : base+1+l]
 
 	return p.argNode(n, 0), *(*[]Node)(unsafe.Pointer(&args))
 }

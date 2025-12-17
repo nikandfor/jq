@@ -42,10 +42,10 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 			b = append(b, '(')
 		}
 
-		b = p.appendFormat(b, p.buf[base], oplevel, false)
+		b = p.appendFormat(b, p.nodes[base], oplevel, false)
 
 		for i := 1; i < cnt; i++ {
-			r := p.buf[base+i]
+			r := p.nodes[base+i]
 
 			if k := r.Kind(); op == opPipe && (k == prop || k == iter || k == index || k == slice) {
 				b = p.appendFormat(b, r, oplevel, true)
@@ -143,18 +143,18 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 		case Pos:
 			x := n.Index()
 			b = append(b, '+')
-			return p.appendFormat(b, p.buf[x], unary.Level(), false)
+			return p.appendFormat(b, p.nodes[x], unary.Level(), false)
 		case Neg:
 			x := n.Index()
 			b = append(b, '-')
-			return p.appendFormat(b, p.buf[x], unary.Level(), false)
+			return p.appendFormat(b, p.nodes[x], unary.Level(), false)
 		default:
 			panic(op)
 		}
 	case arr:
 		x := n.Index()
 		b = append(b, '[')
-		b = p.appendFormat(b, p.buf[x], -1, false)
+		b = p.appendFormat(b, p.nodes[x], -1, false)
 		b = append(b, ']')
 		return b
 	case obj:
@@ -166,8 +166,8 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, ',', ' ')
 			}
 
-			k := p.buf[x+2*i]
-			v := p.buf[x+2*i+1]
+			k := p.nodes[x+2*i]
+			v := p.nodes[x+2*i+1]
 
 			kk := k.Kind()
 			par := !(kk == name || kk == vark || kk == str)
@@ -180,7 +180,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, ')')
 			}
 
-			if k == v {
+			if k == v || k.Kind() == name && v.Kind() == prop && k.Index() == v.Index() {
 				continue
 			}
 
@@ -202,7 +202,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 
 		x := n.Index()
 		b = append(b, '[')
-		b = p.appendFormat(b, p.buf[x], -1, false)
+		b = p.appendFormat(b, p.nodes[x], -1, false)
 		return append(b, ']')
 	case slice:
 		if !train {
@@ -212,14 +212,14 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 		x := n.Index()
 		b = append(b, '[')
 
-		if p.buf[x] != 0 {
-			b = p.appendFormat(b, p.buf[x], -1, false)
+		if p.nodes[x] != 0 {
+			b = p.appendFormat(b, p.nodes[x], -1, false)
 		}
 
 		b = append(b, ':')
 
-		if p.buf[x+1] != 0 {
-			b = p.appendFormat(b, p.buf[x+1], -1, false)
+		if p.nodes[x+1] != 0 {
+			b = p.appendFormat(b, p.nodes[x+1], -1, false)
 		}
 
 		return append(b, ']')
@@ -240,7 +240,7 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, ',', ' ')
 			}
 
-			a := p.buf[base+i]
+			a := p.nodes[base+i]
 			k := a.Kind()
 			par := k == pipe || k == comma
 
@@ -270,18 +270,18 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 				b = append(b, " elif "...)
 			}
 
-			b = p.appendFormat(b, p.buf[x+i], -1, false)
+			b = p.appendFormat(b, p.nodes[x+i], -1, false)
 
 			b = append(b, " then "...)
 
-			b = p.appendFormat(b, p.buf[x+i+1], -1, false)
+			b = p.appendFormat(b, p.nodes[x+i+1], -1, false)
 
 			i += 2
 		}
 
 		if i < l {
 			b = append(b, " else "...)
-			b = p.appendFormat(b, p.buf[x+i], -1, false)
+			b = p.appendFormat(b, p.nodes[x+i], -1, false)
 		}
 
 		b = append(b, " end"...)
@@ -313,18 +313,13 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 	}
 }
 
-func (p *Parser) Where(err error) string {
-	e, ok := err.(*Error)
-	if !ok {
-		return ""
-	}
-
+func (e Error) Where() string {
 	line := 1
 	linest := 0
 	i := 0
 
-	for i < e.index {
-		if p.text[i] == '\n' {
+	for i < e.p.index {
+		if e.p.text[i] == '\n' {
 			line++
 			linest = i
 		}
@@ -332,11 +327,11 @@ func (p *Parser) Where(err error) string {
 		i++
 	}
 
-	end := skip.NewCharset("\n").SkipUntil([]byte(p.text), i)
+	end := skip.NewCharset("\n").SkipUntil([]byte(e.p.text), i)
 
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "@%s@  (line %d, col %d)\n", p.text[linest:end], line, i-linest)
+	fmt.Fprintf(&b, "@%s@  (line %d, col %d)\n", e.p.text[linest:end], line, i-linest)
 
 	return b.String()
 }
@@ -395,7 +390,7 @@ func (k Kind) String() string {
 	case Def:
 		return "def"
 	case FuncCall:
-		return "func"
+		return "funccall"
 	default:
 		return fmt.Sprintf("0x%x", int(k))
 	}

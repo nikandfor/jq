@@ -11,13 +11,16 @@ import (
 
 type (
 	Parser struct {
-		root node
 		text string
+		root node
 
-		buf []node
-		tmp []node
+		nodes []node
+		tmp   []node
 
-		err string
+		err   string
+		index int
+
+		prealloc [32]node
 	}
 
 	Kind uint32
@@ -33,8 +36,7 @@ type (
 	}
 
 	Error struct {
-		text  string
-		index int
+		p *Parser
 	}
 )
 
@@ -51,9 +53,9 @@ const (
 
 	argPreMask = 1<<indexSh - 1
 
-	maxID   = 1 << (32 - indexSh - 1)
-	maxArg0 = argPreMask >> arg0Sh
-	maxArg1 = argPreMask >> arg1Sh
+	maxIndex = 1 << (32 - indexSh - 1)
+	maxArg0  = argPreMask >> arg0Sh
+	maxArg1  = argPreMask >> arg1Sh
 )
 
 const (
@@ -188,42 +190,42 @@ var spaces = skip.NewCharset(" \t\n")
 func (p *Parser) Parse(text string) (Node, error) {
 	p.Reset()
 
+	if cap(p.nodes) == 0 {
+		p.nodes = p.prealloc[:0:24]
+	}
+	if cap(p.tmp) == 0 {
+		p.tmp = p.prealloc[24:24]
+	}
+
 	p.text = text
 
 	root, i := p.parseBinOp(text, 0, 0, false)
 	if root.Err() {
-		return Node{}, &Error{text: p.err, index: i}
+		return Node{}, Error{p}
 	}
 
 	i = p.skipSpaces(text, i)
 	if i != len(text) {
-		return Node{}, &Error{text: "trailing data", index: i}
+		p.err = "trailing data"
+		return Node{}, Error{p}
 	}
 
 	p.root = root
 
-	return p.Root(), nil
+	return Node{root}, nil
 }
 
 func (p *Parser) Reset() {
 	p.root = 0
 	p.text = ""
-	p.buf = p.buf[:0]
+	p.nodes = p.nodes[:0]
 	p.tmp = p.tmp[:0]
 	p.err = ""
+	p.index = 0
 }
 
 func (p *Parser) Root() Node {
 	return Node{p.root}
-}
-
-func (p *Parser) parseExpr(t string, st int, stopcomma bool) (node, int) {
-	x, i := p.parseBinOp(t, st, 0, stopcomma)
-	if x.Err() {
-		return x, i
-	}
-
-	return x, i
 }
 
 func (p *Parser) parseBinOp(t string, st int, lvl int, stopcomma bool) (node, int) {
@@ -388,13 +390,13 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 		return p.parseObj(t, i)
 	case t[i] == '"' || t[i] == '\'':
 		return p.parseString(t, i)
-	case p.isKeyword(t, i, "null"):
+	case p.isLiteral(t, i, "null"):
 		return p.newNodeNoArgs(null, 0), i + 4
-	case p.isKeyword(t, i, "true"):
+	case p.isLiteral(t, i, "true"):
 		return p.newNodeNoArgs(boolk, 1), i + 4
-	case p.isKeyword(t, i, "false"):
+	case p.isLiteral(t, i, "false"):
 		return p.newNodeNoArgs(boolk, 0), i + 5
-	case p.isKeyword(t, i, "if"):
+	case p.isLiteral(t, i, "if"):
 		return p.parseIf(t, i)
 	case t[i] == '.' && i+1 < len(t) && skip.Decimals.Is(t[i+1]) || skip.Decimals.Is(t[i]):
 		return p.parseNum(t, i)
@@ -405,7 +407,7 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 	}
 }
 
-func (p *Parser) isKeyword(t string, i int, word string) bool {
+func (p *Parser) isLiteral(t string, i int, word string) bool {
 	return strings.HasPrefix(t[i:], word) && (i+len(word) == len(t) || !skip.IDRest.Is(t[i+len(word)]))
 }
 
@@ -537,8 +539,8 @@ func (p *Parser) parseFuncArgs(t string, i int, callee node) (node, int) {
 
 	x := p.newNodeArg0(call, len(p.tmp[reset:]))
 
-	p.buf = append(p.buf, callee)
-	p.buf = append(p.buf, p.tmp[reset:]...)
+	p.nodes = append(p.nodes, callee)
+	p.nodes = append(p.nodes, p.tmp[reset:]...)
 
 	return x, i
 }
@@ -621,6 +623,10 @@ func (p *Parser) parseObj(t string, st int) (node, int) {
 			v = k
 		} else {
 			return p.newErr(sym, i)
+		}
+
+		if v.Kind() == name {
+			v = makeNode(v.Index(), v.Arg()<<arg0Sh, prop)
 		}
 
 		p.tmp = append(p.tmp, k, v)
@@ -931,18 +937,22 @@ func (p *Parser) newNodeNoArgs(kind node, arg1 int) node {
 }
 
 func (p *Parser) newNodeArgShifted(kind node, arg int, args ...node) node {
-	id := len(p.buf)
-	if id > maxID {
+	idx := len(p.nodes)
+	if idx > maxIndex {
 		panic("index overflow")
 	}
 
 	//	fmt.Printf("newNode  %#v  %v  %v  from %v %v\n", kind, arg, args, from(2), from(3))
 
-	x := node(id)<<indexSh | node(arg) | kind
+	x := makeNode(idx, arg, kind)
 
-	p.buf = append(p.buf, args...)
+	p.nodes = append(p.nodes, args...)
 
 	return x
+}
+
+func makeNode(idx, arg int, kind node) node {
+	return node(idx)<<indexSh | node(arg) | kind
 }
 
 func (n node) Kind0() node   { return n & kind0Mask }
@@ -975,8 +985,8 @@ func (n node) toOp() BinOpKind {
 	}
 }
 
-func (p *Parser) argNode(n Node, i int) Node { return Node{p.buf[n.node.Index()+i]} }
-func (p *Parser) arg(n node, i int) node     { return p.buf[n.Index()+i] }
+func (p *Parser) argNode(n Node, i int) Node { return Node{p.nodes[n.node.Index()+i]} }
+func (p *Parser) arg(n node, i int) node     { return p.nodes[n.Index()+i] }
 func (p *Parser) argInt(n node, i int) int   { return int(p.arg(n, i)) }
 
 func (n node) GoString() string {
@@ -987,7 +997,7 @@ func (n node) GoString() string {
 //	return fmt.Sprintf("%v#%x(%x)", Node{n}.Kind(), n.Index(), n.Arg())
 //}
 
-func (e *Error) Error() string { return fmt.Sprintf("%v at index %v", e.text, e.index) }
+func (e Error) Error() string { return fmt.Sprintf("%v at index %v", e.p.text, e.p.index) }
 
 func from(d int) string {
 	_, file, line, _ := runtime.Caller(1 + d)
