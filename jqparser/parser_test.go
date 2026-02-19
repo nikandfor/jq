@@ -102,7 +102,11 @@ func testParser2(t *testing.T, text, exp string, p *Parser) {
 	t.Logf("%-26v -> %-26v  %v(%d)", text, back, n.Kind(), arg)
 
 	if back != exp {
-		t.Errorf("root %#v\n%#v", n.node, p)
+		t.Errorf("root %15v  %#v", n, n.node)
+
+		for i, n := range p.nodes {
+			t.Logf("node %3d  %10v  %#v  %6x", i, Node{n}, n, uint32(n))
+		}
 	}
 }
 

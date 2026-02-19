@@ -170,7 +170,19 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 			v := p.nodes[x+2*i+1]
 
 			kk := k.Kind()
-			par := !(kk == name || kk == vark || kk == str)
+			vk := v.Kind()
+			if (vk == vark || vk == prop) && k.body() == v.body() {
+				n := k
+				if vk == vark {
+					n = v
+				}
+
+				b = p.appendFormat(b, n, -1, false)
+
+				continue
+			}
+
+			par := !(kk == name || kk == str)
 
 			if par {
 				b = append(b, '(')
@@ -178,10 +190,6 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 			b = p.appendFormat(b, k, -1, false)
 			if par {
 				b = append(b, ')')
-			}
-
-			if k == v || k.Kind() == name && v.Kind() == prop && k.Index() == v.Index() {
-				continue
 			}
 
 			b = append(b, ':', ' ')

@@ -23,6 +23,15 @@ func (p *Parser) Text(n Node) string {
 	return p.astext(n.node)
 }
 
+func (p *Parser) Name(n Node) string {
+	switch k := n.node.Kind(); k {
+	case name, prop, vark, label, brk:
+		return p.astext(n.node)
+	default:
+		panic(k)
+	}
+}
+
 func (p *Parser) astext(n node) string {
 	switch k := n.Kind(); k {
 	case num, str, name, prop, vark, label, brk:

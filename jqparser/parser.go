@@ -183,6 +183,7 @@ const (
 const (
 	eof = "unexpected end of input"
 	sym = "unexpected symbol"
+	typ = "unexpected node type"
 )
 
 var spaces = skip.NewCharset(" \t\n")
@@ -391,11 +392,11 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 	case t[i] == '"' || t[i] == '\'':
 		return p.parseString(t, i)
 	case p.isLiteral(t, i, "null"):
-		return p.newNodeNoArgs(null, 0), i + 4
+		return p.newNodeArg1NoArgs(null, 0), i + 4
 	case p.isLiteral(t, i, "true"):
-		return p.newNodeNoArgs(boolk, 1), i + 4
+		return p.newNodeArg1NoArgs(boolk, 1), i + 4
 	case p.isLiteral(t, i, "false"):
-		return p.newNodeNoArgs(boolk, 0), i + 5
+		return p.newNodeArg1NoArgs(boolk, 0), i + 5
 	case p.isLiteral(t, i, "if"):
 		return p.parseIf(t, i)
 	case t[i] == '.' && i+1 < len(t) && skip.Decimals.Is(t[i+1]) || skip.Decimals.Is(t[i]):
@@ -553,7 +554,7 @@ func (p *Parser) parseIndex(t string, st int) (n node, i int) {
 
 	if t[i] == ']' {
 		i++
-		return p.newNodeNoArgs(iter, 0), i
+		return p.newNodeArg1NoArgs(iter, 0), i
 	}
 
 	var lo, hi node
@@ -612,21 +613,25 @@ func (p *Parser) parseObj(t string, st int) (node, int) {
 			return p.newErr(eof, i)
 		}
 
-		if t[i] == ':' {
+		switch t[i] {
+		case ':':
 			i++
 
 			v, i = p.parseBinOp(t, i, 0, true)
 			if v.Err() {
 				return v, i
 			}
-		} else if t[i] == ',' || t[i] == '}' {
-			v = k
-		} else {
+		case ',', '}':
+			if kk := k.Kind(); kk == name {
+				v = rekindNodeArg0(prop, k)
+			} else if kk == vark {
+				v = k
+				k = rekindNodeArg0(name, v)
+			} else {
+				return p.newErr(typ, i)
+			}
+		default:
 			return p.newErr(sym, i)
-		}
-
-		if v.Kind() == name {
-			v = makeNode(v.Index(), v.Arg()<<arg0Sh, prop)
 		}
 
 		p.tmp = append(p.tmp, k, v)
@@ -656,7 +661,7 @@ func (p *Parser) parseObjKey(t string, st int) (node, int) {
 		return p.newErr(eof, i)
 	}
 
-	if c := t[i]; c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_' {
+	if skip.IDFirst.Is(t[i]) {
 		return p.parseName(t, i, name)
 	}
 
@@ -928,7 +933,7 @@ func (p *Parser) newNodeArg1(kind node, arg1 int, args ...node) node {
 	return p.newNodeArgShifted(kind, arg1<<arg1Sh, args...)
 }
 
-func (p *Parser) newNodeNoArgs(kind node, arg1 int) node {
+func (p *Parser) newNodeArg1NoArgs(kind node, arg1 int) node {
 	if arg1 > maxArg1 {
 		panic(arg1)
 	}
@@ -944,15 +949,19 @@ func (p *Parser) newNodeArgShifted(kind node, arg int, args ...node) node {
 
 	//	fmt.Printf("newNode  %#v  %v  %v  from %v %v\n", kind, arg, args, from(2), from(3))
 
-	x := makeNode(idx, arg, kind)
+	x := makeNode(kind, arg, idx)
 
 	p.nodes = append(p.nodes, args...)
 
 	return x
 }
 
-func makeNode(idx, arg int, kind node) node {
+func makeNode(kind node, arg, idx int) node {
 	return node(idx)<<indexSh | node(arg) | kind
+}
+
+func rekindNodeArg0(kind, n node) node {
+	return n&^kind0Mask | kind
 }
 
 func (n node) Kind0() node   { return n & kind0Mask }
@@ -972,6 +981,14 @@ func (n node) Arg() int {
 	}
 
 	return int(n & argPreMask >> arg0Sh)
+}
+
+func (n node) body() node {
+	if n.IsKind1() {
+		return n &^ kind1Mask
+	}
+
+	return n &^ kind0Mask
 }
 
 func (n node) toOp() BinOpKind {
