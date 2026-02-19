@@ -241,16 +241,21 @@ func (p *Parser) appendFormat(b []byte, n node, parlevel int, train bool) []byte
 			return b
 		}
 
+		sep := byte(';')
+		if p.CommaSeparatedArgs {
+			sep = ','
+		}
+
 		b = append(b, '(')
 
 		for i := range l {
 			if i != 0 {
-				b = append(b, ',', ' ')
+				b = append(b, sep, ' ')
 			}
 
 			a := p.nodes[base+i]
 			k := a.Kind()
-			par := k == pipe || k == comma
+			par := k == pipe || (k == comma && p.CommaSeparatedArgs)
 
 			if par {
 				b = append(b, '(')

@@ -21,6 +21,9 @@ type (
 		index int
 
 		prealloc [32]node
+
+		CommaSeparatedArgs bool
+		SingleQuoteString  bool
 	}
 
 	Kind uint32
@@ -322,7 +325,7 @@ func (p *Parser) parseUnOp(t string, st int) (node, int) {
 }
 
 func (p *Parser) parseAs(t string, st int) (node, int) {
-	arg, i := p.parseArg(t, st)
+	arg, i := p.parseTerm(t, st)
 	if arg.Err() {
 		return arg, i
 	}
@@ -366,7 +369,7 @@ func (p *Parser) parseBinding(t string, st int) (n node, i int) {
 	}
 }
 
-func (p *Parser) parseArg(t string, st int) (n node, i int) {
+func (p *Parser) parseTerm(t string, st int) (n node, i int) {
 	// defer func() { fmt.Printf("parseArg %v -> %v %v  from %v %v\n", st, n, i, from(1), from(2)) }()
 	i = p.skipSpaces(t, st)
 
@@ -389,7 +392,7 @@ func (p *Parser) parseArg(t string, st int) (n node, i int) {
 		return p.newNodeArg0(arr, 1, x), i
 	case t[i] == '{':
 		return p.parseObj(t, i)
-	case t[i] == '"' || t[i] == '\'':
+	case t[i] == '"' || t[i] == '\'' && p.SingleQuoteString:
 		return p.parseString(t, i)
 	case p.isLiteral(t, i, "null"):
 		return p.newNodeArg1NoArgs(null, 0), i + 4
@@ -471,7 +474,7 @@ loop:
 		case exp&expprop != 0 && skip.IDFirst.Is(t[i]):
 			x, i = p.parseName(t, i, prop)
 			exp = expdot | expbrack | expcall | expend
-		case exp&expstr != 0 && (t[i] == '"' || t[i] == '\''):
+		case exp&expstr != 0 && (t[i] == '"' || t[i] == '\'' && p.SingleQuoteString):
 			x, i = p.parseString(t, i)
 			if !x.Err() {
 				x = p.newNodeArg1(index, 0, x)
@@ -526,7 +529,7 @@ func (p *Parser) parseFuncArgs(t string, i int, callee node) (node, int) {
 			break
 		}
 
-		arg, i = p.parseBinOp(t, i, 0, true)
+		arg, i = p.parseBinOp(t, i, 0, p.CommaSeparatedArgs)
 		if arg.Err() {
 			return arg, i
 		}
@@ -673,7 +676,7 @@ func (p *Parser) parseObjKey(t string, st int) (node, int) {
 		return p.parseParen(t, i)
 	}
 
-	if t[i] == '"' || t[i] == '\'' {
+	if t[i] == '"' || t[i] == '\'' && p.SingleQuoteString {
 		return p.parseString(t, i)
 	}
 
