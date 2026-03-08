@@ -25,14 +25,14 @@ type (
 func NewDecoder() *Decoder {
 	return &Decoder{
 		Tag:   cbor.Array,
-		Flags: skip.Raw | skip.Quo | skip.Sqt,
+		Flags: skip.Plain | skip.Quo | skip.Sqt,
 		Comma: ',',
 	}
 }
 
 func (d *Decoder) Reset() {
 	if d.Flags == 0 {
-		d.Flags = skip.Raw | skip.Quo | skip.Sqt
+		d.Flags = skip.Plain | skip.Quo | skip.Sqt
 		d.Comma = ','
 	}
 

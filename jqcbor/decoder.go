@@ -11,6 +11,8 @@ type (
 	Decoder struct {
 		CBOR cbor.Iterator
 
+		SortMaps bool
+
 		arr []Off
 	}
 )
@@ -102,6 +104,10 @@ func (d *Decoder) Decode(b *jq.Buffer, r []byte, st int) (off Off, i int, err er
 
 	if len(d.arr[arrbase:]) == 0 && !labels {
 		return jq.EmptyArray, i, nil
+	}
+
+	if tag == cbor.Map && d.SortMaps {
+		b.SortMap(d.arr[arrbase:])
 	}
 
 	off, _ = d.decodeLabels(b, r, st)

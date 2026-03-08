@@ -2,6 +2,7 @@ package jq
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"sort"
 
@@ -35,7 +36,12 @@ func (x mapSort) Swap(i, j int) {
 	i *= 2
 	j *= 2
 
-	x.v[i], x.v[i+1], x.v[j], x.v[j+1] = x.v[j], x.v[j+1], x.v[i], x.v[i+1]
+	x.v[i], x.v[j] = x.v[j], x.v[i]
+
+	i++
+	j++
+
+	x.v[i], x.v[j] = x.v[j], x.v[i]
 }
 
 func (x arrSort) Less(i, j int) bool {
@@ -46,7 +52,10 @@ func (x mapSort) Less(i, j int) bool {
 	i *= 2
 	j *= 2
 
-	return x.b.Compare(x.v[i], x.v[j]) < 0
+	return cmp.Or(
+		x.b.Compare(x.v[i], x.v[j]),
+		x.b.Compare(x.v[i+1], x.v[j+1]),
+	) < 0
 }
 
 const (
@@ -54,7 +63,7 @@ const (
 	greater = 1
 )
 
-func (b *Buffer) Compare(x, y Off) int {
+func (b *Buffer) Compare(x, y Off) (_r int) {
 	if b.Equal(x, y) {
 		return 0
 	}
@@ -95,8 +104,15 @@ func (b *Buffer) Compare(x, y Off) int {
 func (b *Buffer) cmpNum(x, y Off) int {
 	br := b.Reader()
 
-	if cbor.IsInt(br.Tag(x)) {
-		tag := br.Tag(x)
+	if xtag, ytag := br.Tag(x), br.Tag(y); cbor.IsInt(xtag) && cbor.IsInt(ytag) {
+		if xtag != ytag {
+			if xtag == cbor.Int {
+				return 1
+			} else {
+				return -1
+			}
+		}
+
 		x := br.Unsigned(x)
 		y := br.Unsigned(y)
 
@@ -104,7 +120,7 @@ func (b *Buffer) cmpNum(x, y Off) int {
 			return 0
 		}
 
-		if (x < y) == (tag == cbor.Int) {
+		if (x < y) == (xtag == cbor.Int) {
 			return less
 		} else {
 			return greater

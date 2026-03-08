@@ -46,7 +46,7 @@ func IsTrue(b *Buffer, off Off) bool {
 	}
 
 	off = b.Reader().UnderAllLabels(off)
-	tag, sub, _, _, _ := b.Decoder.Tag(b.Buf(off))
+	tag, sub, _, _, _, _ := b.Decoder.Tag(b.Buf(off))
 
 	return tag != cbor.Simple || (sub != cbor.Null && sub != cbor.False && sub != cbor.None)
 }

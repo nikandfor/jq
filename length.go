@@ -32,7 +32,7 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		}
 	}
 
-	tag, sub, l, _, _ := b.Decoder.Tag(b.Buf(off))
+	tag, sub, l, arrl, _, _ := b.Decoder.Tag(b.Buf(off))
 
 	switch tag {
 	case cbor.Int:
@@ -41,16 +41,16 @@ func (f Length) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 		v := b.Reader().Unsigned(off)
 		res = b.Writer().Uint64(v)
 	case cbor.Bytes:
-		res = b.Writer().Int(int(sub))
+		res = b.Writer().Int(int(l))
 	case cbor.String:
 		if f.CountRunes {
 			s := b.Reader().Bytes(off)
 			res = b.Writer().Int(utf8.RuneCount(s))
 		} else {
-			res = b.Writer().Int(int(sub))
+			res = b.Writer().Int(int(l))
 		}
 	case cbor.Array, cbor.Map:
-		res = b.Writer().Int(l)
+		res = b.Writer().Int(arrl)
 	case cbor.Simple:
 		switch sub {
 		case cbor.Null:

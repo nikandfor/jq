@@ -14,13 +14,14 @@ func (d Decoder) TagOnly(b []byte, st int) (tag Tag) {
 	return Tag(b[st]) & cbor.TagMask
 }
 
-func (d Decoder) Tag(b []byte, st int) (tag Tag, sub int64, l, s, i int) {
+func (d Decoder) Tag(b []byte, st int) (tag, sub Tag, l int64, arrl, s, i int) {
 	tag = Tag(b[st]) & cbor.TagMask
+	sub = Tag(b[st]) & cbor.SubMask
 
 	if arrOrMap(tag) {
-		tag, l, s, i = d.TagArrayMap(b, st)
+		tag, arrl, s, i = d.TagArrayMap(b, st)
 	} else {
-		tag, sub, i = d.CBOR.Tag(b, st)
+		tag, l, i = d.CBOR.Tag(b, st)
 	}
 
 	return
@@ -32,7 +33,7 @@ func (d Decoder) UnderAllLabelsTagOnly(b []byte, st int) (tag Tag) {
 	return d.TagOnly(b, i)
 }
 
-func (d Decoder) UnderAllLabelsTag(b []byte, st int) (tag Tag, sub int64, l, s, i int) {
+func (d Decoder) UnderAllLabelsTag(b []byte, st int) (tag, sub Tag, l int64, arrl, s, i int) {
 	i = d.SkipAllLabels(b, st)
 
 	return d.Tag(b, i)

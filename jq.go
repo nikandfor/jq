@@ -202,8 +202,10 @@ func (f Halt) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 
 func (f Off) String() string { return fmt.Sprintf("%x", int(f)) }
 func (f Off) Format(s fmt.State, v rune) {
+	wid, _ := s.Width()
+
 	if v == 'v' && f < 0 {
-		_, _ = s.Write([]byte(neg2str[-f]))
+		_, _ = fmt.Fprintf(s, "%-*s", wid, neg2str[-f])
 		return
 	}
 
@@ -213,7 +215,7 @@ func (f Off) Format(s fmt.State, v rune) {
 
 	bash := csel(s.Flag('#') || !s.Flag('+'), "#", "")
 
-	_, _ = fmt.Fprintf(s, "%"+bash+string(v), int64(f))
+	_, _ = fmt.Fprintf(s, "%"+bash+"*"+string(v), wid, int64(f))
 }
 
 func (f Dot) String() string   { return "." }
@@ -241,10 +243,7 @@ func (f Literal) String() string {
 			return fmt.Sprintf("%q", v)
 		}
 	case cbor.Simple:
-		_, sub, i := d.CBOR.Tag(f.Raw, 0)
-		if i != len(f.Raw) {
-			break
-		}
+		sub := d.CBOR.Simple(f.Raw, 0)
 
 		switch sub {
 		case cbor.False:

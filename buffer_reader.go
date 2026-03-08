@@ -53,17 +53,16 @@ func (b BufferReader) Raw(off Off) []byte {
 	return raw
 }
 
-func (b BufferReader) Simple(off Off) int {
+func (b BufferReader) Simple(off Off) Tag {
 	if off < 0 {
-		return int(shortToCBOR[-off]) & cbor.SubMask
+		return Tag(shortToCBOR[-off]) & cbor.SubMask
 	}
 
-	_, sub, _ := b.Decoder.CBOR.Tag(b.Buf(off))
-	return int(sub)
+	return b.Decoder.CBOR.Simple(b.Buf(off))
 }
 
 func (b BufferReader) FloatChecked(off Off) (float64, error) {
-	if tag := b.TagRaw(off); !cbor.IsFloat(tag) {
+	if tag := b.TagRaw(off); !cbor.IsNum(tag) {
 		return 0, WantedFloat(tag)
 	}
 
@@ -71,6 +70,13 @@ func (b BufferReader) FloatChecked(off Off) (float64, error) {
 }
 
 func (b BufferReader) Float(off Off) float64 {
+	switch off {
+	case Zero:
+		return 0
+	case One:
+		return 1
+	}
+
 	v, _ := b.Decoder.Float(b.Buf(off))
 	return v
 }
@@ -91,10 +97,12 @@ func (b BufferReader) Float32(off Off) float32 {
 func (b BufferReader) IsSimple(off Off, specials ...Off) (ok bool) {
 	if off < 0 {
 		for _, v := range specials {
-			ok = ok || v == off
+			if v == off {
+				return true
+			}
 		}
 
-		return ok
+		return false
 	}
 
 	bits := 0
@@ -103,26 +111,18 @@ func (b BufferReader) IsSimple(off Off, specials ...Off) (ok bool) {
 		bits |= 1 << -v
 	}
 
-	tag, sub, _, _, _ := b.Decoder.Tag(b.Buf(off))
+	tag, sub, l, _, _, _ := b.Decoder.Tag(b.Buf(off))
 
 	if tag == cbor.Int {
-		x := []Off{
-			0: -Zero,
-			1: -One,
-		}
-
-		return int(sub) < len(x) && bits&(1<<x[sub]) != 0
+		return l == 0 && bits&(1<<-Zero) != 0 ||
+			l == 1 && bits&(1<<-One) != 0
 	}
 
 	if tag == cbor.Simple {
-		x := []Off{
-			cbor.None:  -None,
-			cbor.Null:  -Null,
-			cbor.True:  -True,
-			cbor.False: -False,
-		}
-
-		return int(sub) < len(x) && bits&(1<<x[sub]) != 0
+		return sub == cbor.None && bits&(1<<-None) != 0 ||
+			sub == cbor.Null && bits&(1<<-Null) != 0 ||
+			sub == cbor.True && bits&(1<<-True) != 0 ||
+			sub == cbor.False && bits&(1<<-False) != 0
 	}
 
 	return false
@@ -188,6 +188,32 @@ func (b BufferReader) ArrayMap(off Off, arr []Off) []Off {
 	buf, st := b.Buf(off)
 	arr, _ = b.Decoder.ArrayMap(buf, st, arr)
 	return arr
+}
+
+func (b BufferReader) MapValue(off Off, key Off) Off {
+	l := b.ArrayMapLen(off)
+
+	for i := range l {
+		k, v := b.ArrayMapIndex(off, i)
+		if b.Equal(k, key) {
+			return v
+		}
+	}
+
+	return None
+}
+
+func (b BufferReader) MapValueStringKey(off Off, key string) Off {
+	l := b.ArrayMapLen(off)
+
+	for i := range l {
+		k, v := b.ArrayMapIndex(off, i)
+		if b.String(k) == key {
+			return v
+		}
+	}
+
+	return None
 }
 
 func (b BufferReader) IntChecked(off Off) (int, error) {

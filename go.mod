@@ -3,7 +3,7 @@ module nikand.dev/go/jq
 go 1.22
 
 require (
-	nikand.dev/go/cbor v0.0.0-20250217185914-a319e53bb3df
-	nikand.dev/go/json2 v0.0.0-20250217191402-8fce65ff92d5
+	nikand.dev/go/cbor v0.0.0-20260308033210-6c85ae0ecd87
+	nikand.dev/go/json2 v0.11.1-0.20251213155005-470ddea1d06f
 	nikand.dev/go/skip v0.0.0-20250318144159-13117a8602fa
 )

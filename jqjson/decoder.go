@@ -13,11 +13,13 @@ type (
 	Decoder struct {
 		JSON json2.Iterator
 
+		SortMaps bool
+
 		arr []jq.Off
 	}
 
 	MultiDecoder struct {
-		*Decoder
+		Decoder
 		i int
 	}
 )
@@ -25,9 +27,7 @@ type (
 var ErrPartialRead = errors.New("partial read")
 
 func NewMultiDecoder() *MultiDecoder {
-	return &MultiDecoder{
-		Decoder: NewDecoder(),
-	}
+	return &MultiDecoder{}
 }
 
 func (d *MultiDecoder) ApplyTo(b *jq.Buffer, off jq.Off, next bool) (jq.Off, bool, error) {
@@ -207,6 +207,10 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 		}
 
 		d.arr = append(d.arr, off)
+	}
+
+	if tag == cbor.Map && d.SortMaps {
+		b.SortMap(d.arr[arrbase:])
 	}
 
 	off = bw.ArrayMap(tag, d.arr[arrbase:])
