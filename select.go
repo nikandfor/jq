@@ -12,9 +12,9 @@ type (
 	}
 )
 
-func NewSelect(cond Filter) *Select { return &Select{Cond: cond} }
+func NewSelect(cond Filter) Select { return Select{Cond: cond} }
 
-func (f *Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
+func (f Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}

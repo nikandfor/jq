@@ -111,5 +111,5 @@ func (f *ArbitraryIndex) applyTo(b *Buffer, off Off, base NodePath, next bool, a
 }
 
 func (f ArbitraryIndex) String() string {
-	return fmt.Sprintf(".(%v)[%v]%s", f.Base, f.Index, csel(f.NoErr, "?", ""))
+	return fmt.Sprintf("(%v)[%v]%s", f.Base, f.Index, csel(f.NoErr, "?", ""))
 }

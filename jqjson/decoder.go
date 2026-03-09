@@ -140,13 +140,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 		}
 
 		if j == len(raw) {
-			if v == 0 || v == 1 {
-				return jq.Zero - jq.Off(v), i, nil
-			}
-
-			off = bw.Int(v)
-
-			return off, i, nil
+			return bw.Int(v), i, nil
 		}
 
 		f, err := strconv.ParseFloat(string(raw), 64)
@@ -154,9 +148,7 @@ func (d *Decoder) decode(b *jq.Buffer, r []byte, st int, key bool) (off jq.Off, 
 			return off, st, err
 		}
 
-		off = bw.Float(f)
-
-		return off, i, nil
+		return bw.Float(f), i, nil
 	case json2.String:
 		off = bw.Off()
 

@@ -69,7 +69,7 @@ func ApplyGetAll(f Filter, b *Buffer, off Off, arr []Off) (res []Off, err error)
 	return res, nil
 }
 
-func ApplyFuncAll(f Filter, b *Buffer, off Off, p func(off Off) error) (err error) {
+func ApplyFuncAll(f Filter, b *Buffer, off Off, p func(b *Buffer, off Off) error) (err error) {
 	var sub Off
 	next := false
 
@@ -80,7 +80,7 @@ func ApplyFuncAll(f Filter, b *Buffer, off Off, p func(off Off) error) (err erro
 		}
 
 		if sub != None {
-			err = p(sub)
+			err = p(b, sub)
 			if err != nil {
 				return err
 			}

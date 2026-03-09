@@ -107,6 +107,17 @@ type (
 	TypeError int64
 )
 
+const (
+	TagInt    = Tag(cbor.Int)
+	TagNeg    = Tag(cbor.Neg)
+	TagBytes  = Tag(cbor.Bytes)
+	TagString = Tag(cbor.String)
+	TagArray  = Tag(cbor.Array)
+	TagMap    = Tag(cbor.Map)
+	TagLabel  = Tag(cbor.Label)
+	TagSimple = Tag(cbor.Simple)
+)
+
 // Frequently used values that are embedded in the Off itself.
 const (
 	_ Off = -iota

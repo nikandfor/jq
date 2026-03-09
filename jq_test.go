@@ -45,6 +45,23 @@ func testSame(tb testing.TB, f Filter, b *Buffer, eoff, off Off) {
 	}
 }
 
+func testSimple(tb testing.TB, f Filter, b *Buffer, in, val any) {
+	tb.Logf("filter: %v", f)
+
+	root := b.appendVal(in)
+	eoff := b.appendVal(val)
+
+	off, more, err := f.ApplyTo(b, root, false)
+	assertNoError(tb, err)
+	assertEqualVal(tb, b, eoff, off, "wanted %v", val)
+	assertTrue(tb, !more, "didn't want more")
+
+	if tb.Failed() {
+		_, file, line, _ := runtime.Caller(1)
+		tb.Logf("from %v:%d", file, line)
+	}
+}
+
 func testOne(tb testing.TB, f Filter, b *Buffer, root Off, val any) {
 	tb.Logf("root %v   filter: %v", root, f)
 
