@@ -29,7 +29,6 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 	}
 
 	br := b.Reader()
-	bw := b.Writer()
 
 	if br.IsSimple(left, Null) {
 		return right, more, nil
@@ -38,8 +37,30 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 		return left, more, nil
 	}
 
+	res, err = plus(b, left, right)
+	if err != nil {
+		return None, false, err
+	}
+
+	return res, more, nil
+}
+
+func plus(b *Buffer, left, right Off) (res Off, err error) {
+	br := b.Reader()
+	bw := b.Writer()
+
+	if left == Null {
+		return right, nil
+	}
+	if right == Null {
+		return left, nil
+	}
+
 	ltag, rtag := br.Tag(left), br.Tag(right)
 	lraw, rraw := br.TagRaw(left), br.TagRaw(right)
+
+	arrbase := len(b.arr)
+	defer func() { b.arr = b.arr[:arrbase] }()
 
 	switch {
 	case ltag == cbor.Int && rtag == cbor.Int:
@@ -91,10 +112,10 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 			break
 		}
 
-		f.arr = br.ArrayMap(left, f.arr[:0])
-		f.arr = br.ArrayMap(right, f.arr)
+		b.arr = br.ArrayMap(left, b.arr)
+		b.arr = br.ArrayMap(right, b.arr)
 
-		res = bw.Array(f.arr)
+		res = bw.Array(b.arr[arrbase:])
 	case ltag == cbor.Map && rtag == cbor.Map:
 		ll := br.ArrayMapLen(left)
 		rl := br.ArrayMapLen(right)
@@ -108,25 +129,25 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 			break
 		}
 
-		f.arr = br.ArrayMap(left, f.arr[:0])
-		l := len(f.arr)
-		f.arr = br.ArrayMap(right, f.arr)
+		b.arr = br.ArrayMap(left, b.arr)
+		l := len(b.arr)
+		b.arr = br.ArrayMap(right, b.arr)
 		r := l
 
 	out:
-		for i := l; i < len(f.arr); i += 2 {
+		for i := l; i < len(b.arr); i += 2 {
 			for j := 0; j < r; j += 2 {
-				if b.Equal(f.arr[j], f.arr[i]) {
-					f.arr[j+1] = f.arr[i+1]
+				if b.Equal(b.arr[j], b.arr[i]) {
+					b.arr[j+1] = b.arr[i+1]
 					continue out
 				}
 			}
 
-			f.arr[r], f.arr[r+1] = f.arr[i], f.arr[i+1]
+			b.arr[r], b.arr[r+1] = b.arr[i], b.arr[i+1]
 			r += 2
 		}
 
-		res = bw.Map(f.arr[:r])
+		res = bw.Map(b.arr[arrbase:r])
 	default:
 		fmin := cbor.Simple | cbor.Float8
 		fmax := cbor.Simple | cbor.Float64
@@ -156,10 +177,10 @@ func (f *Plus) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err e
 			break
 		}
 
-		return None, false, PlusError(ltag) | PlusError(rtag)<<8
+		return None, PlusError(ltag) | PlusError(rtag)<<8
 	}
 
-	return res, more, nil
+	return res, nil
 }
 
 func (f Plus) String() string {

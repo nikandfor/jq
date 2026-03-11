@@ -163,6 +163,8 @@ func (f Off) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	return f, false, nil
 }
 
+func NewDot() Dot { return Dot{} }
+
 func (f Dot) ApplyTo(b *Buffer, off Off, next bool) (Off, bool, error) {
 	if next {
 		return None, false, nil

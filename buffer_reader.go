@@ -2,6 +2,10 @@ package jq
 
 import "nikand.dev/go/cbor"
 
+func (b BufferReader) Type(off Off) TypeSet {
+	return NewTypeSet(b.TagRaw(off))
+}
+
 func (b BufferReader) Tag(off Off) Tag {
 	if off < 0 {
 		return shortToCBOR[-off] & cbor.TagMask

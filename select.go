@@ -8,23 +8,29 @@ import (
 
 type (
 	Select struct {
-		Cond Filter
+		Condition Filter
 	}
 )
 
-func NewSelect(cond Filter) Select { return Select{Cond: cond} }
+func NewSelect(cond Filter) Select { return Select{Condition: cond} }
 
 func (f Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if next {
 		return None, false, nil
 	}
 
-	subf := or[Filter](f.Cond, Dot{})
+	if f.Condition == nil {
+		if IsTrue(b, off) {
+			return off, false, nil
+		}
+
+		return None, false, nil
+	}
 
 	next = false
 
 	for {
-		res, next, err = subf.ApplyTo(b, off, next)
+		res, next, err = f.Condition.ApplyTo(b, off, next)
 		if err != nil {
 			return off, false, fe(f, off, err)
 		}
@@ -40,6 +46,14 @@ func (f Select) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err 
 	return None, false, nil
 }
 
+func ToBool(b *Buffer, off Off) Off {
+	if IsTrue(b, off) {
+		return True
+	}
+
+	return False
+}
+
 func IsTrue(b *Buffer, off Off) bool {
 	if off < 0 {
 		return off != None && off != Null && off != False
@@ -52,5 +66,5 @@ func IsTrue(b *Buffer, off Off) bool {
 }
 
 func (f Select) String() string {
-	return fmt.Sprintf("select(%v)", or[Filter](f.Cond, Dot{}))
+	return fmt.Sprintf("select(%v)", or[Filter](f.Condition, Dot{}))
 }

@@ -6,14 +6,14 @@ import (
 
 type (
 	If struct {
-		Cond, Then, Else Filter
+		Condition, Then, Else Filter
 
 		cond, done   bool
 		cnext, dnext bool
 	}
 )
 
-func NewIf(c, t, e Filter) *If { return &If{Cond: c, Then: t, Else: e} }
+func NewIf(c, t, e Filter) *If { return &If{Condition: c, Then: t, Else: e} }
 
 func (f *If) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err error) {
 	if !next {
@@ -26,7 +26,7 @@ func (f *If) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err err
 	}
 
 	if !f.dnext {
-		cond := csel(f.Cond != nil, f.Cond, Filter(Dot{}))
+		cond := csel(f.Condition != nil, f.Condition, Filter(Dot{}))
 
 		res, f.cnext, err = cond.ApplyTo(b, off, f.cnext)
 		if err != nil {
@@ -55,7 +55,7 @@ func (f *If) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, err err
 }
 
 func (f If) String() string {
-	c := csel(f.Cond != nil, f.Cond, Filter(Dot{}))
+	c := csel(f.Condition != nil, f.Condition, Filter(Dot{}))
 	t := csel(f.Then != nil, f.Then, Filter(Dot{}))
 
 	if f.Else == nil {

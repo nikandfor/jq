@@ -38,7 +38,7 @@ func (f *ToEntries) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool, 
 	br := b.Reader()
 	bw := b.Writer()
 
-	if err = br.check(off, cbor.Map); err != nil {
+	if err = br.check(off, TagMap); err != nil {
 		return None, false, fe(f, off, err)
 	}
 
@@ -85,7 +85,7 @@ func (f *FromEntries) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool
 
 	br := b.Reader()
 
-	if err = br.check(off, cbor.Array); err != nil {
+	if err = br.check(off, TagArray); err != nil {
 		return None, false, fe(f, off, err)
 	}
 
@@ -98,8 +98,8 @@ func (f *FromEntries) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool
 	l := len(f.arr)
 	f.obj = f.obj[:0]
 
-	for j := 0; j < l; j++ {
-		if err = br.check2(f.arr[j], cbor.Map, cbor.Array); err != nil {
+	for j := range l {
+		if err = br.check2(f.arr[j], TagMap, TagArray); err != nil {
 			return None, false, fe(f, f.arr[j], err)
 		}
 
@@ -108,16 +108,18 @@ func (f *FromEntries) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool
 			continue
 		}
 
+		var key, val Off = None, None
 		tag := br.Tag(f.arr[j])
-		var key, val Off = None, Null
 
-		if tag == cbor.Map {
+		if tag == TagMap {
 			keyj := findKey(b, f.arr[l:], "key", "Key", "name", "Name")
 			if keyj < 0 {
-				return None, false, fe(f, f.arr[j], NewTypeError(br.Tag(Null), cbor.String, cbor.Bytes))
+				return None, false, fe(f, f.arr[j], NewTypeError(br.Tag(Null), TagString, TagBytes))
 			}
 
 			key = f.arr[l+keyj+1]
+			val = Null
+
 			valj := findKey(b, f.arr[l:], "value", "Value")
 			if valj >= 0 {
 				val = f.arr[l+valj+1]
@@ -126,9 +128,13 @@ func (f *FromEntries) ApplyTo(b *Buffer, off Off, next bool) (res Off, more bool
 			continue
 		} else {
 			key = f.arr[l]
-			if len(f.arr) > 1 {
+			if l+1 < len(f.arr) {
 				val = f.arr[l+1]
 			}
+		}
+
+		if key == None || val == None {
+			continue
 		}
 
 		f.obj = append(f.obj, key, val)
@@ -145,7 +151,7 @@ func findKey(b *Buffer, obj []Off, keys ...string) (jj int) {
 
 	for _, key := range keys {
 		for j := 0; j < len(obj); j += 2 {
-			if tag := br.Tag(obj[j]); tag != cbor.String && tag != cbor.Bytes {
+			if tag := br.Tag(obj[j]); tag != TagString && tag != TagBytes {
 				continue
 			}
 

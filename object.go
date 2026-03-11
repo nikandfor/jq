@@ -24,9 +24,6 @@ type (
 )
 
 func NewObject(kvs ...any) *Object {
-	var e Encoder
-	var b []byte
-
 	obj := make([]ObjectKey, 0, len(kvs)/2)
 
 	for i := 0; i < len(kvs); i++ {
@@ -37,20 +34,29 @@ func NewObject(kvs ...any) *Object {
 
 		var key Filter
 
-		if k, ok := kvs[i].(string); ok {
-			st := len(b)
-			b = e.AppendString(b, k)
-
-			key = Literal{b[st:]}
-		} else if k, ok := kvs[i].(Filter); ok {
+		switch k := kvs[i].(type) {
+		case string:
+			key = NewLiteral(k)
+		case Filter:
 			key = k
-		} else {
-			panic(kvs[i])
+		default:
+			panic(k)
+		}
+
+		var val Filter
+
+		switch v := kvs[i+1].(type) {
+		case string, int, int64, float64, bool:
+			val = NewLiteral(v)
+		case Filter:
+			val = v
+		default:
+			panic(v)
 		}
 
 		obj = append(obj, ObjectKey{
 			Key:   key,
-			Value: kvs[i+1].(Filter),
+			Value: val,
 		})
 
 		i++
